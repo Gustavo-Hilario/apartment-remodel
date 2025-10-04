@@ -473,10 +473,19 @@
                             status: 'Completed',
                             date: expense.date || '',
                             room: expense.room || '',
+                            roomCategory: expense.roomCategory || '',
                         })),
                     };
 
                     displayExpensesData();
+                    
+                    // Load room categories for expenses that have a room selected
+                    roomData.items.forEach((item, index) => {
+                        if (item.room) {
+                            loadRoomCategoriesForExpense(index);
+                        }
+                    });
+                    
                     document.getElementById('roomEditor').style.display =
                         'block';
                     showNotification(
@@ -612,6 +621,7 @@
                 <th>Amount</th>
                 <th>Date</th>
                 <th>Room</th>
+                <th>Room Category</th>
                 <th>Actions</th>
             `;
 
@@ -726,7 +736,7 @@
                     item.date || ''
                 }" onchange="updateExpenseItem(${index}, 'date', this.value)"></td>
                 <td>
-                    <select onchange="updateExpenseItem(${index}, 'room', this.value)">
+                    <select onchange="updateExpenseItem(${index}, 'room', this.value); loadRoomCategoriesForExpense(${index})">
                         ${rooms
                             .map(
                                 (room) =>
@@ -737,6 +747,11 @@
                                     }>${room.label}</option>`
                             )
                             .join('')}
+                    </select>
+                </td>
+                <td>
+                    <select id="roomCategory_${index}" onchange="updateExpenseItem(${index}, 'roomCategory', this.value)">
+                        <option value="">General (New Item)</option>
                     </select>
                 </td>
                 <td><button onclick="removeItem(${index})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Delete</button></td>
@@ -768,6 +783,63 @@
                 displayExpensesData();
             }
 
+            // Load room categories when a room is selected for an expense
+            async function loadRoomCategoriesForExpense(expenseIndex) {
+                const expense = roomData.items[expenseIndex];
+                const roomName = expense.room;
+                
+                const dropdown = document.getElementById(`roomCategory_${expenseIndex}`);
+                
+                if (!roomName) {
+                    // No room selected, show only General
+                    dropdown.innerHTML = '<option value="">General (New Item)</option>';
+                    return;
+                }
+
+                try {
+                    // Map room names to file names
+                    const roomFileMap = {
+                        'Cocina': 'cocina',
+                        'Sala': 'sala',
+                        'Cuarto 1': 'cuarto1',
+                        'Cuarto 2': 'cuarto2',
+                        'Cuarto 3': 'cuarto3',
+                        'Baño 1': 'bano1',
+                        'Baño 2': 'bano2',
+                        'Baño Visita': 'bano_visita',
+                        'Balcón': 'balcon'
+                    };
+
+                    const roomFileName = roomFileMap[roomName];
+                    if (!roomFileName) return;
+
+                    // Load room data to get categories
+                    const response = await fetch(`/api/load-room/${roomFileName}`);
+                    const result = await response.json();
+
+                    if (result.success && result.roomData) {
+                        // Get unique categories from room items
+                        const categories = new Set();
+                        result.roomData.items.forEach(item => {
+                            if (item.category) {
+                                categories.add(item.category);
+                            }
+                        });
+
+                        // Populate dropdown with unique categories
+                        let options = '<option value="">General (New Item)</option>';
+                        Array.from(categories).sort().forEach(category => {
+                            options += `<option value="${category}" ${
+                                expense.roomCategory === category ? 'selected' : ''
+                            }>${category}</option>`;
+                        });
+                        dropdown.innerHTML = options;
+                    }
+                } catch (error) {
+                    console.error('Error loading room categories:', error);
+                }
+            }
+
             function updateBudget() {
                 roomData.budget =
                     parseFloat(document.getElementById('budgetInput').value) ||
@@ -789,6 +861,7 @@
                         status: 'Completed',
                         date: new Date().toISOString().split('T')[0],
                         room: '',
+                        roomCategory: '',
                     };
 
                     roomData.items.push(newItem);
@@ -841,6 +914,7 @@
                             category: item.category,
                             date: item.date || '',
                             room: item.room || '',
+                            roomCategory: item.roomCategory || '',
                         }));
 
                         const response = await fetch('/api/save-expenses', {

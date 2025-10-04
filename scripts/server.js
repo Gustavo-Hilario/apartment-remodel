@@ -91,13 +91,13 @@ app.post('/api/save-expenses', (req, res) => {
         const { expenses } = req.body;
 
         // Generate CSV content for main expenses file
-        let csvContent = 'Description,Amount,Category,Date,Room\n';
+        let csvContent = 'Description,Amount,Category,Date,Room,RoomCategory\n';
 
         expenses.forEach((expense) => {
             const amount = `"S/ ${expense.amount.toLocaleString('es-PE')}"`;
             csvContent += `${expense.description},${amount},${
                 expense.category
-            },${expense.date || ''},${expense.room || ''}\n`;
+            },${expense.date || ''},${expense.room || ''},${expense.roomCategory || ''}\n`;
         });
 
         // Save to main expenses file
@@ -134,37 +134,83 @@ app.post('/api/save-expenses', (req, res) => {
                     // Read existing room file
                     const roomContent = fs.readFileSync(roomFilePath, 'utf8');
                     const roomLines = roomContent.split('\n');
+                    const amount = parseFloat(expense.amount);
 
-                    // Check if this expense already exists in the room file
-                    const expenseExists = roomLines.some(
-                        (line) =>
-                            line.includes(expense.description) &&
-                            line.includes('General')
-                    );
-
-                    if (!expenseExists) {
-                        // Add new line for this expense with category "General"
-                        const amount = parseFloat(expense.amount);
-                        const newLine = `${expense.description},General,1,,0,${amount},${amount},Completed`;
-
-                        // Insert before the last line (which might be empty)
-                        const lastLineEmpty =
-                            roomLines[roomLines.length - 1].trim() === '';
-                        if (lastLineEmpty) {
-                            roomLines.splice(roomLines.length - 1, 0, newLine);
-                        } else {
-                            roomLines.push(newLine);
+                    if (expense.roomCategory && expense.roomCategory !== '') {
+                        // Add to ALL items in the specified category
+                        let categoryUpdated = false;
+                        let totalItemsInCategory = 0;
+                        
+                        // First, count items in this category
+                        for (let i = 3; i < roomLines.length; i++) {
+                            const line = roomLines[i].trim();
+                            if (!line) continue;
+                            const parts = line.split(',');
+                            if (parts.length >= 8 && parts[1] === expense.roomCategory) {
+                                totalItemsInCategory++;
+                            }
                         }
+                        
+                        if (totalItemsInCategory > 0) {
+                            // Distribute expense equally among items in this category
+                            const amountPerItem = amount / totalItemsInCategory;
+                            
+                            for (let i = 3; i < roomLines.length; i++) {
+                                const line = roomLines[i].trim();
+                                if (!line) continue;
+                                const parts = line.split(',');
+                                
+                                // Check if this line belongs to the selected category (column index 1)
+                                if (parts.length >= 8 && parts[1] === expense.roomCategory) {
+                                    // Update the actual price and subtotal
+                                    const currentActual = parseFloat(parts[5]) || 0;
+                                    const newActual = currentActual + amountPerItem;
+                                    const quantity = parseFloat(parts[2]) || 1;
+                                    const newSubtotal = newActual * quantity;
+                                    parts[5] = newActual;
+                                    parts[6] = newSubtotal;
+                                    roomLines[i] = parts.join(',');
+                                    categoryUpdated = true;
+                                }
+                            }
+                            
+                            if (categoryUpdated) {
+                                fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
+                                console.log(`✅ Distributed ${amount} to ${totalItemsInCategory} items in category "${expense.roomCategory}" in ${expense.room}`);
+                            }
+                        }
+                    } else {
+                        // Check if General expense already exists
+                        const expenseExists = roomLines.some(
+                            (line) =>
+                                line.includes(expense.description) &&
+                                line.includes('General')
+                        );
 
-                        // Write back to room file
-                        fs.writeFileSync(
-                            roomFilePath,
-                            roomLines.join('\n'),
-                            'utf8'
-                        );
-                        console.log(
-                            `✅ Added expense "${expense.description}" to ${expense.room} (${roomFileName}.csv)`
-                        );
+                        if (!expenseExists) {
+                            // Add new line for this expense with category "General"
+                            const amount = parseFloat(expense.amount);
+                            const newLine = `${expense.description},General,1,,0,${amount},${amount},Completed`;
+
+                            // Insert before the last line (which might be empty)
+                            const lastLineEmpty =
+                                roomLines[roomLines.length - 1].trim() === '';
+                            if (lastLineEmpty) {
+                                roomLines.splice(roomLines.length - 1, 0, newLine);
+                            } else {
+                                roomLines.push(newLine);
+                            }
+
+                            // Write back to room file
+                            fs.writeFileSync(
+                                roomFilePath,
+                                roomLines.join('\n'),
+                                'utf8'
+                            );
+                            console.log(
+                                `✅ Added expense "${expense.description}" to ${expense.room} (${roomFileName}.csv)`
+                            );
+                        }
                     }
                 }
             }
@@ -284,6 +330,7 @@ app.get('/api/load-expenses', (req, res) => {
                     category: parts[2],
                     date: parts[3] || '',
                     room: parts[4] || '',
+                    roomCategory: parts[5] || '',
                 });
             }
         }
