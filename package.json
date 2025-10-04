@@ -7,6 +7,7 @@
         "generate-excel": "node scripts/generate-excel.js",
         "split-csv": "node scripts/csv-splitter.js",
         "aggregate": "node scripts/data-aggregator.js",
+        "update-progress": "node scripts/update-room-progress.js",
         "update-all": "npm run aggregate && echo '📊 Data updated!'",
         "serve": "node scripts/server.js",
         "start": "npm run dev",

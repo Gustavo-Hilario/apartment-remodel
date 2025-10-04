@@ -126,9 +126,23 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
             if (!roomData) continue;
 
             const budget = roomData.budget;
-            const actual = roomData.items.reduce((sum, item) => sum + item.subtotal, 0);
+            // ONLY count Completed items for actual spending
+            const actual = roomData.items
+                .filter(item => item.status === 'Completed')
+                .reduce((sum, item) => sum + item.subtotal, 0);
             const difference = budget - actual;
-            const status = actual > 0 ? 'Completed' : 'Pending';
+            
+            // Determine status based on completed items
+            const completedCount = roomData.items.filter(item => item.status === 'Completed').length;
+            const totalCount = roomData.items.length;
+            let status;
+            if (completedCount === 0) {
+                status = 'Not Started';
+            } else if (completedCount === totalCount) {
+                status = 'Completed';
+            } else {
+                status = 'In Progress';
+            }
 
             totalBudget += budget;
             totalActual += actual;
@@ -142,7 +156,7 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
 
         const filePath = path.join(this.dataDir, 'budget-overview.csv');
         fs.writeFileSync(filePath, budgetLines.join('\n'), 'utf8');
-        console.log('✅ Updated budget-overview.csv');
+        console.log('✅ Updated budget-overview.csv (Completed items only)');
 
         return { totalBudget, totalActual, totalDifference };
     }
@@ -273,7 +287,11 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
             const summary = await this.generateBudgetOverview();
             await this.generateProducts();
             await this.generateCategorySummary();
-            await this.generateRoomProgress();
+            
+            // Use the new dedicated room progress updater
+            const RoomProgressUpdater = require('./update-room-progress.js');
+            const progressUpdater = new RoomProgressUpdater();
+            await progressUpdater.updateRoomProgress();
 
             console.log('\n📊 AGGREGATION COMPLETE!');
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -287,7 +305,7 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
             console.log('  ✅ budget-overview.csv (main summary)');
             console.log('  ✅ products-detailed.csv (all products by room)');
             console.log('  ✅ category-summary.csv (spending by category)');
-            console.log('  ✅ room-progress.csv (completion status)');
+            console.log('  ✅ room-progress.csv (completion status - ONLY Completed items)');
 
             console.log('\n💡 Next Steps:');
             console.log('  • Edit individual room files in data/rooms/');

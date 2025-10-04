@@ -1,11 +1,11 @@
 Room,Budget,Actual,Difference,Status
-Cocina,"S/ 40,000","S/ 45,206","S/ 5,206",Completed
-Sala,"S/ 30,000","S/ 20,546","S/ 9,454",Completed
-Cuarto 1,"S/ 20,000","S/ 0","S/ 20,000",Pending
-Cuarto 2,"S/ 20,000","S/ 0","S/ 20,000",Pending
-Cuarto 3,"S/ 15,000","S/ 0","S/ 15,000",Pending
-Baño 1,"S/ 15,000","S/ 0","S/ 15,000",Pending
-Baño 2,"S/ 15,000","S/ 0","S/ 15,000",Pending
-Baño Visita,"S/ 10,000","S/ 0","S/ 10,000",Pending
-Balcón,"S/ 5,000","S/ 0","S/ 5,000",Pending
-Total,"S/ 170,000","S/ 65,752","S/ 104,248",38.7% Complete
+Cocina,"S/ 40,000","S/ 0","S/ 40,000",Not Started
+Sala,"S/ 30,000","S/ 2,400","S/ 27,600",In Progress
+Cuarto 1,"S/ 20,000","S/ 0","S/ 20,000",Not Started
+Cuarto 2,"S/ 20,000","S/ 0","S/ 20,000",Not Started
+Cuarto 3,"S/ 15,000","S/ 0","S/ 15,000",Not Started
+Baño 1,"S/ 15,000","S/ 0","S/ 15,000",Not Started
+Baño 2,"S/ 15,000","S/ 0","S/ 15,000",Not Started
+Baño Visita,"S/ 10,000","S/ 0","S/ 10,000",Not Started
+Balcón,"S/ 5,000","S/ 0","S/ 5,000",Not Started
+Total,"S/ 170,000","S/ 2,400","S/ 167,600",1.4% Complete

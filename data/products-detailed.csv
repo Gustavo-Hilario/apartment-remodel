@@ -9,15 +9,15 @@ Cocina,Producto,Horno,1,,3500,0,3500,Planning
 Cocina,Producto,Microndas,1,,600,0,600,Planning
 Cocina,Producto,Heladera,1,,4500,0,4500,Planning
 Cocina,Producto,Menajes y Otros,1,,5000,0,5000,Planning
-Sala,Products,Mesa Comedor,1,,3000,3000,3000,Completed
-Sala,Products,Silas,6,,200,200,1200,Completed
-Sala,Products,Sillón,1,,2500,2500,2500,Completed
-Sala,Products,TV,1,,4000,4000,4000,Completed
-Sala,Products,Cortinas,10,m^2,70,70,700,Completed
-Sala,Products,Mesa Centro,1,,300,300,300,Completed
-Sala,Products,Puff,1,,200,200,200,Completed
-Sala,Products,Altar,1,,2000,2000,2000,Completed
-Sala,Products,Cuadro,1,,1000,1000,1000,Completed
+Sala,Products,Mesa Comedor,1,,3000,0,3000,Planning
+Sala,Products,Silas,6,,200,0,1200,Planning
+Sala,Products,Sillón,1,,2500,0,2500,Planning
+Sala,Products,TV,1,,4000,0,4000,Planning
+Sala,Products,Cortinas,10,m^2,70,0,700,Planning
+Sala,Products,Mesa Centro,1,,300,0,300,Planning
+Sala,Products,Puff,1,,200,0,200,Planning
+Sala,Products,Altar,1,,2000,0,2000,Planning
+Sala,Products,Cuadro,1,,1000,0,1000,Planning
 Cuarto 1,Products,Cama,1,,0,0,0,Planning
 Cuarto 1,Products,Closet,1,,0,0,0,Planning
 Cuarto 1,Products,Mesa de Noche,2,,0,0,0,Planning
