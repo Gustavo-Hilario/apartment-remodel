@@ -49,7 +49,7 @@ app.get('/api/load-room/:roomName', async (req, res) => {
         const roomData = {
             name: room.name,
             budget: room.budget,
-            items: room.items.map(item => ({
+            items: room.items.map((item) => ({
                 description: item.description,
                 category: item.category,
                 quantity: item.quantity,
@@ -57,8 +57,8 @@ app.get('/api/load-room/:roomName', async (req, res) => {
                 budgetRate: item.budget_price,
                 actualRate: item.actual_price,
                 subtotal: item.subtotal,
-                status: item.status
-            }))
+                status: item.status,
+            })),
         };
 
         res.json({ success: true, roomData });
@@ -79,17 +79,24 @@ app.post('/api/save-room/:roomName', async (req, res) => {
 
         // Validate room name
         const validRooms = [
-            'cocina', 'sala', 'cuarto1', 'cuarto2', 'cuarto3',
-            'bano1', 'bano2', 'bano_visita', 'balcon'
+            'cocina',
+            'sala',
+            'cuarto1',
+            'cuarto2',
+            'cuarto3',
+            'bano1',
+            'bano2',
+            'bano_visita',
+            'balcon',
         ];
-        
+
         if (!validRooms.includes(roomName)) {
             return res.status(400).json({ error: 'Invalid room name' });
         }
 
         // Find existing room
         const existingRoom = await roomsRepo.getRoomBySlug(roomName);
-        
+
         if (!existingRoom) {
             return res.status(404).json({ error: 'Room not found' });
         }
@@ -98,7 +105,7 @@ app.post('/api/save-room/:roomName', async (req, res) => {
         await roomsRepo.updateRoom(existingRoom._id, {
             name: roomData.name,
             budget: parseFloat(roomData.budget) || 0,
-            items: roomData.items.map(item => ({
+            items: roomData.items.map((item) => ({
                 description: item.description,
                 category: item.category,
                 quantity: parseFloat(item.quantity) || 1,
@@ -106,8 +113,8 @@ app.post('/api/save-room/:roomName', async (req, res) => {
                 budget_price: parseFloat(item.budgetRate) || 0,
                 actual_price: parseFloat(item.actualRate) || 0,
                 subtotal: parseFloat(item.subtotal) || 0,
-                status: item.status || 'Pending'
-            }))
+                status: item.status || 'Pending',
+            })),
         });
 
         // Recalculate room statistics
@@ -118,7 +125,7 @@ app.post('/api/save-room/:roomName', async (req, res) => {
         res.json({
             success: true,
             message: `${roomData.name} data saved successfully`,
-            roomId: existingRoom._id
+            roomId: existingRoom._id,
         });
     } catch (error) {
         console.error('Error saving room data:', error);
@@ -135,8 +142,8 @@ app.get('/api/get-all-categories', async (req, res) => {
         const rooms = await roomsRepo.getAllRooms();
         const categoriesSet = new Set();
 
-        rooms.forEach(room => {
-            room.items.forEach(item => {
+        rooms.forEach((room) => {
+            room.items.forEach((item) => {
                 if (item.category) {
                     categoriesSet.add(item.category);
                 }
@@ -144,7 +151,7 @@ app.get('/api/get-all-categories', async (req, res) => {
         });
 
         const categories = Array.from(categoriesSet).sort();
-        
+
         res.json({ success: true, categories });
     } catch (error) {
         console.error('Error getting categories:', error);
@@ -177,15 +184,15 @@ app.get('/api/totals', async (req, res) => {
 app.get('/api/load-expenses', async (req, res) => {
     try {
         const expenses = await expensesRepo.getAllExpenses();
-        
+
         // Transform to match frontend format
-        const formattedExpenses = expenses.map(exp => ({
+        const formattedExpenses = expenses.map((exp) => ({
             description: exp.description,
             amount: exp.amount,
             category: exp.category,
             date: exp.date ? exp.date.toISOString().split('T')[0] : '',
             room: exp.room_name,
-            roomCategory: exp.room_category
+            roomCategory: exp.room_category,
         }));
 
         res.json({ success: true, expenses: formattedExpenses });
@@ -224,7 +231,10 @@ app.post('/api/save-expenses', async (req, res) => {
         // Get existing expenses to detect changes
         const existing = await expensesRepo.getAllExpenses();
         const existingMap = new Map(
-            existing.map(e => [`${e.description}|${e.category}|${e.room_name}`, e])
+            existing.map((e) => [
+                `${e.description}|${e.category}|${e.room_name}`,
+                e,
+            ])
         );
 
         // Track what to delete
@@ -234,7 +244,10 @@ app.post('/api/save-expenses', async (req, res) => {
 
         // Build map of new expenses
         const newExpensesMap = new Map(
-            expenses.map(e => [`${e.description}|${e.category}|${e.room || 'General'}`, e])
+            expenses.map((e) => [
+                `${e.description}|${e.category}|${e.room || 'General'}`,
+                e,
+            ])
         );
 
         // Find deleted expenses
@@ -246,14 +259,20 @@ app.post('/api/save-expenses', async (req, res) => {
 
         // Process new/updated expenses
         for (const expense of expenses) {
-            const key = `${expense.description}|${expense.category}|${expense.room || 'General'}`;
+            const key = `${expense.description}|${expense.category}|${
+                expense.room || 'General'
+            }`;
             const existing = existingMap.get(key);
 
             // Determine room_id
             let roomId = null;
             const roomName = expense.room || 'General';
-            
-            if (roomName && roomName !== 'All Rooms' && roomName !== 'General') {
+
+            if (
+                roomName &&
+                roomName !== 'All Rooms' &&
+                roomName !== 'General'
+            ) {
                 const room = await roomsRepo.getRoomByName(roomName);
                 roomId = room ? room._id : null;
             }
@@ -267,13 +286,16 @@ app.post('/api/save-expenses', async (req, res) => {
                 category: expense.category,
                 room_category: expense.roomCategory || expense.category,
                 description: expense.description,
-                amount: parseFloat(expense.amount) || 0
+                amount: parseFloat(expense.amount) || 0,
             };
 
             if (existing) {
                 // Check if updated
-                if (existing.amount !== expenseData.amount ||
-                    existing.date?.toISOString() !== expenseData.date.toISOString()) {
+                if (
+                    existing.amount !== expenseData.amount ||
+                    existing.date?.toISOString() !==
+                        expenseData.date.toISOString()
+                ) {
                     toUpdate.push({ id: existing._id, data: expenseData });
                 }
             } else {
@@ -283,38 +305,54 @@ app.post('/api/save-expenses', async (req, res) => {
 
         // Execute deletions (and remove from rooms if "All Rooms" or specific room)
         for (const id of toDelete) {
-            const deletedExpense = existing.find(e => e._id.toString() === id.toString());
+            const deletedExpense = existing.find(
+                (e) => e._id.toString() === id.toString()
+            );
             await expensesRepo.deleteExpense(id);
-            
+
             if (deletedExpense) {
                 // If it was an "All Rooms" expense, remove from all room items
                 if (deletedExpense.applies_to_all_rooms) {
                     const allRooms = await roomsRepo.getAllRooms();
                     for (const room of allRooms) {
                         // Filter out items matching the deleted expense
-                        const updatedItems = room.items.filter(item => 
-                            item.description !== deletedExpense.description ||
-                            item.category !== deletedExpense.room_category
+                        const updatedItems = room.items.filter(
+                            (item) =>
+                                item.description !==
+                                    deletedExpense.description ||
+                                item.category !== deletedExpense.room_category
                         );
                         if (updatedItems.length !== room.items.length) {
-                            await roomsRepo.updateRoom(room._id, { items: updatedItems });
+                            await roomsRepo.updateRoom(room._id, {
+                                items: updatedItems,
+                            });
                             await roomsRepo.recalculateRoomStats(room._id);
-                            console.log(`   🗑️  Removed "${deletedExpense.description}" from ${room.name}`);
+                            console.log(
+                                `   🗑️  Removed "${deletedExpense.description}" from ${room.name}`
+                            );
                         }
                     }
                 }
                 // If it was a room-specific expense, remove from that room only
                 else if (deletedExpense.room_id) {
-                    const room = await roomsRepo.getRoomById(deletedExpense.room_id);
+                    const room = await roomsRepo.getRoomById(
+                        deletedExpense.room_id
+                    );
                     if (room) {
-                        const updatedItems = room.items.filter(item => 
-                            item.description !== deletedExpense.description ||
-                            item.category !== deletedExpense.room_category
+                        const updatedItems = room.items.filter(
+                            (item) =>
+                                item.description !==
+                                    deletedExpense.description ||
+                                item.category !== deletedExpense.room_category
                         );
                         if (updatedItems.length !== room.items.length) {
-                            await roomsRepo.updateRoom(room._id, { items: updatedItems });
+                            await roomsRepo.updateRoom(room._id, {
+                                items: updatedItems,
+                            });
                             await roomsRepo.recalculateRoomStats(room._id);
-                            console.log(`   🗑️  Removed "${deletedExpense.description}" from ${room.name}`);
+                            console.log(
+                                `   🗑️  Removed "${deletedExpense.description}" from ${room.name}`
+                            );
                         }
                     }
                 }
@@ -324,26 +362,31 @@ app.post('/api/save-expenses', async (req, res) => {
         // Execute updates (update amounts in rooms if "All Rooms" or specific room)
         for (const { id, data } of toUpdate) {
             await expensesRepo.updateExpense(id, data);
-            
+
             // If it's an "All Rooms" expense, update in all room items
             if (data.applies_to_all_rooms) {
                 const allRooms = await roomsRepo.getAllRooms();
                 const amountPerRoom = data.amount / allRooms.length;
-                
+
                 for (const room of allRooms) {
                     // Find and update the item in the room
-                    const itemIndex = room.items.findIndex(item => 
-                        item.description === data.description &&
-                        item.category === data.room_category
+                    const itemIndex = room.items.findIndex(
+                        (item) =>
+                            item.description === data.description &&
+                            item.category === data.room_category
                     );
-                    
+
                     if (itemIndex !== -1) {
                         await roomsRepo.updateRoomItem(room._id, itemIndex, {
                             actual_price: amountPerRoom,
-                            subtotal: amountPerRoom
+                            subtotal: amountPerRoom,
                         });
                         await roomsRepo.recalculateRoomStats(room._id);
-                        console.log(`   ✏️  Updated "${data.description}" in ${room.name}: S/ ${amountPerRoom.toFixed(2)}`);
+                        console.log(
+                            `   ✏️  Updated "${data.description}" in ${
+                                room.name
+                            }: S/ ${amountPerRoom.toFixed(2)}`
+                        );
                     }
                 }
             }
@@ -351,18 +394,23 @@ app.post('/api/save-expenses', async (req, res) => {
             else if (data.room_id) {
                 const room = await roomsRepo.getRoomById(data.room_id);
                 if (room) {
-                    const itemIndex = room.items.findIndex(item => 
-                        item.description === data.description &&
-                        item.category === data.room_category
+                    const itemIndex = room.items.findIndex(
+                        (item) =>
+                            item.description === data.description &&
+                            item.category === data.room_category
                     );
-                    
+
                     if (itemIndex !== -1) {
                         await roomsRepo.updateRoomItem(room._id, itemIndex, {
                             actual_price: data.amount,
-                            subtotal: data.amount
+                            subtotal: data.amount,
                         });
                         await roomsRepo.recalculateRoomStats(room._id);
-                        console.log(`   ✏️  Updated "${data.description}" in ${room.name}: S/ ${data.amount.toFixed(2)}`);
+                        console.log(
+                            `   ✏️  Updated "${data.description}" in ${
+                                room.name
+                            }: S/ ${data.amount.toFixed(2)}`
+                        );
                     }
                 }
             }
@@ -371,22 +419,27 @@ app.post('/api/save-expenses', async (req, res) => {
         // Execute creations (and add to rooms if "All Rooms" or specific room)
         for (const data of toCreate) {
             await expensesRepo.createExpense(data);
-            
+
             // Handle "All Rooms" expense - split across all rooms
             if (data.applies_to_all_rooms) {
                 const allRooms = await roomsRepo.getAllRooms();
                 const amountPerRoom = data.amount / allRooms.length;
-                
-                console.log(`\n🏠 Splitting "${data.description}" (S/ ${data.amount}) across ${allRooms.length} rooms...`);
-                console.log(`   Amount per room: S/ ${amountPerRoom.toFixed(2)}`);
-                
+
+                console.log(
+                    `\n🏠 Splitting "${data.description}" (S/ ${data.amount}) across ${allRooms.length} rooms...`
+                );
+                console.log(
+                    `   Amount per room: S/ ${amountPerRoom.toFixed(2)}`
+                );
+
                 for (const room of allRooms) {
                     // Check if item already exists
-                    const existingItemIndex = room.items.findIndex(item =>
-                        item.description === data.description &&
-                        item.category === data.room_category
+                    const existingItemIndex = room.items.findIndex(
+                        (item) =>
+                            item.description === data.description &&
+                            item.category === data.room_category
                     );
-                    
+
                     if (existingItemIndex === -1) {
                         // Add as a new item in the room
                         const newItem = {
@@ -397,12 +450,16 @@ app.post('/api/save-expenses', async (req, res) => {
                             budget_price: 0,
                             actual_price: amountPerRoom,
                             subtotal: amountPerRoom,
-                            status: 'Completed'
+                            status: 'Completed',
                         };
-                        
+
                         await roomsRepo.addRoomItem(room._id, newItem);
                         await roomsRepo.recalculateRoomStats(room._id);
-                        console.log(`   ✅ Added to ${room.name}: S/ ${amountPerRoom.toFixed(2)}`);
+                        console.log(
+                            `   ✅ Added to ${
+                                room.name
+                            }: S/ ${amountPerRoom.toFixed(2)}`
+                        );
                     }
                 }
             }
@@ -411,11 +468,12 @@ app.post('/api/save-expenses', async (req, res) => {
                 const room = await roomsRepo.getRoomById(data.room_id);
                 if (room) {
                     // Check if item already exists
-                    const existingItemIndex = room.items.findIndex(item =>
-                        item.description === data.description &&
-                        item.category === data.room_category
+                    const existingItemIndex = room.items.findIndex(
+                        (item) =>
+                            item.description === data.description &&
+                            item.category === data.room_category
                     );
-                    
+
                     if (existingItemIndex === -1) {
                         const newItem = {
                             description: data.description,
@@ -425,18 +483,24 @@ app.post('/api/save-expenses', async (req, res) => {
                             budget_price: 0,
                             actual_price: data.amount,
                             subtotal: data.amount,
-                            status: 'Completed'
+                            status: 'Completed',
                         };
-                        
+
                         await roomsRepo.addRoomItem(room._id, newItem);
                         await roomsRepo.recalculateRoomStats(room._id);
-                        console.log(`   ✅ Added "${data.description}" to ${room.name}: S/ ${data.amount.toFixed(2)}`);
+                        console.log(
+                            `   ✅ Added "${data.description}" to ${
+                                room.name
+                            }: S/ ${data.amount.toFixed(2)}`
+                        );
                     }
                 }
             }
         }
 
-        console.log(`\n✅ Expenses updated: ${toCreate.length} created, ${toUpdate.length} updated, ${toDelete.length} deleted`);
+        console.log(
+            `\n✅ Expenses updated: ${toCreate.length} created, ${toUpdate.length} updated, ${toDelete.length} deleted`
+        );
 
         res.json({
             success: true,
@@ -444,8 +508,8 @@ app.post('/api/save-expenses', async (req, res) => {
             stats: {
                 created: toCreate.length,
                 updated: toUpdate.length,
-                deleted: toDelete.length
-            }
+                deleted: toDelete.length,
+            },
         });
     } catch (error) {
         console.error('Error saving expenses:', error);

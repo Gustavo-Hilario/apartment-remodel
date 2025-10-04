@@ -63,6 +63,29 @@
             z-index: 1;
         }
 
+        .nav {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            transition: background 0.3s ease;
+        }
+
+        .nav a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
         .content {
             padding: 40px;
         }
@@ -264,6 +287,13 @@
         <div class="header">
             <h1>🏠 Apartment Remodel</h1>
             <p>Smart Budget Tracking & Project Management Hub</p>
+            <div class="nav">
+                <a href="home.html">🏠 Home</a>
+                <a href="charts/budget-overview.html">📊 Dashboard</a>
+                <a href="charts/room-editor.html">✏️ Editor</a>
+                <a href="charts/products.html">🛍️ Products</a>
+                <a href="README.html">📖 Documentation</a>
+            </div>
         </div>
 
         <div class="content">

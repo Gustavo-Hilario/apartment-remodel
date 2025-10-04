@@ -1,17 +1,17 @@
 {
-  "name": "apartment-remodel",
-  "version": "1.0.0",
-  "description": "Apartment remodeling budget and progress tracker",
-  "scripts": {
-    "start": "node scripts/server.js",
-    "dev": "nodemon scripts/server.js"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "mongodb": "^6.20.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.10"
-  }
+    "name": "apartment-remodel",
+    "version": "1.0.0",
+    "description": "Apartment remodeling budget and progress tracker",
+    "scripts": {
+        "start": "node scripts/server.js",
+        "dev": "nodemon scripts/server.js"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^5.1.0",
+        "mongodb": "^6.20.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.10"
+    }
 }
