@@ -74,7 +74,7 @@
 
             .room-info {
                 display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
+                grid-template-columns: 1fr 1fr 1fr 1fr;
                 gap: 20px;
                 margin-bottom: 30px;
                 padding: 20px;
@@ -314,8 +314,12 @@
                             />
                         </div>
                         <div class="info-card">
-                            <h3>Current Total</h3>
-                            <div class="value" id="currentTotal">S/ 0</div>
+                            <h3>Expected Total</h3>
+                            <div class="value" id="expectedTotal">S/ 0</div>
+                        </div>
+                        <div class="info-card">
+                            <h3>Actual Total</h3>
+                            <div class="value" id="actualTotal">S/ 0</div>
                         </div>
                         <div class="info-card">
                             <h3>Difference</h3>
@@ -560,23 +564,73 @@
             }
 
             function displayRoomData() {
+                // Reset room info headers (in case coming from expenses view)
+                document
+                    .getElementById('roomBudget')
+                    .parentElement.querySelector('h3').textContent = 'Room Budget';
+                document.getElementById('budgetInput').style.display = 'block';
+                
+                document
+                    .getElementById('expectedTotal')
+                    .parentElement.querySelector('h3').textContent = 'Expected Total';
+                    
+                document
+                    .getElementById('actualTotal')
+                    .parentElement.querySelector('h3').textContent = 'Actual Total';
+                    
+                document
+                    .getElementById('difference')
+                    .parentElement.querySelector('h3').textContent = 'Difference';
+                
                 // Update room info
                 document.getElementById('roomBudget').textContent =
                     formatCurrency(roomData.budget);
                 document.getElementById('budgetInput').value = roomData.budget;
 
-                const currentTotal = roomData.items.reduce(
-                    (sum, item) => sum + item.subtotal,
+                // Calculate Expected Total (sum of all subtotals)
+                const expectedTotal = roomData.items.reduce(
+                    (sum, item) => {
+                        const rate = item.actualRate > 0 ? item.actualRate : item.budgetRate;
+                        return sum + (rate * item.quantity);
+                    },
                     0
                 );
-                document.getElementById('currentTotal').textContent =
-                    formatCurrency(currentTotal);
+                document.getElementById('expectedTotal').textContent =
+                    formatCurrency(expectedTotal);
 
-                const difference = roomData.budget - currentTotal;
+                // Calculate Actual Total (sum of completed items only)
+                const actualTotal = roomData.items.reduce(
+                    (sum, item) => {
+                        if (item.status === 'Completed') {
+                            return sum + item.subtotal;
+                        }
+                        return sum;
+                    },
+                    0
+                );
+                document.getElementById('actualTotal').textContent =
+                    formatCurrency(actualTotal);
+
+                const difference = roomData.budget - expectedTotal;
                 const diffElement = document.getElementById('difference');
                 diffElement.textContent = formatCurrency(Math.abs(difference));
                 diffElement.style.color =
                     difference >= 0 ? '#28a745' : '#dc3545';
+
+                // Reset table headers for room view
+                const table = document.querySelector('.items-table table');
+                const thead = table.querySelector('thead tr');
+                thead.innerHTML = `
+                <th>Description</th>
+                <th>Category</th>
+                <th>Qty</th>
+                <th>Unit</th>
+                <th>Budget Price</th>
+                <th>Actual Price</th>
+                <th>Subtotal</th>
+                <th>Status</th>
+                <th>Actions</th>
+            `;
 
                 // Update items table
                 const tbody = document.getElementById('itemsTable');
@@ -602,7 +656,11 @@
                     (sum, item) => sum + item.subtotal,
                     0
                 );
-                document.getElementById('currentTotal').textContent =
+                document.getElementById('expectedTotal').textContent =
+                    formatCurrency(currentTotal);
+
+                // Hide actual total for expenses view (not applicable)
+                document.getElementById('actualTotal').textContent = 
                     formatCurrency(currentTotal);
 
                 document
@@ -773,8 +831,8 @@
 
                 // Recalculate subtotal
                 const item = roomData.items[index];
-                const rate =
-                    item.actualRate > 0 ? item.actualRate : item.budgetRate;
+                // Use actual price if defined and > 0, otherwise use budget price
+                const rate = (item.actualRate && item.actualRate > 0) ? item.actualRate : item.budgetRate;
                 item.subtotal = rate * item.quantity;
 
                 displayRoomData();
@@ -1035,6 +1093,10 @@
                 const room = urlParams.get('room');
                 if (room) {
                     document.getElementById('roomSelect').value = room;
+                    loadRoom();
+                } else {
+                    // Default to Main Project Costs if no room specified
+                    document.getElementById('roomSelect').value = 'main-costs';
                     loadRoom();
                 }
             });
