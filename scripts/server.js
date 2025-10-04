@@ -122,7 +122,104 @@ app.post('/api/save-expenses', (req, res) => {
         };
 
         expenses.forEach((expense) => {
-            if (expense.room && roomNameMap[expense.room]) {
+            // Handle "All Rooms" - split expense equally across all rooms
+            if (expense.room === 'All Rooms') {
+                const allRoomNames = Object.keys(roomNameMap);
+                const totalAmount = parseFloat(expense.amount);
+                const amountPerRoom = totalAmount / allRoomNames.length;
+
+                console.log(`\n🏠 Splitting "${expense.description}" (S/ ${totalAmount}) across ${allRoomNames.length} rooms...`);
+                console.log(`   Amount per room: S/ ${amountPerRoom.toFixed(2)}`);
+                
+                if (expense.roomCategory && expense.roomCategory !== '') {
+                    console.log(`   Category: ${expense.roomCategory} (distributed to items in this category)\n`);
+                } else {
+                    console.log(`   Category: General (new item)\n`);
+                }
+
+                allRoomNames.forEach((roomDisplayName) => {
+                    const roomFileName = roomNameMap[roomDisplayName];
+                    const roomFilePath = path.join(
+                        __dirname,
+                        '..',
+                        'data',
+                        'rooms',
+                        `${roomFileName}.csv`
+                    );
+
+                    if (fs.existsSync(roomFilePath)) {
+                        const roomContent = fs.readFileSync(roomFilePath, 'utf8');
+                        const roomLines = roomContent.split('\n');
+
+                        // Check if a room category is selected - distribute to items in that category
+                        if (expense.roomCategory && expense.roomCategory !== '') {
+                            let categoryUpdated = false;
+                            let totalItemsInCategory = 0;
+
+                            // Count items in this category
+                            for (let i = 3; i < roomLines.length; i++) {
+                                const line = roomLines[i].trim();
+                                if (!line) continue;
+                                const parts = line.split(',');
+                                if (parts.length >= 8 && parts[1] === expense.roomCategory) {
+                                    totalItemsInCategory++;
+                                }
+                            }
+
+                            if (totalItemsInCategory > 0) {
+                                const amountPerItem = amountPerRoom / totalItemsInCategory;
+
+                                for (let i = 3; i < roomLines.length; i++) {
+                                    const line = roomLines[i].trim();
+                                    if (!line) continue;
+                                    const parts = line.split(',');
+
+                                    if (parts.length >= 8 && parts[1] === expense.roomCategory) {
+                                        const currentActual = parseFloat(parts[5]) || 0;
+                                        const newActual = currentActual + amountPerItem;
+                                        const quantity = parseFloat(parts[2]) || 1;
+                                        const newSubtotal = newActual * quantity;
+                                        parts[5] = newActual;
+                                        parts[6] = newSubtotal;
+                                        roomLines[i] = parts.join(',');
+                                        categoryUpdated = true;
+                                    }
+                                }
+
+                                if (categoryUpdated) {
+                                    fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
+                                    console.log(`   ✅ Distributed S/ ${amountPerRoom.toFixed(2)} to ${totalItemsInCategory} items in "${expense.roomCategory}" in ${roomDisplayName}`);
+                                }
+                            } else {
+                                console.log(`   ⚠️  No items found in category "${expense.roomCategory}" in ${roomDisplayName}`);
+                            }
+                        } else {
+                            // No category - add as new General item
+                            const expenseExists = roomLines.some(
+                                (line) =>
+                                    line.includes(expense.description) &&
+                                    line.includes('General')
+                            );
+
+                            if (!expenseExists) {
+                                const newLine = `${expense.description},General,1,,0,${amountPerRoom},${amountPerRoom},Completed`;
+
+                                const lastLineEmpty = roomLines[roomLines.length - 1].trim() === '';
+                                if (lastLineEmpty) {
+                                    roomLines.splice(roomLines.length - 1, 0, newLine);
+                                } else {
+                                    roomLines.push(newLine);
+                                }
+
+                                fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
+                                console.log(`   ✅ Added S/ ${amountPerRoom.toFixed(2)} to ${roomDisplayName}`);
+                            }
+                        }
+                    }
+                });
+            } 
+            // Handle single room assignment
+            else if (expense.room && roomNameMap[expense.room]) {
                 const roomFileName = roomNameMap[expense.room];
                 const roomFilePath = path.join(
                     __dirname,

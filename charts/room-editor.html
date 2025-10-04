@@ -699,6 +699,7 @@
                 ];
                 const rooms = [
                     { value: '', label: 'No Room' },
+                    { value: 'All Rooms', label: '🏠 All Rooms (Split Equally)' },
                     { value: 'Cocina', label: 'Cocina' },
                     { value: 'Sala', label: 'Sala' },
                     { value: 'Cuarto 1', label: 'Cuarto 1' },
@@ -796,6 +797,25 @@
                     // No room selected, show only General
                     dropdown.innerHTML =
                         '<option value="">General (New Item)</option>';
+                    return;
+                }
+
+                // Handle "All Rooms" with predefined categories
+                if (roomName === 'All Rooms') {
+                    const allRoomsCategories = [
+                        'Mano de Obra',
+                        'Material',
+                        'Producto',
+                        'Servicio'
+                    ];
+                    
+                    let options = '<option value="">General (New Item)</option>';
+                    allRoomsCategories.forEach((category) => {
+                        options += `<option value="${category}" ${
+                            expense.roomCategory === category ? 'selected' : ''
+                        }>${category}</option>`;
+                    });
+                    dropdown.innerHTML = options;
                     return;
                 }
 
