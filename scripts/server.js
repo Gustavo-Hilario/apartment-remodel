@@ -281,22 +281,162 @@ app.post('/api/save-expenses', async (req, res) => {
             }
         }
 
-        // Execute deletions
+        // Execute deletions (and remove from rooms if "All Rooms" or specific room)
         for (const id of toDelete) {
+            const deletedExpense = existing.find(e => e._id.toString() === id.toString());
             await expensesRepo.deleteExpense(id);
+            
+            if (deletedExpense) {
+                // If it was an "All Rooms" expense, remove from all room items
+                if (deletedExpense.applies_to_all_rooms) {
+                    const allRooms = await roomsRepo.getAllRooms();
+                    for (const room of allRooms) {
+                        // Filter out items matching the deleted expense
+                        const updatedItems = room.items.filter(item => 
+                            item.description !== deletedExpense.description ||
+                            item.category !== deletedExpense.room_category
+                        );
+                        if (updatedItems.length !== room.items.length) {
+                            await roomsRepo.updateRoom(room._id, { items: updatedItems });
+                            await roomsRepo.recalculateRoomStats(room._id);
+                            console.log(`   🗑️  Removed "${deletedExpense.description}" from ${room.name}`);
+                        }
+                    }
+                }
+                // If it was a room-specific expense, remove from that room only
+                else if (deletedExpense.room_id) {
+                    const room = await roomsRepo.getRoomById(deletedExpense.room_id);
+                    if (room) {
+                        const updatedItems = room.items.filter(item => 
+                            item.description !== deletedExpense.description ||
+                            item.category !== deletedExpense.room_category
+                        );
+                        if (updatedItems.length !== room.items.length) {
+                            await roomsRepo.updateRoom(room._id, { items: updatedItems });
+                            await roomsRepo.recalculateRoomStats(room._id);
+                            console.log(`   🗑️  Removed "${deletedExpense.description}" from ${room.name}`);
+                        }
+                    }
+                }
+            }
         }
 
-        // Execute updates
+        // Execute updates (update amounts in rooms if "All Rooms" or specific room)
         for (const { id, data } of toUpdate) {
             await expensesRepo.updateExpense(id, data);
+            
+            // If it's an "All Rooms" expense, update in all room items
+            if (data.applies_to_all_rooms) {
+                const allRooms = await roomsRepo.getAllRooms();
+                const amountPerRoom = data.amount / allRooms.length;
+                
+                for (const room of allRooms) {
+                    // Find and update the item in the room
+                    const itemIndex = room.items.findIndex(item => 
+                        item.description === data.description &&
+                        item.category === data.room_category
+                    );
+                    
+                    if (itemIndex !== -1) {
+                        await roomsRepo.updateRoomItem(room._id, itemIndex, {
+                            actual_price: amountPerRoom,
+                            subtotal: amountPerRoom
+                        });
+                        await roomsRepo.recalculateRoomStats(room._id);
+                        console.log(`   ✏️  Updated "${data.description}" in ${room.name}: S/ ${amountPerRoom.toFixed(2)}`);
+                    }
+                }
+            }
+            // If it's a room-specific expense, update in that room only
+            else if (data.room_id) {
+                const room = await roomsRepo.getRoomById(data.room_id);
+                if (room) {
+                    const itemIndex = room.items.findIndex(item => 
+                        item.description === data.description &&
+                        item.category === data.room_category
+                    );
+                    
+                    if (itemIndex !== -1) {
+                        await roomsRepo.updateRoomItem(room._id, itemIndex, {
+                            actual_price: data.amount,
+                            subtotal: data.amount
+                        });
+                        await roomsRepo.recalculateRoomStats(room._id);
+                        console.log(`   ✏️  Updated "${data.description}" in ${room.name}: S/ ${data.amount.toFixed(2)}`);
+                    }
+                }
+            }
         }
 
-        // Execute creations
+        // Execute creations (and add to rooms if "All Rooms" or specific room)
         for (const data of toCreate) {
             await expensesRepo.createExpense(data);
+            
+            // Handle "All Rooms" expense - split across all rooms
+            if (data.applies_to_all_rooms) {
+                const allRooms = await roomsRepo.getAllRooms();
+                const amountPerRoom = data.amount / allRooms.length;
+                
+                console.log(`\n🏠 Splitting "${data.description}" (S/ ${data.amount}) across ${allRooms.length} rooms...`);
+                console.log(`   Amount per room: S/ ${amountPerRoom.toFixed(2)}`);
+                
+                for (const room of allRooms) {
+                    // Check if item already exists
+                    const existingItemIndex = room.items.findIndex(item =>
+                        item.description === data.description &&
+                        item.category === data.room_category
+                    );
+                    
+                    if (existingItemIndex === -1) {
+                        // Add as a new item in the room
+                        const newItem = {
+                            description: data.description,
+                            category: data.room_category,
+                            quantity: 1,
+                            unit: 'unit',
+                            budget_price: 0,
+                            actual_price: amountPerRoom,
+                            subtotal: amountPerRoom,
+                            status: 'Completed'
+                        };
+                        
+                        await roomsRepo.addRoomItem(room._id, newItem);
+                        await roomsRepo.recalculateRoomStats(room._id);
+                        console.log(`   ✅ Added to ${room.name}: S/ ${amountPerRoom.toFixed(2)}`);
+                    }
+                }
+            }
+            // Handle room-specific expense
+            else if (data.room_id) {
+                const room = await roomsRepo.getRoomById(data.room_id);
+                if (room) {
+                    // Check if item already exists
+                    const existingItemIndex = room.items.findIndex(item =>
+                        item.description === data.description &&
+                        item.category === data.room_category
+                    );
+                    
+                    if (existingItemIndex === -1) {
+                        const newItem = {
+                            description: data.description,
+                            category: data.room_category,
+                            quantity: 1,
+                            unit: 'unit',
+                            budget_price: 0,
+                            actual_price: data.amount,
+                            subtotal: data.amount,
+                            status: 'Completed'
+                        };
+                        
+                        await roomsRepo.addRoomItem(room._id, newItem);
+                        await roomsRepo.recalculateRoomStats(room._id);
+                        console.log(`   ✅ Added "${data.description}" to ${room.name}: S/ ${data.amount.toFixed(2)}`);
+                    }
+                }
+            }
         }
 
-        console.log(`✅ Expenses updated: ${toCreate.length} created, ${toUpdate.length} updated, ${toDelete.length} deleted`);
+        console.log(`\n✅ Expenses updated: ${toCreate.length} created, ${toUpdate.length} updated, ${toDelete.length} deleted`);
 
         res.json({
             success: true,
