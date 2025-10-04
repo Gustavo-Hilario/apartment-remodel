@@ -85,6 +85,23 @@ app.post('/api/save-room/:roomName', (req, res) => {
     }
 });
 
+// Helper function to check if categories match (handles Spanish/English variations)
+function categoriesMatch(category1, category2) {
+    if (category1 === category2) return true;
+    
+    // Map Spanish to English and vice versa
+    const categoryMap = {
+        'Servicio': 'Services',
+        'Services': 'Servicio',
+        'Material': 'Materials',
+        'Materials': 'Material',
+        'Producto': 'Products',
+        'Products': 'Producto'
+    };
+    
+    return categoryMap[category1] === category2 || categoryMap[category2] === category1;
+}
+
 // Route to save expenses data
 app.post('/api/save-expenses', (req, res) => {
     try {
@@ -153,45 +170,47 @@ app.post('/api/save-expenses', (req, res) => {
 
                         // Check if a room category is selected - distribute to items in that category
                         if (expense.roomCategory && expense.roomCategory !== '') {
-                            let categoryUpdated = false;
-                            let totalItemsInCategory = 0;
+                            let itemUpdated = false;
 
-                            // Count items in this category
+                            // Look for an exact match: description AND category
                             for (let i = 3; i < roomLines.length; i++) {
                                 const line = roomLines[i].trim();
                                 if (!line) continue;
                                 const parts = line.split(',');
-                                if (parts.length >= 8 && parts[1] === expense.roomCategory) {
-                                    totalItemsInCategory++;
+
+                                if (parts.length >= 8 && 
+                                    parts[0] === expense.description && 
+                                    categoriesMatch(parts[1], expense.roomCategory)) {
+                                    // Found exact match - update this item
+                                    const currentActual = parseFloat(parts[5]) || 0;
+                                    const newActual = currentActual + amountPerRoom;
+                                    const quantity = parseFloat(parts[2]) || 1;
+                                    const newSubtotal = newActual * quantity;
+                                    parts[5] = newActual;
+                                    parts[6] = newSubtotal;
+                                    parts[7] = 'Completed'; // Mark as completed
+                                    roomLines[i] = parts.join(',');
+                                    itemUpdated = true;
+                                    break; // Only update one matching item
                                 }
                             }
 
-                            if (totalItemsInCategory > 0) {
-                                const amountPerItem = amountPerRoom / totalItemsInCategory;
-
-                                for (let i = 3; i < roomLines.length; i++) {
-                                    const line = roomLines[i].trim();
-                                    if (!line) continue;
-                                    const parts = line.split(',');
-
-                                    if (parts.length >= 8 && parts[1] === expense.roomCategory) {
-                                        const currentActual = parseFloat(parts[5]) || 0;
-                                        const newActual = currentActual + amountPerItem;
-                                        const quantity = parseFloat(parts[2]) || 1;
-                                        const newSubtotal = newActual * quantity;
-                                        parts[5] = newActual;
-                                        parts[6] = newSubtotal;
-                                        roomLines[i] = parts.join(',');
-                                        categoryUpdated = true;
-                                    }
-                                }
-
-                                if (categoryUpdated) {
-                                    fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
-                                    console.log(`   ✅ Distributed S/ ${amountPerRoom.toFixed(2)} to ${totalItemsInCategory} items in "${expense.roomCategory}" in ${roomDisplayName}`);
-                                }
+                            if (itemUpdated) {
+                                fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
+                                console.log(`   ✅ Updated existing "${expense.description}" in ${roomDisplayName}`);
                             } else {
-                                console.log(`   ⚠️  No items found in category "${expense.roomCategory}" in ${roomDisplayName}`);
+                                // No exact match - add as new item with the expense description
+                                const newLine = `${expense.description},${expense.roomCategory},1,,0,${amountPerRoom},${amountPerRoom},Completed`;
+
+                                const lastLineEmpty = roomLines[roomLines.length - 1].trim() === '';
+                                if (lastLineEmpty) {
+                                    roomLines.splice(roomLines.length - 1, 0, newLine);
+                                } else {
+                                    roomLines.push(newLine);
+                                }
+
+                                fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
+                                console.log(`   ✅ Added S/ ${amountPerRoom.toFixed(2)} as new "${expense.roomCategory}" item in ${roomDisplayName}`);
                             }
                         } else {
                             // No category - add as new General item
@@ -237,60 +256,47 @@ app.post('/api/save-expenses', (req, res) => {
 
                     if (expense.roomCategory && expense.roomCategory !== '') {
                         // Add to ALL items in the specified category
-                        let categoryUpdated = false;
-                        let totalItemsInCategory = 0;
+                        let itemUpdated = false;
 
-                        // First, count items in this category
+                        // Look for an exact match: description AND category
                         for (let i = 3; i < roomLines.length; i++) {
                             const line = roomLines[i].trim();
                             if (!line) continue;
                             const parts = line.split(',');
-                            if (
-                                parts.length >= 8 &&
-                                parts[1] === expense.roomCategory
-                            ) {
-                                totalItemsInCategory++;
+
+                            if (parts.length >= 8 && 
+                                parts[0] === expense.description && 
+                                categoriesMatch(parts[1], expense.roomCategory)) {
+                                // Found exact match - update this item
+                                const currentActual = parseFloat(parts[5]) || 0;
+                                const newActual = currentActual + amount;
+                                const quantity = parseFloat(parts[2]) || 1;
+                                const newSubtotal = newActual * quantity;
+                                parts[5] = newActual;
+                                parts[6] = newSubtotal;
+                                parts[7] = 'Completed'; // Mark as completed
+                                roomLines[i] = parts.join(',');
+                                itemUpdated = true;
+                                break; // Only update one matching item
                             }
                         }
 
-                        if (totalItemsInCategory > 0) {
-                            // Distribute expense equally among items in this category
-                            const amountPerItem = amount / totalItemsInCategory;
+                        if (itemUpdated) {
+                            fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
+                            console.log(`✅ Updated existing "${expense.description}" in ${expense.room}`);
+                        } else {
+                            // No exact match - add as new item with the expense description
+                            const newLine = `${expense.description},${expense.roomCategory},1,,0,${amount},${amount},Completed`;
 
-                            for (let i = 3; i < roomLines.length; i++) {
-                                const line = roomLines[i].trim();
-                                if (!line) continue;
-                                const parts = line.split(',');
-
-                                // Check if this line belongs to the selected category (column index 1)
-                                if (
-                                    parts.length >= 8 &&
-                                    parts[1] === expense.roomCategory
-                                ) {
-                                    // Update the actual price and subtotal
-                                    const currentActual =
-                                        parseFloat(parts[5]) || 0;
-                                    const newActual =
-                                        currentActual + amountPerItem;
-                                    const quantity = parseFloat(parts[2]) || 1;
-                                    const newSubtotal = newActual * quantity;
-                                    parts[5] = newActual;
-                                    parts[6] = newSubtotal;
-                                    roomLines[i] = parts.join(',');
-                                    categoryUpdated = true;
-                                }
+                            const lastLineEmpty = roomLines[roomLines.length - 1].trim() === '';
+                            if (lastLineEmpty) {
+                                roomLines.splice(roomLines.length - 1, 0, newLine);
+                            } else {
+                                roomLines.push(newLine);
                             }
 
-                            if (categoryUpdated) {
-                                fs.writeFileSync(
-                                    roomFilePath,
-                                    roomLines.join('\n'),
-                                    'utf8'
-                                );
-                                console.log(
-                                    `✅ Distributed ${amount} to ${totalItemsInCategory} items in category "${expense.roomCategory}" in ${expense.room}`
-                                );
-                            }
+                            fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
+                            console.log(`✅ Added "${expense.description}" as new "${expense.roomCategory}" item in ${expense.room}`);
                         }
                     } else {
                         // Check if General expense already exists
@@ -415,6 +421,66 @@ app.get('/api/load-room/:roomName', (req, res) => {
         console.error('Error loading room data:', error);
         res.status(500).json({
             error: 'Failed to load room data',
+            details: error.message,
+        });
+    }
+});
+
+// Route to get all unique categories from all rooms
+app.get('/api/get-all-categories', (req, res) => {
+    try {
+        const roomsDir = path.join(__dirname, '..', 'data', 'rooms');
+        const roomFiles = [
+            'cocina.csv',
+            'sala.csv',
+            'cuarto1.csv',
+            'cuarto2.csv',
+            'cuarto3.csv',
+            'bano1.csv',
+            'bano2.csv',
+            'bano_visita.csv',
+            'balcon.csv'
+        ];
+
+        const allCategories = new Set();
+
+        roomFiles.forEach(roomFile => {
+            const filePath = path.join(roomsDir, roomFile);
+            if (fs.existsSync(filePath)) {
+                const csvContent = fs.readFileSync(filePath, 'utf8');
+                const lines = csvContent.split('\n');
+
+                // Parse items (starting from line 3, after header)
+                for (let i = 3; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    const parts = line.split(',');
+                    if (parts.length >= 8 && parts[1]) {
+                        allCategories.add(parts[1]);
+                    }
+                }
+            }
+        });
+
+        // Convert Set to sorted array, prioritizing Spanish names
+        const categories = Array.from(allCategories).sort((a, b) => {
+            // Prioritize Spanish names (Servicio, Material, Producto)
+            const spanishOrder = ['Servicio', 'Material', 'Producto'];
+            const aIndex = spanishOrder.indexOf(a);
+            const bIndex = spanishOrder.indexOf(b);
+            
+            if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+            if (aIndex !== -1) return -1;
+            if (bIndex !== -1) return 1;
+            return a.localeCompare(b);
+        });
+
+        res.json({ success: true, categories });
+    } catch (error) {
+        console.error('Error getting categories:', error);
+        res.status(500).json({
+            error: 'Failed to get categories',
             details: error.message,
         });
     }
