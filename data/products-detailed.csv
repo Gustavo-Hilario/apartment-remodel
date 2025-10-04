@@ -1,0 +1,28 @@
+Room,Category,Description,Quantity,Unit,Budget_Rate,Actual_Rate,Subtotal,Status
+Cocina,Producto,Mueble Altos y Bajos,4,m^2,3800,3800,15200,Completed
+Cocina,Producto,Torre de Horno y Micro,1,,2500,2500,2500,Completed
+Cocina,Producto,Torre – Coffee Station,1,,3000,3000,3000,Completed
+Cocina,Producto,Lavadero,1,,1500,1500,1500,Completed
+Cocina,Producto,Grifería,1,,1000,1000,1000,Completed
+Cocina,Producto,Cocina,1,,2500,2500,2500,Completed
+Cocina,Producto,Horno,1,,3500,3500,3500,Completed
+Cocina,Producto,Microndas,1,,600,600,600,Completed
+Cocina,Producto,Heladera,1,,4500,4500,4500,Completed
+Cocina,Producto,Menajes y Otros,1,,5000,5000,5000,Completed
+Sala,Products,Mesa Comedor,1,,3000,3000,3000,Completed
+Sala,Products,Silas,6,,200,200,1200,Completed
+Sala,Products,Sillón,1,,2500,2500,2500,Completed
+Sala,Products,TV,1,,4000,4000,4000,Completed
+Sala,Products,Cortinas,10,m^2,70,70,700,Completed
+Sala,Products,Mesa Centro,1,,300,300,300,Completed
+Sala,Products,Puff,1,,200,200,200,Completed
+Sala,Products,Altar,1,,2000,2000,2000,Completed
+Sala,Products,Cuadro,1,,1000,1000,1000,Completed
+Cuarto 1,Products,Cama,1,,0,0,0,Planning
+Cuarto 1,Products,Closet,1,,0,0,0,Planning
+Cuarto 1,Products,Mesa de Noche,2,,0,0,0,Planning
+Cuarto 1,Products,Cortinas,8,m^2,70,0,0,Planning
+Cuarto 2,Products,Cama,1,,0,0,0,Planning
+Cuarto 2,Products,Closet,1,,0,0,0,Planning
+Cuarto 2,Products,Mesa de Noche,2,,0,0,0,Planning
+Cuarto 2,Products,Cortinas,6,m^2,70,0,0,Planning

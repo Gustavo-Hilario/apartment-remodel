@@ -1,0 +1,9 @@
+Category,Budget_Total,Actual_Total,Items_Count,Avg_Cost
+Servicio,S/ 1,000,S/ 1,000,3,S/ 333.333
+Material,S/ 2,800,S/ 2,800,3,S/ 933.333
+Producto,S/ 39,300,S/ 39,300,10,S/ 3,930
+Mano de Obra,S/ 2,106,S/ 2,106,1,S/ 2,106
+Services,S/ 0,S/ 0,17,S/ 0
+Materials,S/ 6,490,S/ 3,540,17,S/ 208.235
+Products,S/ 15,880,S/ 14,900,17,S/ 876.471
+Labor,S/ 10,476,S/ 2,106,8,S/ 263.25

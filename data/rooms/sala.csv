@@ -1,0 +1,19 @@
+Room,Sala
+Budget,30000
+Description,Category,Quantity,Unit,Budget_Rate,Actual_Rate,Subtotal,Status
+Electrical,Services,1,,0,0,0,Pending
+Plumbing,Services,1,,0,0,0,Pending
+Drywall,Services,1,,0,0,0,Pending
+Mayolica,Materials,30,m^2,80,80,2400,Completed
+Pintura,Materials,42,m^2,10,10,420,Completed
+Papel Tapiz,Materials,18,m^2,40,40,720,Completed
+Mesa Comedor,Products,1,,3000,3000,3000,Completed
+Silas,Products,6,,200,200,1200,Completed
+Sillón,Products,1,,2500,2500,2500,Completed
+TV,Products,1,,4000,4000,4000,Completed
+Cortinas,Products,10,m^2,70,70,700,Completed
+Mesa Centro,Products,1,,300,300,300,Completed
+Puff,Products,1,,200,200,200,Completed
+Altar,Products,1,,2000,2000,2000,Completed
+Cuadro,Products,1,,1000,1000,1000,Completed
+Contratista – Arnold,Labor,39,Hrs.,54,54,2106,Completed

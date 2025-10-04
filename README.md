@@ -61,21 +61,33 @@ npm start
 
 ## 📝 Updating Data
 
-### Method 1: Edit CSV Files Directly
-Edit the CSV files in the `data/` folder:
+### 🎯 Primary Method: Edit Room-Specific Files
+The **room files are your primary data source**. All other tables are auto-generated from them.
 
-- **budget-overview.csv**: Update room budgets and actual costs
-- **expenses.csv**: Add new expenses as they occur
-- **income.csv**: Track funding sources
-- **products.csv**: Manage product selections and pricing
+1. **Edit room costs**: Modify files in `data/rooms/` (cocina.csv, sala.csv, etc.)
+2. **Update all tables**: Run `npm run update-all`
+3. **View changes**: Check dashboard at `charts/budget-overview.html`
 
-### Method 2: Use Scripts
+### 🖥️ Web Interface (Recommended)
 ```bash
-# Split main.csv into focused files
-npm run split-csv
+npm start
+# Open: http://localhost:8000/charts/room-editor.html
+```
+- ✅ Easy visual editing of room costs
+- ✅ Real-time budget calculations
+- ✅ Export CSV files directly
+- ✅ Add/remove items with clicks
+
+### 💻 Command Line Method
+```bash
+# Update all interconnected tables from room data
+npm run update-all
 
 # Generate Excel reports
 npm run generate-excel
+
+# Manual aggregation only
+npm run aggregate
 ```
 
 ## 📊 Data Structure
@@ -126,12 +138,14 @@ Maintains separation between focused CSV files and master data.
 
 ## 🎯 Key Features
 
+- **Intelligent Data System**: Room files auto-generate all other tables
 - **Visual Budget Tracking**: Interactive charts showing budget vs actual
+- **Web-based Editor**: Easy point-and-click editing interface
+- **Real-time Calculations**: Budgets and totals update automatically
 - **Progress Monitoring**: Real-time completion percentage
-- **Expense Categories**: Organized by Documentación, Mano de Obra, etc.
-- **Product Selection**: Track product choices and pricing
+- **Interconnected Tables**: Change one item, update everywhere
 - **Mobile Responsive**: Works on all devices
-- **Easy Updates**: Simple CSV editing workflow
+- **Smart Aggregation**: One command updates all dashboards
 
 ## 📋 Room Progress
 

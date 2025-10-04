@@ -6,6 +6,8 @@
   "scripts": {
     "generate-excel": "node scripts/generate-excel.js",
     "split-csv": "node scripts/csv-splitter.js",
+    "aggregate": "node scripts/data-aggregator.js",
+    "update-all": "npm run aggregate && echo '📊 Data updated! View charts: npm start'",
     "serve": "python3 -m http.server 8000",
     "start": "npm run serve"
   },

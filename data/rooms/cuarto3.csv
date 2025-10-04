@@ -1,0 +1,8 @@
+Room,Cuarto 3
+Budget,15000
+Description,Category,Quantity,Unit,Budget_Rate,Actual_Rate,Subtotal,Status
+Electrical,Services,1,,0,0,0,Planning
+Plumbing,Services,1,,0,0,0,Planning
+Piso,Materials,20,m^2,0,0,0,Planning
+Pintura,Materials,40,m^2,10,0,0,Planning
+Contratista,Labor,20,Hrs.,54,0,0,Planning

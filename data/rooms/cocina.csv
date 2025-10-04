@@ -1,0 +1,20 @@
+Room,Cocina
+Budget,40000
+Description,Category,Quantity,Unit,Budget_Rate,Actual_Rate,Subtotal,Status
+Electrical,Servicio,1,,0,0,0,Pending
+Plumbing,Servicio,1,,0,0,0,Pending
+Diseño - Arquitectura - Kaori,Servicio,1,,1000,1000,1000,Completed
+Piso Mayólica,Material,30,m^2,60,60,1800,Completed
+Mayolica - Pared,Material,10,m^2,70,70,700,Completed
+Pintura,Material,30,m^2,10,10,300,Completed
+Mueble Altos y Bajos,Producto,4,m^2,3800,3800,15200,Completed
+Torre de Horno y Micro,Producto,1,,2500,2500,2500,Completed
+Torre – Coffee Station,Producto,1,,3000,3000,3000,Completed
+Lavadero,Producto,1,,1500,1500,1500,Completed
+Grifería,Producto,1,,1000,1000,1000,Completed
+Cocina,Producto,1,,2500,2500,2500,Completed
+Horno,Producto,1,,3500,3500,3500,Completed
+Microndas,Producto,1,,600,600,600,Completed
+Heladera,Producto,1,,4500,4500,4500,Completed
+Menajes y Otros,Producto,1,,5000,5000,5000,Completed
+Contratista – Arnold,Mano de Obra,39,Hrs.,54,54,2106,Completed
