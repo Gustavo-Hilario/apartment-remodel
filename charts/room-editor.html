@@ -148,6 +148,27 @@
                 text-align: right;
             }
 
+            .star-btn {
+                background: none;
+                border: none;
+                font-size: 1.5em;
+                cursor: pointer;
+                padding: 0;
+                transition: transform 0.2s;
+            }
+
+            .star-btn:hover {
+                transform: scale(1.2);
+            }
+
+            .star-btn.favorited {
+                color: #ffc107;
+            }
+
+            .star-btn:not(.favorited) {
+                color: #ccc;
+            }
+
             .add-item {
                 text-align: center;
                 margin: 20px 0;
@@ -392,6 +413,7 @@
                         <table>
                             <thead>
                                 <tr>
+                                    <th>⭐</th>
                                     <th>Description</th>
                                     <th>Category</th>
                                     <th>Qty</th>
@@ -774,8 +796,14 @@
 
                 // Round subtotal to integer
                 const roundedSubtotal = Math.round(item.subtotal);
+                const isFavorited = item.favorite === true;
 
                 row.innerHTML = `
+                <td>
+                    <button class="star-btn ${isFavorited ? 'favorited' : ''}" onclick="toggleFavorite(${index})" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">
+                        ${isFavorited ? '⭐' : '☆'}
+                    </button>
+                </td>
                 <td><input type="text" value="${
                     item.description
                 }" onchange="updateItem(${index}, 'description', this.value)"></td>
@@ -911,6 +939,31 @@
                 item.subtotal = rate * item.quantity;
 
                 displayRoomData();
+            }
+
+            function toggleFavorite(index) {
+                // Toggle the favorite status
+                roomData.items[index].favorite = !roomData.items[index].favorite;
+                
+                // Update the display
+                displayRoomData();
+                
+                // Show a notification and auto-save
+                const isFavorited = roomData.items[index].favorite;
+                const itemName = roomData.items[index].description;
+                
+                console.log('Toggling favorite for item:', itemName, 'to', isFavorited);
+                console.log('Item data:', roomData.items[index]);
+                
+                // Auto-save the room data
+                saveRoom().then(() => {
+                    showNotification(
+                        isFavorited 
+                            ? `⭐ "${itemName}" added to favorites!` 
+                            : `"${itemName}" removed from favorites`,
+                        'success'
+                    );
+                });
             }
 
             function updateExpenseItem(index, field, value) {
@@ -1188,6 +1241,8 @@
                         );
                     } else {
                         // Save room data
+                        console.log('Saving room data:', JSON.stringify(roomData, null, 2));
+                        
                         const response = await fetch(
                             `/api/save-room/${currentRoom}`,
                             {

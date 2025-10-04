@@ -191,6 +191,18 @@
             margin-top: 5px;
         }
 
+        .favorite-badge {
+            display: inline-block;
+            background: rgba(255, 193, 7, 0.3);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-right: 5px;
+            margin-top: 5px;
+            color: #ffc107;
+            font-weight: bold;
+        }
+
         .card-body {
             padding: 20px;
         }
@@ -582,6 +594,13 @@
                     </select>
                 </div>
                 <div class="filter-group">
+                    <label for="favoritesFilter">⭐ Favorites:</label>
+                    <select id="favoritesFilter" onchange="filterProducts()">
+                        <option value="all">All Items</option>
+                        <option value="favorites">Favorites Only</option>
+                    </select>
+                </div>
+                <div class="filter-group">
                     <label for="searchBox">Search:</label>
                     <input type="text" id="searchBox" placeholder="Search products..." oninput="filterProducts()" />
                 </div>
@@ -591,6 +610,10 @@
                 <div class="stat-card">
                     <h3>Total Products</h3>
                     <div class="value" id="totalProducts">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>⭐ Favorites</h3>
+                    <div class="value" id="favoritesCount">0</div>
                 </div>
                 <div class="stat-card">
                     <h3>Budget Total</h3>
@@ -796,16 +819,18 @@
         function filterProducts() {
             const roomFilter = document.getElementById('roomFilter').value;
             const statusFilter = document.getElementById('statusFilter').value;
+            const favoritesFilter = document.getElementById('favoritesFilter').value;
             const searchText = document.getElementById('searchBox').value.toLowerCase();
 
             filteredProducts = allProducts.filter(product => {
                 const matchRoom = roomFilter === 'all' || product.room === roomFilter;
                 const matchStatus = statusFilter === 'all' || product.status === statusFilter;
+                const matchFavorites = favoritesFilter === 'all' || (favoritesFilter === 'favorites' && product.favorite === true);
                 const matchSearch = !searchText || 
                     product.description.toLowerCase().includes(searchText) ||
                     (product.notes && product.notes.toLowerCase().includes(searchText));
                 
-                return matchRoom && matchStatus && matchSearch;
+                return matchRoom && matchStatus && matchFavorites && matchSearch;
             });
 
             displayProducts();
@@ -825,10 +850,19 @@
                 return;
             }
 
+            // Sort products: favorites first, then by room
+            const sortedProducts = [...filteredProducts].sort((a, b) => {
+                // Favorites first
+                if (a.favorite && !b.favorite) return -1;
+                if (!a.favorite && b.favorite) return 1;
+                // Then sort by room name
+                return a.roomDisplayName.localeCompare(b.roomDisplayName);
+            });
+
             const grid = document.createElement('div');
             grid.className = 'products-grid';
             
-            filteredProducts.forEach((product, index) => {
+            sortedProducts.forEach((product, index) => {
                 const card = createProductCard(product, index);
                 grid.appendChild(card);
             });
@@ -857,6 +891,7 @@
                 }
                 <div class="card-header">
                     <h3>${product.description || 'Unnamed Product'}</h3>
+                    ${product.favorite ? '<span class="favorite-badge">⭐ Favorite</span>' : ''}
                     <span class="room-badge">${product.roomDisplayName}</span>
                     <span class="room-badge" style="background: ${getStatusColor(product.status)};">${product.status || 'Planning'}</span>
                 </div>
@@ -905,6 +940,7 @@
 
         function updateStats() {
             const totalProducts = filteredProducts.length;
+            const favoritesCount = filteredProducts.filter(p => p.favorite === true).length;
             const totalBudget = filteredProducts.reduce((sum, p) => {
                 const price = p.budgetRate || 0;
                 const qty = p.quantity || 1;
@@ -920,6 +956,7 @@
             ).length;
 
             document.getElementById('totalProducts').textContent = totalProducts;
+            document.getElementById('favoritesCount').textContent = favoritesCount;
             document.getElementById('totalBudget').textContent = formatCurrency(totalBudget);
             document.getElementById('totalActual').textContent = formatCurrency(totalActual);
             document.getElementById('itemsToBuy').textContent = itemsToBuy;
