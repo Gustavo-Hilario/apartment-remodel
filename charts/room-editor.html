@@ -197,6 +197,30 @@
                 transform: none;
             }
 
+            /* Category-based row colors */
+            .category-servicio {
+                background: #e3f2fd !important; /* Light Blue */
+            }
+            .category-material {
+                background: #fff3e0 !important; /* Light Orange */
+            }
+            .category-producto {
+                background: #f3e5f5 !important; /* Light Purple */
+            }
+            .category-mano-de-obra {
+                background: #e8f5e9 !important; /* Light Green */
+            }
+            .category-services {
+                background: #e3f2fd !important; /* Light Blue */
+            }
+            .category-materials {
+                background: #fff3e0 !important; /* Light Orange */
+            }
+            .category-products {
+                background: #f3e5f5 !important; /* Light Purple */
+            }
+            
+            /* Status colors for expenses view */
             .status-completed {
                 background: #d4edda !important;
             }
@@ -205,6 +229,29 @@
             }
             .status-planning {
                 background: #f8d7da !important;
+            }
+            
+            .sort-controls {
+                margin-bottom: 15px;
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 8px;
+                text-align: center;
+            }
+            
+            .sort-controls label {
+                margin-right: 10px;
+                font-weight: bold;
+                color: #333;
+            }
+            
+            .sort-controls select {
+                padding: 8px 15px;
+                border: 2px solid #667eea;
+                border-radius: 5px;
+                background: white;
+                cursor: pointer;
+                font-size: 14px;
             }
 
             .notification {
@@ -325,6 +372,18 @@
                             <h3>Difference</h3>
                             <div class="value" id="difference">S/ 0</div>
                         </div>
+                    </div>
+
+                    <div class="sort-controls" id="sortControls" style="display: none;">
+                        <label for="sortBy">Sort by:</label>
+                        <select id="sortBy" onchange="sortItems()">
+                            <option value="original">Original Order</option>
+                            <option value="category">Category</option>
+                            <option value="subtotal">Subtotal (High to Low)</option>
+                            <option value="budgetPrice">Budget Price (High to Low)</option>
+                            <option value="actualPrice">Actual Price (High to Low)</option>
+                            <option value="status">Status</option>
+                        </select>
                     </div>
 
                     <div class="items-table">
@@ -632,6 +691,10 @@
                 <th>Actions</th>
             `;
 
+                // Show sort controls for room views
+                document.getElementById('sortControls').style.display = 'block';
+                document.getElementById('sortBy').value = 'original';
+
                 // Update items table
                 const tbody = document.getElementById('itemsTable');
                 tbody.innerHTML = '';
@@ -670,6 +733,9 @@
                     roomData.items.length;
                 document.getElementById('difference').style.color = '#667eea';
 
+                // Hide sort controls for expenses view
+                document.getElementById('sortControls').style.display = 'none';
+
                 // Update table headers for expenses
                 const table = document.querySelector('.items-table table');
                 const thead = table.querySelector('thead tr');
@@ -702,9 +768,12 @@
 
             function createItemRow(item, index) {
                 const row = document.createElement('tr');
-                row.className = `status-${item.status
-                    .toLowerCase()
-                    .replace(/ /g, '')}`;
+                // Use category-based coloring instead of status
+                const categoryClass = item.category ? `category-${item.category.toLowerCase().replace(/ /g, '-')}` : '';
+                row.className = categoryClass;
+
+                // Round subtotal to integer
+                const roundedSubtotal = Math.round(item.subtotal);
 
                 row.innerHTML = `
                 <td><input type="text" value="${
@@ -734,7 +803,7 @@
                 <td><input type="number" value="${
                     item.actualRate
                 }" onchange="updateItem(${index}, 'actualRate', parseFloat(this.value) || 0)"></td>
-                <td><strong>${formatCurrency(item.subtotal)}</strong></td>
+                <td><strong>${formatCurrency(roundedSubtotal)}</strong></td>
                 <td>
                     <select onchange="updateItem(${index}, 'status', this.value)">
                         ${statuses
@@ -941,6 +1010,55 @@
                 } catch (error) {
                     console.error('Error loading room categories:', error);
                 }
+            }
+
+            function sortItems() {
+                const sortBy = document.getElementById('sortBy').value;
+                
+                if (sortBy === 'original') {
+                    // Don't sort, just refresh display
+                    displayRoomData();
+                    return;
+                }
+                
+                // Create a copy with original indices
+                const itemsWithIndex = roomData.items.map((item, index) => ({
+                    ...item,
+                    originalIndex: index
+                }));
+                
+                // Sort based on selected criteria
+                switch(sortBy) {
+                    case 'category':
+                        itemsWithIndex.sort((a, b) => 
+                            (a.category || '').localeCompare(b.category || '')
+                        );
+                        break;
+                    case 'subtotal':
+                        itemsWithIndex.sort((a, b) => b.subtotal - a.subtotal);
+                        break;
+                    case 'budgetPrice':
+                        itemsWithIndex.sort((a, b) => b.budgetRate - a.budgetRate);
+                        break;
+                    case 'actualPrice':
+                        itemsWithIndex.sort((a, b) => b.actualRate - a.actualRate);
+                        break;
+                    case 'status':
+                        const statusOrder = { 'Completed': 1, 'Pending': 2, 'Planning': 3 };
+                        itemsWithIndex.sort((a, b) => 
+                            (statusOrder[a.status] || 4) - (statusOrder[b.status] || 4)
+                        );
+                        break;
+                }
+                
+                // Update the table display only (don't modify roomData.items order)
+                const tbody = document.getElementById('itemsTable');
+                tbody.innerHTML = '';
+                
+                itemsWithIndex.forEach((item) => {
+                    const row = createItemRow(item, item.originalIndex);
+                    tbody.appendChild(row);
+                });
             }
 
             function updateBudget() {
