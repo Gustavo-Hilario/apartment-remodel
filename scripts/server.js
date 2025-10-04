@@ -107,6 +107,118 @@ app.post('/api/save-expenses', (req, res) => {
     try {
         const { expenses } = req.body;
 
+        // First, read existing expenses to detect deletions
+        const expensesFilePath = path.join(__dirname, '..', 'data', 'expenses.csv');
+        let existingExpenses = [];
+        
+        if (fs.existsSync(expensesFilePath)) {
+            const existingContent = fs.readFileSync(expensesFilePath, 'utf8');
+            const existingLines = existingContent.split('\n');
+            
+            for (let i = 1; i < existingLines.length; i++) {
+                const line = existingLines[i].trim();
+                if (!line) continue;
+                
+                const parts = parseCSVLine(line);
+                if (parts.length >= 6) {
+                    existingExpenses.push({
+                        description: parts[0],
+                        amount: parseCurrencyValue(parts[1]),
+                        category: parts[2],
+                        date: parts[3],
+                        room: parts[4],
+                        roomCategory: parts[5]
+                    });
+                }
+            }
+        }
+
+        // Detect deleted expenses (expenses that were in existing but not in new)
+        const deletedExpenses = existingExpenses.filter(existing => 
+            !expenses.some(exp => 
+                exp.description === existing.description && 
+                exp.category === existing.category &&
+                exp.room === existing.room &&
+                exp.roomCategory === existing.roomCategory
+            )
+        );
+
+        // Remove deleted expenses from room CSVs
+        if (deletedExpenses.length > 0) {
+            console.log(`\n🗑️  Removing ${deletedExpenses.length} deleted expense(s) from room CSVs...`);
+            
+            const roomNameMap = {
+                Cocina: 'cocina',
+                Sala: 'sala',
+                'Cuarto 1': 'cuarto1',
+                'Cuarto 2': 'cuarto2',
+                'Cuarto 3': 'cuarto3',
+                'Baño 1': 'bano1',
+                'Baño 2': 'bano2',
+                'Baño Visita': 'bano_visita',
+                Balcón: 'balcon',
+            };
+
+            deletedExpenses.forEach(deleted => {
+                console.log(`   Deleting: "${deleted.description}" (${deleted.roomCategory || 'General'})`);
+                
+                // Determine which rooms to delete from
+                let roomsToClean = [];
+                if (deleted.room === 'All Rooms') {
+                    roomsToClean = Object.values(roomNameMap);
+                } else if (deleted.room && roomNameMap[deleted.room]) {
+                    roomsToClean = [roomNameMap[deleted.room]];
+                }
+
+                roomsToClean.forEach(roomFileName => {
+                    const roomFilePath = path.join(__dirname, '..', 'data', 'rooms', `${roomFileName}.csv`);
+                    
+                    if (fs.existsSync(roomFilePath)) {
+                        const roomContent = fs.readFileSync(roomFilePath, 'utf8');
+                        const roomLines = roomContent.split('\n');
+                        
+                        // Filter out lines matching the deleted expense
+                        const filteredLines = [];
+                        let deletedCount = 0;
+                        
+                        for (let i = 0; i < roomLines.length; i++) {
+                            if (i < 3) {
+                                // Keep header lines
+                                filteredLines.push(roomLines[i]);
+                                continue;
+                            }
+                            
+                            const line = roomLines[i].trim();
+                            if (!line) {
+                                filteredLines.push(roomLines[i]);
+                                continue;
+                            }
+                            
+                            const parts = line.split(',');
+                            // Check if this line matches the deleted expense
+                            const matchesDescription = parts[0] === deleted.description;
+                            const matchesCategory = deleted.roomCategory ? 
+                                categoriesMatch(parts[1], deleted.roomCategory) : 
+                                parts[1] === 'General';
+                            
+                            if (matchesDescription && matchesCategory) {
+                                deletedCount++;
+                                console.log(`      ✓ Removed from ${roomFileName}.csv`);
+                                continue; // Skip this line (delete it)
+                            }
+                            
+                            filteredLines.push(roomLines[i]);
+                        }
+                        
+                        if (deletedCount > 0) {
+                            fs.writeFileSync(roomFilePath, filteredLines.join('\n'), 'utf8');
+                        }
+                    }
+                });
+            });
+            console.log('');
+        }
+
         // Generate CSV content for main expenses file
         let csvContent = 'Description,Amount,Category,Date,Room,RoomCategory\n';
 

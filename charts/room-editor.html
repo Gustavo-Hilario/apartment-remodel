@@ -932,7 +932,14 @@
             function removeItem(index) {
                 if (confirm('Are you sure you want to delete this item?')) {
                     roomData.items.splice(index, 1);
-                    displayRoomData();
+                    
+                    if (currentRoom === 'main-costs') {
+                        // For expenses, we need to re-display the data
+                        displayExpensesData();
+                    } else {
+                        // For room items
+                        displayRoomData();
+                    }
                 }
             }
 

@@ -1,8 +1,0 @@
-Room,Baño 2
-Budget,15000
-Description,Category,Quantity,Unit,Budget_Price,Actual_Price,Subtotal,Status
-Electrical,Services,1,,0,0,0,Planning
-Plumbing,Services,1,,0,0,0,Planning
-Piso,Materials,20,m^2,0,0,0,Planning
-Pintura,Materials,40,m^2,10,0,0,Planning
-Arnold - Adelanto,Mano de Obra,1,,0,244.44444444444446,244.44444444444446,Completed
