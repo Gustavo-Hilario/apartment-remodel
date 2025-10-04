@@ -1,503 +1,612 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Room Cost Editor - Apartment Remodel</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 2.5em;
-            font-weight: 300;
-        }
-
-        .nav {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .nav a {
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 5px;
-            transition: background 0.3s;
-        }
-
-        .nav a:hover {
-            background: rgba(255,255,255,0.3);
-        }
-
-        .content {
-            padding: 30px;
-        }
-
-        .room-selector {
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .room-selector select {
-            padding: 10px 20px;
-            font-size: 16px;
-            border: 2px solid #667eea;
-            border-radius: 5px;
-            background: white;
-        }
-
-        .room-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .info-card {
-            text-align: center;
-        }
-
-        .info-card h3 {
-            margin: 0 0 10px 0;
-            color: #333;
-            font-size: 0.9em;
-            text-transform: uppercase;
-        }
-
-        .info-card .value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .budget-input {
-            text-align: center;
-            margin-top: 10px;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            font-size: 16px;
-            width: 120px;
-        }
-
-        .items-table {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .items-table table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .items-table th {
-            background: #667eea;
-            color: white;
-            padding: 15px 10px;
-            text-align: left;
-            font-size: 0.9em;
-        }
-
-        .items-table td {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .items-table input, .items-table select {
-            width: 100%;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            font-size: 14px;
-        }
-
-        .items-table input[type="number"] {
-            text-align: right;
-        }
-
-        .add-item {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .add-item button {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        .add-item button:hover {
-            background: #218838;
-        }
-
-        .save-section {
-            text-align: center;
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .save-btn {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 8px;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .save-btn:hover {
-            background: #0056b3;
-            transform: translateY(-2px);
-        }
-
-        .save-btn:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .status-completed { background: #d4edda !important; }
-        .status-pending { background: #fff3cd !important; }
-        .status-planning { background: #f8d7da !important; }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 5px;
-            display: none;
-            z-index: 1000;
-            max-width: 300px;
-        }
-
-        .notification.success {
-            background: #28a745;
-            color: white;
-        }
-
-        .notification.error {
-            background: #dc3545;
-            color: white;
-        }
-
-        .notification.info {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🏠 Room Cost Editor</h1>
-            <p>Edit room details and save directly to your project</p>
-            <div class="nav">
-                <a href="../home.html">🏠 Home</a>
-                <a href="budget-overview.html">📊 Dashboard</a>
-                <a href="room-editor.html">✏️ Editor</a>
-                <a href="../README.html">📖 Documentation</a>
-            </div>
-        </div>
-
-        <div class="content">
-            <div class="room-selector">
-                <label for="roomSelect"><strong>Select Room to Edit:</strong></label>
-                <select id="roomSelect" onchange="loadRoom()">
-                    <option value="">Choose a room...</option>
-                    <option value="main-costs">💰 Main Project Costs (Completed Items & Manual Expenses)</option>
-                    <optgroup label="Room-Specific Costs">
-                        <option value="cocina">Cocina (Kitchen)</option>
-                        <option value="sala">Sala (Living Room)</option>
-                        <option value="cuarto1">Cuarto 1 (Master Bedroom)</option>
-                        <option value="cuarto2">Cuarto 2 (Second Bedroom)</option>
-                        <option value="cuarto3">Cuarto 3 (Third Bedroom)</option>
-                        <option value="bano1">Baño 1 (Main Bathroom)</option>
-                        <option value="bano2">Baño 2 (Second Bathroom)</option>
-                        <option value="bano_visita">Baño Visita (Guest Bathroom)</option>
-                        <option value="balcon">Balcón (Balcony)</option>
-                    </optgroup>
-                </select>
-            </div>
-
-            <div id="roomEditor" style="display: none;">
-                <div class="room-info">
-                    <div class="info-card">
-                        <h3>Room Budget</h3>
-                        <div class="value" id="roomBudget">S/ 0</div>
-                        <input type="number" id="budgetInput" class="budget-input" placeholder="Budget" onchange="updateBudget()">
-                    </div>
-                    <div class="info-card">
-                        <h3>Current Total</h3>
-                        <div class="value" id="currentTotal">S/ 0</div>
-                    </div>
-                    <div class="info-card">
-                        <h3>Difference</h3>
-                        <div class="value" id="difference">S/ 0</div>
-                    </div>
-                </div>
-
-                <div class="items-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Description</th>
-                                <th>Category</th>
-                                <th>Qty</th>
-                                <th>Unit</th>
-                                <th>Budget Price</th>
-                                <th>Actual Price</th>
-                                <th>Subtotal</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="itemsTable">
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="add-item">
-                    <button onclick="addNewItem()">+ Add New Item</button>
-                </div>
-
-                <div class="save-section">
-                    <h3>💾 Save Changes</h3>
-                    <p>Automatically saves to CSV and updates all project data.</p>
-                    <button class="save-btn" onclick="saveRoom()" id="saveButton">
-                        💾 Save Data
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="notification" id="notification"></div>
-
-    <script>
-        let currentRoom = '';
-        let roomData = {};
-
-        const categories = ['Servicio', 'Material', 'Producto', 'Mano de Obra'];
-        const statuses = ['Planning', 'Pending', 'Completed'];
-
-        function showNotification(message, type = 'success') {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.className = `notification ${type}`;
-            notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 5000);
-        }
-
-        function parseCurrency(value) {
-            if (!value || value === '') return 0;
-            return parseFloat(value.toString().replace(/[S/\s,]/g, ''));
-        }
-
-        function formatCurrency(value) {
-            return `S/ ${value.toLocaleString('es-PE')}`;
-        }
-
-        async function loadRoom() {
-            const roomSelect = document.getElementById('roomSelect');
-            currentRoom = roomSelect.value;
-
-            if (!currentRoom) {
-                document.getElementById('roomEditor').style.display = 'none';
-                return;
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Room Cost Editor - Apartment Remodel</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
             }
 
-            try {
-                showNotification('Loading data...', 'info');
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                overflow: hidden;
+            }
 
-                if (currentRoom === 'main-costs') {
-                    await loadExpenses();
-                } else {
-                    const response = await fetch(`/api/load-room/${currentRoom}`);
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px;
+                text-align: center;
+            }
+
+            .header h1 {
+                margin: 0;
+                font-size: 2.5em;
+                font-weight: 300;
+            }
+
+            .nav {
+                display: flex;
+                justify-content: center;
+                gap: 10px;
+                margin-top: 20px;
+            }
+
+            .nav a {
+                color: white;
+                text-decoration: none;
+                padding: 10px 20px;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 5px;
+                transition: background 0.3s;
+            }
+
+            .nav a:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+            .content {
+                padding: 30px;
+            }
+
+            .room-selector {
+                margin-bottom: 30px;
+                text-align: center;
+            }
+
+            .room-selector select {
+                padding: 10px 20px;
+                font-size: 16px;
+                border: 2px solid #667eea;
+                border-radius: 5px;
+                background: white;
+            }
+
+            .room-info {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 20px;
+                margin-bottom: 30px;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 10px;
+            }
+
+            .info-card {
+                text-align: center;
+            }
+
+            .info-card h3 {
+                margin: 0 0 10px 0;
+                color: #333;
+                font-size: 0.9em;
+                text-transform: uppercase;
+            }
+
+            .info-card .value {
+                font-size: 1.5em;
+                font-weight: bold;
+                color: #667eea;
+            }
+
+            .budget-input {
+                text-align: center;
+                margin-top: 10px;
+                padding: 5px;
+                border: 1px solid #ddd;
+                border-radius: 3px;
+                font-size: 16px;
+                width: 120px;
+            }
+
+            .items-table {
+                background: white;
+                border-radius: 10px;
+                overflow: hidden;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                margin-bottom: 20px;
+            }
+
+            .items-table table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .items-table th {
+                background: #667eea;
+                color: white;
+                padding: 15px 10px;
+                text-align: left;
+                font-size: 0.9em;
+            }
+
+            .items-table td {
+                padding: 10px;
+                border-bottom: 1px solid #eee;
+            }
+
+            .items-table input,
+            .items-table select {
+                width: 100%;
+                padding: 5px;
+                border: 1px solid #ddd;
+                border-radius: 3px;
+                font-size: 14px;
+            }
+
+            .items-table input[type='number'] {
+                text-align: right;
+            }
+
+            .add-item {
+                text-align: center;
+                margin: 20px 0;
+            }
+
+            .add-item button {
+                background: #28a745;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+
+            .add-item button:hover {
+                background: #218838;
+            }
+
+            .save-section {
+                text-align: center;
+                margin-top: 30px;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 10px;
+            }
+
+            .save-btn {
+                background: #007bff;
+                color: white;
+                border: none;
+                padding: 15px 40px;
+                border-radius: 8px;
+                font-size: 18px;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+
+            .save-btn:hover {
+                background: #0056b3;
+                transform: translateY(-2px);
+            }
+
+            .save-btn:disabled {
+                background: #6c757d;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            .status-completed {
+                background: #d4edda !important;
+            }
+            .status-pending {
+                background: #fff3cd !important;
+            }
+            .status-planning {
+                background: #f8d7da !important;
+            }
+
+            .notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 5px;
+                display: none;
+                z-index: 1000;
+                max-width: 300px;
+            }
+
+            .notification.success {
+                background: #28a745;
+                color: white;
+            }
+
+            .notification.error {
+                background: #dc3545;
+                color: white;
+            }
+
+            .notification.info {
+                background: #17a2b8;
+                color: white;
+            }
+
+            .loading {
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border: 3px solid rgba(255, 255, 255, 0.3);
+                border-radius: 50%;
+                border-top-color: #fff;
+                animation: spin 1s ease-in-out infinite;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🏠 Room Cost Editor</h1>
+                <p>Edit room details and save directly to your project</p>
+                <div class="nav">
+                    <a href="../home.html">🏠 Home</a>
+                    <a href="budget-overview.html">📊 Dashboard</a>
+                    <a href="room-editor.html">✏️ Editor</a>
+                    <a href="../README.html">📖 Documentation</a>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="room-selector">
+                    <label for="roomSelect"
+                        ><strong>Select Room to Edit:</strong></label
+                    >
+                    <select id="roomSelect" onchange="loadRoom()">
+                        <option value="">Choose a room...</option>
+                        <option value="main-costs">
+                            💰 Main Project Costs (Completed Items & Manual
+                            Expenses)
+                        </option>
+                        <optgroup label="Room-Specific Costs">
+                            <option value="cocina">Cocina (Kitchen)</option>
+                            <option value="sala">Sala (Living Room)</option>
+                            <option value="cuarto1">
+                                Cuarto 1 (Master Bedroom)
+                            </option>
+                            <option value="cuarto2">
+                                Cuarto 2 (Second Bedroom)
+                            </option>
+                            <option value="cuarto3">
+                                Cuarto 3 (Third Bedroom)
+                            </option>
+                            <option value="bano1">
+                                Baño 1 (Main Bathroom)
+                            </option>
+                            <option value="bano2">
+                                Baño 2 (Second Bathroom)
+                            </option>
+                            <option value="bano_visita">
+                                Baño Visita (Guest Bathroom)
+                            </option>
+                            <option value="balcon">Balcón (Balcony)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div id="roomEditor" style="display: none">
+                    <div class="room-info">
+                        <div class="info-card">
+                            <h3>Room Budget</h3>
+                            <div class="value" id="roomBudget">S/ 0</div>
+                            <input
+                                type="number"
+                                id="budgetInput"
+                                class="budget-input"
+                                placeholder="Budget"
+                                onchange="updateBudget()"
+                            />
+                        </div>
+                        <div class="info-card">
+                            <h3>Current Total</h3>
+                            <div class="value" id="currentTotal">S/ 0</div>
+                        </div>
+                        <div class="info-card">
+                            <h3>Difference</h3>
+                            <div class="value" id="difference">S/ 0</div>
+                        </div>
+                    </div>
+
+                    <div class="items-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>Qty</th>
+                                    <th>Unit</th>
+                                    <th>Budget Price</th>
+                                    <th>Actual Price</th>
+                                    <th>Subtotal</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsTable"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="add-item">
+                        <button onclick="addNewItem()">+ Add New Item</button>
+                    </div>
+
+                    <div class="save-section">
+                        <h3>💾 Save Changes</h3>
+                        <p>
+                            Automatically saves to CSV and updates all project
+                            data.
+                        </p>
+                        <button
+                            class="save-btn"
+                            onclick="saveRoom()"
+                            id="saveButton"
+                        >
+                            💾 Save Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="notification" id="notification"></div>
+
+        <script>
+            let currentRoom = '';
+            let roomData = {};
+
+            const categories = [
+                'Servicio',
+                'Material',
+                'Producto',
+                'Mano de Obra',
+            ];
+            const statuses = ['Planning', 'Pending', 'Completed'];
+
+            function showNotification(message, type = 'success') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 5000);
+            }
+
+            function parseCurrency(value) {
+                if (!value || value === '') return 0;
+                return parseFloat(value.toString().replace(/[S/\s,]/g, ''));
+            }
+
+            function formatCurrency(value) {
+                return `S/ ${value.toLocaleString('es-PE')}`;
+            }
+
+            async function loadRoom() {
+                const roomSelect = document.getElementById('roomSelect');
+                currentRoom = roomSelect.value;
+
+                if (!currentRoom) {
+                    document.getElementById('roomEditor').style.display =
+                        'none';
+                    return;
+                }
+
+                try {
+                    showNotification('Loading data...', 'info');
+
+                    if (currentRoom === 'main-costs') {
+                        await loadExpenses();
+                    } else {
+                        const response = await fetch(
+                            `/api/load-room/${currentRoom}`
+                        );
+                        const result = await response.json();
+
+                        if (!result.success) {
+                            throw new Error(
+                                result.error || 'Failed to load room data'
+                            );
+                        }
+
+                        roomData = result.roomData;
+                        displayRoomData();
+                        document.getElementById('roomEditor').style.display =
+                            'block';
+                        showNotification(
+                            `${roomData.name} data loaded successfully!`,
+                            'success'
+                        );
+                    }
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    showNotification(
+                        `Error loading data: ${error.message}`,
+                        'error'
+                    );
+
+                    // Load with template data if it's a room
+                    if (currentRoom !== 'main-costs') {
+                        loadTemplateData();
+                    }
+                }
+            }
+
+            async function loadExpenses() {
+                try {
+                    const response = await fetch('/api/load-expenses');
                     const result = await response.json();
 
                     if (!result.success) {
-                        throw new Error(result.error || 'Failed to load room data');
+                        throw new Error(
+                            result.error || 'Failed to load expenses data'
+                        );
                     }
 
-                    roomData = result.roomData;
-                    displayRoomData();
-                    document.getElementById('roomEditor').style.display = 'block';
-                    showNotification(`${roomData.name} data loaded successfully!`, 'success');
-                }
+                    // Convert expenses data to room-like format for the interface
+                    roomData = {
+                        name: 'Main Project Costs',
+                        budget: 0, // No budget for expenses
+                        items: result.expenses.map((expense) => ({
+                            description: expense.description,
+                            category: expense.category,
+                            quantity: 1,
+                            unit: '',
+                            budgetRate: 0,
+                            actualRate: expense.amount,
+                            subtotal: expense.amount,
+                            status: 'Completed',
+                            date: expense.date || '',
+                            room: expense.room || '',
+                        })),
+                    };
 
-            } catch (error) {
-                console.error('Error loading data:', error);
-                showNotification(`Error loading data: ${error.message}`, 'error');
-
-                // Load with template data if it's a room
-                if (currentRoom !== 'main-costs') {
-                    loadTemplateData();
+                    displayExpensesData();
+                    document.getElementById('roomEditor').style.display =
+                        'block';
+                    showNotification(
+                        'Expenses data loaded successfully!',
+                        'success'
+                    );
+                } catch (error) {
+                    console.error('Error loading expenses:', error);
+                    showNotification(
+                        `Error loading expenses: ${error.message}`,
+                        'error'
+                    );
                 }
             }
-        }
 
-        async function loadExpenses() {
-            try {
-                const response = await fetch('/api/load-expenses');
-                const result = await response.json();
-
-                if (!result.success) {
-                    throw new Error(result.error || 'Failed to load expenses data');
-                }
-
-                // Convert expenses data to room-like format for the interface
-                roomData = {
-                    name: 'Main Project Costs',
-                    budget: 0, // No budget for expenses
-                    items: result.expenses.map(expense => ({
-                        description: expense.description,
-                        category: expense.category,
-                        quantity: 1,
-                        unit: '',
-                        budgetRate: 0,
-                        actualRate: expense.amount,
-                        subtotal: expense.amount,
-                        status: 'Completed',
-                        date: expense.date || '',
-                        room: expense.room || ''
-                    }))
+            function loadTemplateData() {
+                const roomNames = {
+                    cocina: 'Cocina',
+                    sala: 'Sala',
+                    cuarto1: 'Cuarto 1',
+                    cuarto2: 'Cuarto 2',
+                    cuarto3: 'Cuarto 3',
+                    bano1: 'Baño 1',
+                    bano2: 'Baño 2',
+                    bano_visita: 'Baño Visita',
+                    balcon: 'Balcón',
                 };
 
-                displayExpensesData();
+                roomData = {
+                    name: roomNames[currentRoom] || currentRoom,
+                    budget: 15000,
+                    items: [
+                        {
+                            description: 'Electrical',
+                            category: 'Services',
+                            quantity: 1,
+                            unit: '',
+                            budgetRate: 0,
+                            actualRate: 0,
+                            subtotal: 0,
+                            status: 'Planning',
+                        },
+                        {
+                            description: 'Plumbing',
+                            category: 'Services',
+                            quantity: 1,
+                            unit: '',
+                            budgetRate: 0,
+                            actualRate: 0,
+                            subtotal: 0,
+                            status: 'Planning',
+                        },
+                        {
+                            description: 'Piso',
+                            category: 'Materials',
+                            quantity: 20,
+                            unit: 'm^2',
+                            budgetRate: 0,
+                            actualRate: 0,
+                            subtotal: 0,
+                            status: 'Planning',
+                        },
+                    ],
+                };
+
+                displayRoomData();
                 document.getElementById('roomEditor').style.display = 'block';
-                showNotification('Expenses data loaded successfully!', 'success');
-
-            } catch (error) {
-                console.error('Error loading expenses:', error);
-                showNotification(`Error loading expenses: ${error.message}`, 'error');
+                showNotification(
+                    'Loaded with template data. Edit and save to create the room file.',
+                    'info'
+                );
             }
-        }
 
-        function loadTemplateData() {
-            const roomNames = {
-                'cocina': 'Cocina',
-                'sala': 'Sala',
-                'cuarto1': 'Cuarto 1',
-                'cuarto2': 'Cuarto 2',
-                'cuarto3': 'Cuarto 3',
-                'bano1': 'Baño 1',
-                'bano2': 'Baño 2',
-                'bano_visita': 'Baño Visita',
-                'balcon': 'Balcón'
-            };
+            function displayRoomData() {
+                // Update room info
+                document.getElementById('roomBudget').textContent =
+                    formatCurrency(roomData.budget);
+                document.getElementById('budgetInput').value = roomData.budget;
 
-            roomData = {
-                name: roomNames[currentRoom] || currentRoom,
-                budget: 15000,
-                items: [
-                    {description: 'Electrical', category: 'Services', quantity: 1, unit: '', budgetRate: 0, actualRate: 0, subtotal: 0, status: 'Planning'},
-                    {description: 'Plumbing', category: 'Services', quantity: 1, unit: '', budgetRate: 0, actualRate: 0, subtotal: 0, status: 'Planning'},
-                    {description: 'Piso', category: 'Materials', quantity: 20, unit: 'm^2', budgetRate: 0, actualRate: 0, subtotal: 0, status: 'Planning'},
-                ]
-            };
+                const currentTotal = roomData.items.reduce(
+                    (sum, item) => sum + item.subtotal,
+                    0
+                );
+                document.getElementById('currentTotal').textContent =
+                    formatCurrency(currentTotal);
 
-            displayRoomData();
-            document.getElementById('roomEditor').style.display = 'block';
-            showNotification('Loaded with template data. Edit and save to create the room file.', 'info');
-        }
+                const difference = roomData.budget - currentTotal;
+                const diffElement = document.getElementById('difference');
+                diffElement.textContent = formatCurrency(Math.abs(difference));
+                diffElement.style.color =
+                    difference >= 0 ? '#28a745' : '#dc3545';
 
-        function displayRoomData() {
-            // Update room info
-            document.getElementById('roomBudget').textContent = formatCurrency(roomData.budget);
-            document.getElementById('budgetInput').value = roomData.budget;
+                // Update items table
+                const tbody = document.getElementById('itemsTable');
+                tbody.innerHTML = '';
 
-            const currentTotal = roomData.items.reduce((sum, item) => sum + item.subtotal, 0);
-            document.getElementById('currentTotal').textContent = formatCurrency(currentTotal);
+                roomData.items.forEach((item, index) => {
+                    const row = createItemRow(item, index);
+                    tbody.appendChild(row);
+                });
+            }
 
-            const difference = roomData.budget - currentTotal;
-            const diffElement = document.getElementById('difference');
-            diffElement.textContent = formatCurrency(Math.abs(difference));
-            diffElement.style.color = difference >= 0 ? '#28a745' : '#dc3545';
+            function displayExpensesData() {
+                // Update room info for expenses view
+                document
+                    .getElementById('roomBudget')
+                    .parentElement.querySelector('h3').textContent =
+                    'Total Expenses';
+                document.getElementById('roomBudget').textContent =
+                    formatCurrency(0);
+                document.getElementById('budgetInput').style.display = 'none';
 
-            // Update items table
-            const tbody = document.getElementById('itemsTable');
-            tbody.innerHTML = '';
+                const currentTotal = roomData.items.reduce(
+                    (sum, item) => sum + item.subtotal,
+                    0
+                );
+                document.getElementById('currentTotal').textContent =
+                    formatCurrency(currentTotal);
 
-            roomData.items.forEach((item, index) => {
-                const row = createItemRow(item, index);
-                tbody.appendChild(row);
-            });
-        }
+                document
+                    .getElementById('difference')
+                    .parentElement.querySelector('h3').textContent = 'Count';
+                document.getElementById('difference').textContent =
+                    roomData.items.length;
+                document.getElementById('difference').style.color = '#667eea';
 
-        function displayExpensesData() {
-            // Update room info for expenses view
-            document.getElementById('roomBudget').parentElement.querySelector('h3').textContent = 'Total Expenses';
-            document.getElementById('roomBudget').textContent = formatCurrency(0);
-            document.getElementById('budgetInput').style.display = 'none';
-
-            const currentTotal = roomData.items.reduce((sum, item) => sum + item.subtotal, 0);
-            document.getElementById('currentTotal').textContent = formatCurrency(currentTotal);
-
-            document.getElementById('difference').parentElement.querySelector('h3').textContent = 'Count';
-            document.getElementById('difference').textContent = roomData.items.length;
-            document.getElementById('difference').style.color = '#667eea';
-
-            // Update table headers for expenses
-            const table = document.querySelector('.items-table table');
-            const thead = table.querySelector('thead tr');
-            thead.innerHTML = `
+                // Update table headers for expenses
+                const table = document.querySelector('.items-table table');
+                const thead = table.querySelector('thead tr');
+                thead.innerHTML = `
                 <th>Description</th>
                 <th>Category</th>
                 <th>Amount</th>
@@ -506,230 +615,303 @@
                 <th>Actions</th>
             `;
 
-            // Update items table
-            const tbody = document.getElementById('itemsTable');
-            tbody.innerHTML = '';
+                // Update items table
+                const tbody = document.getElementById('itemsTable');
+                tbody.innerHTML = '';
 
-            roomData.items.forEach((item, index) => {
-                const row = createExpenseRow(item, index);
-                tbody.appendChild(row);
-            });
-        }
+                roomData.items.forEach((item, index) => {
+                    const row = createExpenseRow(item, index);
+                    tbody.appendChild(row);
+                });
+            }
 
-        function createItemRow(item, index) {
-            const row = document.createElement('tr');
-            row.className = `status-${item.status.toLowerCase().replace(/ /g, '')}`;
+            function createItemRow(item, index) {
+                const row = document.createElement('tr');
+                row.className = `status-${item.status
+                    .toLowerCase()
+                    .replace(/ /g, '')}`;
 
-            row.innerHTML = `
-                <td><input type="text" value="${item.description}" onchange="updateItem(${index}, 'description', this.value)"></td>
+                row.innerHTML = `
+                <td><input type="text" value="${
+                    item.description
+                }" onchange="updateItem(${index}, 'description', this.value)"></td>
                 <td>
                     <select onchange="updateItem(${index}, 'category', this.value)">
-                        ${categories.map(cat => `<option value="${cat}" ${cat === item.category ? 'selected' : ''}>${cat}</option>`).join('')}
+                        ${categories
+                            .map(
+                                (cat) =>
+                                    `<option value="${cat}" ${
+                                        cat === item.category ? 'selected' : ''
+                                    }>${cat}</option>`
+                            )
+                            .join('')}
                     </select>
                 </td>
-                <td><input type="number" value="${item.quantity}" onchange="updateItem(${index}, 'quantity', parseFloat(this.value) || 1)"></td>
-                <td><input type="text" value="${item.unit}" onchange="updateItem(${index}, 'unit', this.value)"></td>
-                <td><input type="number" value="${item.budgetRate}" onchange="updateItem(${index}, 'budgetRate', parseFloat(this.value) || 0)"></td>
-                <td><input type="number" value="${item.actualRate}" onchange="updateItem(${index}, 'actualRate', parseFloat(this.value) || 0)"></td>
+                <td><input type="number" value="${
+                    item.quantity
+                }" onchange="updateItem(${index}, 'quantity', parseFloat(this.value) || 1)"></td>
+                <td><input type="text" value="${
+                    item.unit
+                }" onchange="updateItem(${index}, 'unit', this.value)"></td>
+                <td><input type="number" value="${
+                    item.budgetRate
+                }" onchange="updateItem(${index}, 'budgetRate', parseFloat(this.value) || 0)"></td>
+                <td><input type="number" value="${
+                    item.actualRate
+                }" onchange="updateItem(${index}, 'actualRate', parseFloat(this.value) || 0)"></td>
                 <td><strong>${formatCurrency(item.subtotal)}</strong></td>
                 <td>
                     <select onchange="updateItem(${index}, 'status', this.value)">
-                        ${statuses.map(status => `<option value="${status}" ${status === item.status ? 'selected' : ''}>${status}</option>`).join('')}
+                        ${statuses
+                            .map(
+                                (status) =>
+                                    `<option value="${status}" ${
+                                        status === item.status ? 'selected' : ''
+                                    }>${status}</option>`
+                            )
+                            .join('')}
                     </select>
                 </td>
                 <td><button onclick="removeItem(${index})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Delete</button></td>
             `;
 
-            return row;
-        }
+                return row;
+            }
 
-        function createExpenseRow(item, index) {
-            const expenseCategories = ['Documentación', 'Mano de Obra', 'Material', 'Producto', 'Servicio', 'Other'];
-            const rooms = [
-                { value: '', label: 'No Room' },
-                { value: 'Cocina', label: 'Cocina' },
-                { value: 'Sala', label: 'Sala' },
-                { value: 'Cuarto 1', label: 'Cuarto 1' },
-                { value: 'Cuarto 2', label: 'Cuarto 2' },
-                { value: 'Cuarto 3', label: 'Cuarto 3' },
-                { value: 'Baño 1', label: 'Baño 1' },
-                { value: 'Baño 2', label: 'Baño 2' },
-                { value: 'Baño Visita', label: 'Baño Visita' },
-                { value: 'Balcón', label: 'Balcón' }
-            ];
-            
-            const row = document.createElement('tr');
-            row.className = 'status-completed';
+            function createExpenseRow(item, index) {
+                const expenseCategories = [
+                    'Documentación',
+                    'Mano de Obra',
+                    'Material',
+                    'Producto',
+                    'Servicio',
+                    'Other',
+                ];
+                const rooms = [
+                    { value: '', label: 'No Room' },
+                    { value: 'Cocina', label: 'Cocina' },
+                    { value: 'Sala', label: 'Sala' },
+                    { value: 'Cuarto 1', label: 'Cuarto 1' },
+                    { value: 'Cuarto 2', label: 'Cuarto 2' },
+                    { value: 'Cuarto 3', label: 'Cuarto 3' },
+                    { value: 'Baño 1', label: 'Baño 1' },
+                    { value: 'Baño 2', label: 'Baño 2' },
+                    { value: 'Baño Visita', label: 'Baño Visita' },
+                    { value: 'Balcón', label: 'Balcón' },
+                ];
 
-            row.innerHTML = `
-                <td><input type="text" value="${item.description}" onchange="updateExpenseItem(${index}, 'description', this.value)"></td>
+                const row = document.createElement('tr');
+                row.className = 'status-completed';
+
+                row.innerHTML = `
+                <td><input type="text" value="${
+                    item.description
+                }" onchange="updateExpenseItem(${index}, 'description', this.value)"></td>
                 <td>
                     <select onchange="updateExpenseItem(${index}, 'category', this.value)">
-                        ${expenseCategories.map(cat => `<option value="${cat}" ${cat === item.category ? 'selected' : ''}>${cat}</option>`).join('')}
+                        ${expenseCategories
+                            .map(
+                                (cat) =>
+                                    `<option value="${cat}" ${
+                                        cat === item.category ? 'selected' : ''
+                                    }>${cat}</option>`
+                            )
+                            .join('')}
                     </select>
                 </td>
-                <td><input type="number" value="${item.actualRate}" onchange="updateExpenseItem(${index}, 'actualRate', parseFloat(this.value) || 0)"></td>
-                <td><input type="date" value="${item.date || ''}" onchange="updateExpenseItem(${index}, 'date', this.value)"></td>
+                <td><input type="number" value="${
+                    item.actualRate
+                }" onchange="updateExpenseItem(${index}, 'actualRate', parseFloat(this.value) || 0)"></td>
+                <td><input type="date" value="${
+                    item.date || ''
+                }" onchange="updateExpenseItem(${index}, 'date', this.value)"></td>
                 <td>
                     <select onchange="updateExpenseItem(${index}, 'room', this.value)">
-                        ${rooms.map(room => `<option value="${room.value}" ${(item.room || '') === room.value ? 'selected' : ''}>${room.label}</option>`).join('')}
+                        ${rooms
+                            .map(
+                                (room) =>
+                                    `<option value="${room.value}" ${
+                                        (item.room || '') === room.value
+                                            ? 'selected'
+                                            : ''
+                                    }>${room.label}</option>`
+                            )
+                            .join('')}
                     </select>
                 </td>
                 <td><button onclick="removeItem(${index})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Delete</button></td>
             `;
 
-            return row;
-        }
-
-        function updateItem(index, field, value) {
-            roomData.items[index][field] = value;
-
-            // Recalculate subtotal
-            const item = roomData.items[index];
-            const rate = item.actualRate > 0 ? item.actualRate : item.budgetRate;
-            item.subtotal = rate * item.quantity;
-
-            displayRoomData();
-        }
-
-        function updateExpenseItem(index, field, value) {
-            roomData.items[index][field] = value;
-
-            // For expense items, the subtotal is the actualRate (amount)
-            if (field === 'actualRate') {
-                roomData.items[index].subtotal = value;
+                return row;
             }
 
-            displayExpensesData();
-        }
+            function updateItem(index, field, value) {
+                roomData.items[index][field] = value;
 
-        function updateBudget() {
-            roomData.budget = parseFloat(document.getElementById('budgetInput').value) || 0;
-            displayRoomData();
-        }
+                // Recalculate subtotal
+                const item = roomData.items[index];
+                const rate =
+                    item.actualRate > 0 ? item.actualRate : item.budgetRate;
+                item.subtotal = rate * item.quantity;
 
-        function addNewItem() {
-            if (currentRoom === 'main-costs') {
-                // Add new expense item
-                const newItem = {
-                    description: 'New Expense',
-                    category: 'Other',
-                    quantity: 1,
-                    unit: '',
-                    budgetRate: 0,
-                    actualRate: 0,
-                    subtotal: 0,
-                    status: 'Completed',
-                    date: new Date().toISOString().split('T')[0],
-                    room: ''
-                };
-
-                roomData.items.push(newItem);
-                displayExpensesData();
-            } else {
-                // Add new room item
-                const newItem = {
-                    description: 'New Item',
-                    category: 'Materials',
-                    quantity: 1,
-                    unit: '',
-                    budgetRate: 0,
-                    actualRate: 0,
-                    subtotal: 0,
-                    status: 'Planning'
-                };
-
-                roomData.items.push(newItem);
                 displayRoomData();
             }
-        }
 
-        function removeItem(index) {
-            if (confirm('Are you sure you want to delete this item?')) {
-                roomData.items.splice(index, 1);
-                displayRoomData();
-            }
-        }
+            function updateExpenseItem(index, field, value) {
+                roomData.items[index][field] = value;
 
-        async function saveRoom() {
-            if (!currentRoom || !roomData) {
-                showNotification('No room data to save', 'error');
-                return;
-            }
-
-            const saveButton = document.getElementById('saveButton');
-            const originalText = saveButton.innerHTML;
-
-            try {
-                // Show loading state
-                saveButton.disabled = true;
-                saveButton.innerHTML = '<span class="loading"></span> Saving...';
-
-                if (currentRoom === 'main-costs') {
-                    // Save expenses data
-                    const expenses = roomData.items.map(item => ({
-                        description: item.description,
-                        amount: item.actualRate || item.subtotal,
-                        category: item.category,
-                        date: item.date || '',
-                        room: item.room || ''
-                    }));
-
-                    const response = await fetch('/api/save-expenses', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ expenses })
-                    });
-
-                    const result = await response.json();
-
-                    if (!result.success) {
-                        throw new Error(result.error || 'Failed to save expenses data');
-                    }
-
-                    showNotification(`✅ Main Project Costs saved successfully! All tables updated automatically.`, 'success');
-                } else {
-                    // Save room data
-                    const response = await fetch(`/api/save-room/${currentRoom}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ roomData })
-                    });
-
-                    const result = await response.json();
-
-                    if (!result.success) {
-                        throw new Error(result.error || 'Failed to save room data');
-                    }
-
-                    showNotification(`✅ ${roomData.name} saved successfully! All tables updated automatically.`, 'success');
+                // For expense items, the subtotal is the actualRate (amount)
+                if (field === 'actualRate') {
+                    roomData.items[index].subtotal = value;
                 }
 
-            } catch (error) {
-                console.error('Error saving room:', error);
-                showNotification(`Error saving room: ${error.message}`, 'error');
-
-            } finally {
-                // Restore button state
-                saveButton.disabled = false;
-                saveButton.innerHTML = originalText;
+                displayExpensesData();
             }
-        }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-load first room if specified in URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const room = urlParams.get('room');
-            if (room) {
-                document.getElementById('roomSelect').value = room;
-                loadRoom();
+            function updateBudget() {
+                roomData.budget =
+                    parseFloat(document.getElementById('budgetInput').value) ||
+                    0;
+                displayRoomData();
             }
-        });
-    </script>
-</body>
+
+            function addNewItem() {
+                if (currentRoom === 'main-costs') {
+                    // Add new expense item
+                    const newItem = {
+                        description: 'New Expense',
+                        category: 'Other',
+                        quantity: 1,
+                        unit: '',
+                        budgetRate: 0,
+                        actualRate: 0,
+                        subtotal: 0,
+                        status: 'Completed',
+                        date: new Date().toISOString().split('T')[0],
+                        room: '',
+                    };
+
+                    roomData.items.push(newItem);
+                    displayExpensesData();
+                } else {
+                    // Add new room item
+                    const newItem = {
+                        description: 'New Item',
+                        category: 'Materials',
+                        quantity: 1,
+                        unit: '',
+                        budgetRate: 0,
+                        actualRate: 0,
+                        subtotal: 0,
+                        status: 'Planning',
+                    };
+
+                    roomData.items.push(newItem);
+                    displayRoomData();
+                }
+            }
+
+            function removeItem(index) {
+                if (confirm('Are you sure you want to delete this item?')) {
+                    roomData.items.splice(index, 1);
+                    displayRoomData();
+                }
+            }
+
+            async function saveRoom() {
+                if (!currentRoom || !roomData) {
+                    showNotification('No room data to save', 'error');
+                    return;
+                }
+
+                const saveButton = document.getElementById('saveButton');
+                const originalText = saveButton.innerHTML;
+
+                try {
+                    // Show loading state
+                    saveButton.disabled = true;
+                    saveButton.innerHTML =
+                        '<span class="loading"></span> Saving...';
+
+                    if (currentRoom === 'main-costs') {
+                        // Save expenses data
+                        const expenses = roomData.items.map((item) => ({
+                            description: item.description,
+                            amount: item.actualRate || item.subtotal,
+                            category: item.category,
+                            date: item.date || '',
+                            room: item.room || '',
+                        }));
+
+                        const response = await fetch('/api/save-expenses', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ expenses }),
+                        });
+
+                        const result = await response.json();
+
+                        if (!result.success) {
+                            throw new Error(
+                                result.error || 'Failed to save expenses data'
+                            );
+                        }
+
+                        showNotification(
+                            `✅ Main Project Costs saved successfully! All tables updated automatically.`,
+                            'success'
+                        );
+                    } else {
+                        // Save room data
+                        const response = await fetch(
+                            `/api/save-room/${currentRoom}`,
+                            {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ roomData }),
+                            }
+                        );
+
+                        const result = await response.json();
+
+                        if (!result.success) {
+                            throw new Error(
+                                result.error || 'Failed to save room data'
+                            );
+                        }
+
+                        showNotification(
+                            `✅ ${roomData.name} saved successfully! All tables updated automatically.`,
+                            'success'
+                        );
+                    }
+                } catch (error) {
+                    console.error('Error saving room:', error);
+                    showNotification(
+                        `Error saving room: ${error.message}`,
+                        'error'
+                    );
+                } finally {
+                    // Restore button state
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = originalText;
+                }
+            }
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', function () {
+                // Auto-load first room if specified in URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const room = urlParams.get('room');
+                if (room) {
+                    document.getElementById('roomSelect').value = room;
+                    loadRoom();
+                }
+            });
+        </script>
+    </body>
 </html>
