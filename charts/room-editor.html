@@ -259,15 +259,18 @@
                 <label for="roomSelect"><strong>Select Room to Edit:</strong></label>
                 <select id="roomSelect" onchange="loadRoom()">
                     <option value="">Choose a room...</option>
-                    <option value="cocina">Cocina (Kitchen)</option>
-                    <option value="sala">Sala (Living Room)</option>
-                    <option value="cuarto1">Cuarto 1 (Master Bedroom)</option>
-                    <option value="cuarto2">Cuarto 2 (Second Bedroom)</option>
-                    <option value="cuarto3">Cuarto 3 (Third Bedroom)</option>
-                    <option value="bano1">Baño 1 (Main Bathroom)</option>
-                    <option value="bano2">Baño 2 (Second Bathroom)</option>
-                    <option value="bano_visita">Baño Visita (Guest Bathroom)</option>
-                    <option value="balcon">Balcón (Balcony)</option>
+                    <option value="main-costs">💰 Main Project Costs (Completed Items & Manual Expenses)</option>
+                    <optgroup label="Room-Specific Costs">
+                        <option value="cocina">Cocina (Kitchen)</option>
+                        <option value="sala">Sala (Living Room)</option>
+                        <option value="cuarto1">Cuarto 1 (Master Bedroom)</option>
+                        <option value="cuarto2">Cuarto 2 (Second Bedroom)</option>
+                        <option value="cuarto3">Cuarto 3 (Third Bedroom)</option>
+                        <option value="bano1">Baño 1 (Main Bathroom)</option>
+                        <option value="bano2">Baño 2 (Second Bathroom)</option>
+                        <option value="bano_visita">Baño Visita (Guest Bathroom)</option>
+                        <option value="balcon">Balcón (Balcony)</option>
+                    </optgroup>
                 </select>
             </div>
 
@@ -361,26 +364,68 @@
             }
 
             try {
-                showNotification('Loading room data...', 'info');
+                showNotification('Loading data...', 'info');
 
-                const response = await fetch(`/api/load-room/${currentRoom}`);
+                if (currentRoom === 'main-costs') {
+                    await loadExpenses();
+                } else {
+                    const response = await fetch(`/api/load-room/${currentRoom}`);
+                    const result = await response.json();
+
+                    if (!result.success) {
+                        throw new Error(result.error || 'Failed to load room data');
+                    }
+
+                    roomData = result.roomData;
+                    displayRoomData();
+                    document.getElementById('roomEditor').style.display = 'block';
+                    showNotification(`${roomData.name} data loaded successfully!`, 'success');
+                }
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showNotification(`Error loading data: ${error.message}`, 'error');
+
+                // Load with template data if it's a room
+                if (currentRoom !== 'main-costs') {
+                    loadTemplateData();
+                }
+            }
+        }
+
+        async function loadExpenses() {
+            try {
+                const response = await fetch('/api/load-expenses');
                 const result = await response.json();
 
                 if (!result.success) {
-                    throw new Error(result.error || 'Failed to load room data');
+                    throw new Error(result.error || 'Failed to load expenses data');
                 }
 
-                roomData = result.roomData;
-                displayRoomData();
+                // Convert expenses data to room-like format for the interface
+                roomData = {
+                    name: 'Main Project Costs',
+                    budget: 0, // No budget for expenses
+                    items: result.expenses.map(expense => ({
+                        description: expense.description,
+                        category: expense.category,
+                        quantity: 1,
+                        unit: '',
+                        budgetRate: 0,
+                        actualRate: expense.amount,
+                        subtotal: expense.amount,
+                        status: 'Completed',
+                        date: expense.date || ''
+                    }))
+                };
+
+                displayExpensesData();
                 document.getElementById('roomEditor').style.display = 'block';
-                showNotification(`${roomData.name} data loaded successfully!`, 'success');
+                showNotification('Expenses data loaded successfully!', 'success');
 
             } catch (error) {
-                console.error('Error loading room:', error);
-                showNotification(`Error loading room: ${error.message}`, 'error');
-
-                // Load with template data
-                loadTemplateData();
+                console.error('Error loading expenses:', error);
+                showNotification(`Error loading expenses: ${error.message}`, 'error');
             }
         }
 
@@ -435,6 +480,40 @@
             });
         }
 
+        function displayExpensesData() {
+            // Update room info for expenses view
+            document.getElementById('roomBudget').parentElement.querySelector('h3').textContent = 'Total Expenses';
+            document.getElementById('roomBudget').textContent = formatCurrency(0);
+            document.getElementById('budgetInput').style.display = 'none';
+
+            const currentTotal = roomData.items.reduce((sum, item) => sum + item.subtotal, 0);
+            document.getElementById('currentTotal').textContent = formatCurrency(currentTotal);
+
+            document.getElementById('difference').parentElement.querySelector('h3').textContent = 'Count';
+            document.getElementById('difference').textContent = roomData.items.length;
+            document.getElementById('difference').style.color = '#667eea';
+
+            // Update table headers for expenses
+            const table = document.querySelector('.items-table table');
+            const thead = table.querySelector('thead tr');
+            thead.innerHTML = `
+                <th>Description</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Actions</th>
+            `;
+
+            // Update items table
+            const tbody = document.getElementById('itemsTable');
+            tbody.innerHTML = '';
+
+            roomData.items.forEach((item, index) => {
+                const row = createExpenseRow(item, index);
+                tbody.appendChild(row);
+            });
+        }
+
         function createItemRow(item, index) {
             const row = document.createElement('tr');
             row.className = `status-${item.status.toLowerCase().replace(/ /g, '')}`;
@@ -462,6 +541,27 @@
             return row;
         }
 
+        function createExpenseRow(item, index) {
+            const expenseCategories = ['Documentación', 'Mano de Obra', 'Material', 'Producto', 'Servicio', 'Other'];
+            
+            const row = document.createElement('tr');
+            row.className = 'status-completed';
+
+            row.innerHTML = `
+                <td><input type="text" value="${item.description}" onchange="updateExpenseItem(${index}, 'description', this.value)"></td>
+                <td>
+                    <select onchange="updateExpenseItem(${index}, 'category', this.value)">
+                        ${expenseCategories.map(cat => `<option value="${cat}" ${cat === item.category ? 'selected' : ''}>${cat}</option>`).join('')}
+                    </select>
+                </td>
+                <td><input type="number" value="${item.actualRate}" onchange="updateExpenseItem(${index}, 'actualRate', parseFloat(this.value) || 0)"></td>
+                <td><input type="date" value="${item.date}" onchange="updateExpenseItem(${index}, 'date', this.value)"></td>
+                <td><button onclick="removeItem(${index})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Delete</button></td>
+            `;
+
+            return row;
+        }
+
         function updateItem(index, field, value) {
             roomData.items[index][field] = value;
 
@@ -473,25 +573,55 @@
             displayRoomData();
         }
 
+        function updateExpenseItem(index, field, value) {
+            roomData.items[index][field] = value;
+
+            // For expense items, the subtotal is the actualRate (amount)
+            if (field === 'actualRate') {
+                roomData.items[index].subtotal = value;
+            }
+
+            displayExpensesData();
+        }
+
         function updateBudget() {
             roomData.budget = parseFloat(document.getElementById('budgetInput').value) || 0;
             displayRoomData();
         }
 
         function addNewItem() {
-            const newItem = {
-                description: 'New Item',
-                category: 'Materials',
-                quantity: 1,
-                unit: '',
-                budgetRate: 0,
-                actualRate: 0,
-                subtotal: 0,
-                status: 'Planning'
-            };
+            if (currentRoom === 'main-costs') {
+                // Add new expense item
+                const newItem = {
+                    description: 'New Expense',
+                    category: 'Other',
+                    quantity: 1,
+                    unit: '',
+                    budgetRate: 0,
+                    actualRate: 0,
+                    subtotal: 0,
+                    status: 'Completed',
+                    date: new Date().toISOString().split('T')[0]
+                };
 
-            roomData.items.push(newItem);
-            displayRoomData();
+                roomData.items.push(newItem);
+                displayExpensesData();
+            } else {
+                // Add new room item
+                const newItem = {
+                    description: 'New Item',
+                    category: 'Materials',
+                    quantity: 1,
+                    unit: '',
+                    budgetRate: 0,
+                    actualRate: 0,
+                    subtotal: 0,
+                    status: 'Planning'
+                };
+
+                roomData.items.push(newItem);
+                displayRoomData();
+            }
         }
 
         function removeItem(index) {
@@ -515,21 +645,48 @@
                 saveButton.disabled = true;
                 saveButton.innerHTML = '<span class="loading"></span> Saving...';
 
-                const response = await fetch(`/api/save-room/${currentRoom}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ roomData })
-                });
+                if (currentRoom === 'main-costs') {
+                    // Save expenses data
+                    const expenses = roomData.items.map(item => ({
+                        description: item.description,
+                        amount: item.actualRate || item.subtotal,
+                        category: item.category,
+                        date: item.date || ''
+                    }));
 
-                const result = await response.json();
+                    const response = await fetch('/api/save-expenses', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ expenses })
+                    });
 
-                if (!result.success) {
-                    throw new Error(result.error || 'Failed to save room data');
+                    const result = await response.json();
+
+                    if (!result.success) {
+                        throw new Error(result.error || 'Failed to save expenses data');
+                    }
+
+                    showNotification(`✅ Main Project Costs saved successfully! All tables updated automatically.`, 'success');
+                } else {
+                    // Save room data
+                    const response = await fetch(`/api/save-room/${currentRoom}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ roomData })
+                    });
+
+                    const result = await response.json();
+
+                    if (!result.success) {
+                        throw new Error(result.error || 'Failed to save room data');
+                    }
+
+                    showNotification(`✅ ${roomData.name} saved successfully! All tables updated automatically.`, 'success');
                 }
-
-                showNotification(`✅ ${roomData.name} saved successfully! All tables updated automatically.`, 'success');
 
             } catch (error) {
                 console.error('Error saving room:', error);
