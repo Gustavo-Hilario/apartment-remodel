@@ -8,7 +8,7 @@ class RoomProgressUpdater {
         this.dataDir = path.join(__dirname, '..', 'data');
         this.roomsDir = path.join(this.dataDir, 'rooms');
         this.outputPath = path.join(this.dataDir, 'room-progress.csv');
-        
+
         this.rooms = [
             { name: 'Cocina', file: 'cocina.csv' },
             { name: 'Sala', file: 'sala.csv' },
@@ -18,7 +18,7 @@ class RoomProgressUpdater {
             { name: 'Baño 1', file: 'bano1.csv' },
             { name: 'Baño 2', file: 'bano2.csv' },
             { name: 'Baño Visita', file: 'bano_visita.csv' },
-            { name: 'Balcón', file: 'balcon.csv' }
+            { name: 'Balcón', file: 'balcon.csv' },
         ];
     }
 
@@ -28,7 +28,7 @@ class RoomProgressUpdater {
 
         // First line: Room name
         const roomName = lines[0].split(',')[1]?.trim();
-        
+
         // Second line: Budget
         const budget = parseFloat(lines[1].split(',')[1]) || 0;
 
@@ -48,7 +48,7 @@ class RoomProgressUpdater {
                     budgetPrice: parseFloat(parts[4]) || 0,
                     actualPrice: parseFloat(parts[5]) || 0,
                     subtotal: parseFloat(parts[6]) || 0,
-                    status: parts[7]?.trim() || 'Planning'
+                    status: parts[7]?.trim() || 'Planning',
                 });
             }
         }
@@ -61,17 +61,20 @@ class RoomProgressUpdater {
 
         // Calculate actual spending - ONLY from Completed items
         const actualSpent = items
-            .filter(item => item.status === 'Completed')
+            .filter((item) => item.status === 'Completed')
             .reduce((sum, item) => sum + item.subtotal, 0);
 
         // Count items
         const totalItems = items.length;
-        const completedItems = items.filter(item => item.status === 'Completed').length;
+        const completedItems = items.filter(
+            (item) => item.status === 'Completed'
+        ).length;
 
         // Calculate progress percentage
-        const progressPercent = totalItems > 0 
-            ? ((completedItems / totalItems) * 100).toFixed(1) 
-            : '0.0';
+        const progressPercent =
+            totalItems > 0
+                ? ((completedItems / totalItems) * 100).toFixed(1)
+                : '0.0';
 
         // Determine status
         let status;
@@ -89,12 +92,15 @@ class RoomProgressUpdater {
             progressPercent,
             completedItems,
             totalItems,
-            status
+            status,
         };
     }
 
     formatCurrency(value) {
-        return `S/ ${value.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        return `S/ ${value.toLocaleString('es-PE', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        })}`;
     }
 
     async updateRoomProgress() {
@@ -117,17 +123,28 @@ class RoomProgressUpdater {
 
                 roomProgress.push({
                     room: room.name,
-                    ...stats
+                    ...stats,
                 });
 
-                console.log(`✅ ${room.name}: ${stats.completedItems}/${stats.totalItems} items completed, ${this.formatCurrency(stats.actualSpent)} spent`);
+                console.log(
+                    `✅ ${room.name}: ${stats.completedItems}/${
+                        stats.totalItems
+                    } items completed, ${this.formatCurrency(
+                        stats.actualSpent
+                    )} spent`
+                );
             }
 
             // Generate CSV content
-            let csvContent = 'Room,Budget,Actual,Progress_Percent,Completed_Items,Total_Items,Status\n';
+            let csvContent =
+                'Room,Budget,Actual,Progress_Percent,Completed_Items,Total_Items,Status\n';
 
-            roomProgress.forEach(room => {
-                csvContent += `${room.room},${this.formatCurrency(room.budget)},${this.formatCurrency(room.actualSpent)},${room.progressPercent}%,${room.completedItems},${room.totalItems},${room.status}\n`;
+            roomProgress.forEach((room) => {
+                csvContent += `${room.room},${this.formatCurrency(
+                    room.budget
+                )},${this.formatCurrency(room.actualSpent)},${
+                    room.progressPercent
+                }%,${room.completedItems},${room.totalItems},${room.status}\n`;
             });
 
             // Write to file
@@ -137,16 +154,37 @@ class RoomProgressUpdater {
             console.log(`📁 File: ${this.outputPath}`);
 
             // Calculate and display totals
-            const totalBudget = roomProgress.reduce((sum, room) => sum + room.budget, 0);
-            const totalSpent = roomProgress.reduce((sum, room) => sum + room.actualSpent, 0);
-            const totalCompleted = roomProgress.reduce((sum, room) => sum + room.completedItems, 0);
-            const totalItems = roomProgress.reduce((sum, room) => sum + room.totalItems, 0);
+            const totalBudget = roomProgress.reduce(
+                (sum, room) => sum + room.budget,
+                0
+            );
+            const totalSpent = roomProgress.reduce(
+                (sum, room) => sum + room.actualSpent,
+                0
+            );
+            const totalCompleted = roomProgress.reduce(
+                (sum, room) => sum + room.completedItems,
+                0
+            );
+            const totalItems = roomProgress.reduce(
+                (sum, room) => sum + room.totalItems,
+                0
+            );
 
             console.log(`\n📊 Project Totals:`);
             console.log(`   Total Budget: ${this.formatCurrency(totalBudget)}`);
-            console.log(`   Total Spent: ${this.formatCurrency(totalSpent)} (${((totalSpent/totalBudget)*100).toFixed(1)}%)`);
-            console.log(`   Items Completed: ${totalCompleted}/${totalItems} (${((totalCompleted/totalItems)*100).toFixed(1)}%)`);
-
+            console.log(
+                `   Total Spent: ${this.formatCurrency(totalSpent)} (${(
+                    (totalSpent / totalBudget) *
+                    100
+                ).toFixed(1)}%)`
+            );
+            console.log(
+                `   Items Completed: ${totalCompleted}/${totalItems} (${(
+                    (totalCompleted / totalItems) *
+                    100
+                ).toFixed(1)}%)`
+            );
         } catch (error) {
             console.error('❌ Error updating room progress:', error.message);
             throw error;
@@ -157,11 +195,10 @@ class RoomProgressUpdater {
 // Run if called directly
 if (require.main === module) {
     const updater = new RoomProgressUpdater();
-    updater.updateRoomProgress()
-        .catch(error => {
-            console.error('Failed to update room progress:', error);
-            process.exit(1);
-        });
+    updater.updateRoomProgress().catch((error) => {
+        console.error('Failed to update room progress:', error);
+        process.exit(1);
+    });
 }
 
 module.exports = RoomProgressUpdater;

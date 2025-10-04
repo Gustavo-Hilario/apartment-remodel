@@ -210,7 +210,7 @@
             .category-labor {
                 background: #e8f5e9 !important; /* Light Green */
             }
-            
+
             /* Status colors for expenses view */
             .status-completed {
                 background: #d4edda !important;
@@ -221,7 +221,7 @@
             .status-planning {
                 background: #f8d7da !important;
             }
-            
+
             .sort-controls {
                 margin-bottom: 15px;
                 padding: 15px;
@@ -229,13 +229,13 @@
                 border-radius: 8px;
                 text-align: center;
             }
-            
+
             .sort-controls label {
                 margin-right: 10px;
                 font-weight: bold;
                 color: #333;
             }
-            
+
             .sort-controls select {
                 padding: 8px 15px;
                 border: 2px solid #667eea;
@@ -366,14 +366,24 @@
                         </div>
                     </div>
 
-                    <div class="sort-controls" id="sortControls" style="display: none;">
+                    <div
+                        class="sort-controls"
+                        id="sortControls"
+                        style="display: none"
+                    >
                         <label for="sortBy">Sort by:</label>
                         <select id="sortBy" onchange="sortItems()">
                             <option value="original">Original Order</option>
                             <option value="category">Category</option>
-                            <option value="subtotal">Subtotal (High to Low)</option>
-                            <option value="budgetPrice">Budget Price (High to Low)</option>
-                            <option value="actualPrice">Actual Price (High to Low)</option>
+                            <option value="subtotal">
+                                Subtotal (High to Low)
+                            </option>
+                            <option value="budgetPrice">
+                                Budget Price (High to Low)
+                            </option>
+                            <option value="actualPrice">
+                                Actual Price (High to Low)
+                            </option>
                             <option value="status">Status</option>
                         </select>
                     </div>
@@ -425,12 +435,7 @@
             let currentRoom = '';
             let roomData = {};
 
-            const categories = [
-                'Services',
-                'Materials',
-                'Products',
-                'Labor',
-            ];
+            const categories = ['Services', 'Materials', 'Products', 'Labor'];
             const statuses = ['Planning', 'Pending', 'Completed'];
 
             function showNotification(message, type = 'success') {
@@ -618,47 +623,46 @@
                 // Reset room info headers (in case coming from expenses view)
                 document
                     .getElementById('roomBudget')
-                    .parentElement.querySelector('h3').textContent = 'Room Budget';
+                    .parentElement.querySelector('h3').textContent =
+                    'Room Budget';
                 document.getElementById('budgetInput').style.display = 'block';
-                
+
                 document
                     .getElementById('expectedTotal')
-                    .parentElement.querySelector('h3').textContent = 'Expected Total';
-                    
+                    .parentElement.querySelector('h3').textContent =
+                    'Expected Total';
+
                 document
                     .getElementById('actualTotal')
-                    .parentElement.querySelector('h3').textContent = 'Actual Total';
-                    
+                    .parentElement.querySelector('h3').textContent =
+                    'Actual Total';
+
                 document
                     .getElementById('difference')
-                    .parentElement.querySelector('h3').textContent = 'Difference';
-                
+                    .parentElement.querySelector('h3').textContent =
+                    'Difference';
+
                 // Update room info
                 document.getElementById('roomBudget').textContent =
                     formatCurrency(roomData.budget);
                 document.getElementById('budgetInput').value = roomData.budget;
 
                 // Calculate Expected Total (sum of all subtotals)
-                const expectedTotal = roomData.items.reduce(
-                    (sum, item) => {
-                        const rate = item.actualRate > 0 ? item.actualRate : item.budgetRate;
-                        return sum + (rate * item.quantity);
-                    },
-                    0
-                );
+                const expectedTotal = roomData.items.reduce((sum, item) => {
+                    const rate =
+                        item.actualRate > 0 ? item.actualRate : item.budgetRate;
+                    return sum + rate * item.quantity;
+                }, 0);
                 document.getElementById('expectedTotal').textContent =
                     formatCurrency(expectedTotal);
 
                 // Calculate Actual Total (sum of completed items only)
-                const actualTotal = roomData.items.reduce(
-                    (sum, item) => {
-                        if (item.status === 'Completed') {
-                            return sum + item.subtotal;
-                        }
-                        return sum;
-                    },
-                    0
-                );
+                const actualTotal = roomData.items.reduce((sum, item) => {
+                    if (item.status === 'Completed') {
+                        return sum + item.subtotal;
+                    }
+                    return sum;
+                }, 0);
                 document.getElementById('actualTotal').textContent =
                     formatCurrency(actualTotal);
 
@@ -715,7 +719,7 @@
                     formatCurrency(currentTotal);
 
                 // Hide actual total for expenses view (not applicable)
-                document.getElementById('actualTotal').textContent = 
+                document.getElementById('actualTotal').textContent =
                     formatCurrency(currentTotal);
 
                 document
@@ -749,7 +753,7 @@
                     const row = createExpenseRow(item, index);
                     tbody.appendChild(row);
                 });
-                
+
                 // Load room categories for each expense that has a room selected
                 roomData.items.forEach((item, index) => {
                     if (item.room) {
@@ -761,7 +765,11 @@
             function createItemRow(item, index) {
                 const row = document.createElement('tr');
                 // Use category-based coloring instead of status
-                const categoryClass = item.category ? `category-${item.category.toLowerCase().replace(/ /g, '-')}` : '';
+                const categoryClass = item.category
+                    ? `category-${item.category
+                          .toLowerCase()
+                          .replace(/ /g, '-')}`
+                    : '';
                 row.className = categoryClass;
 
                 // Round subtotal to integer
@@ -825,7 +833,10 @@
                 ];
                 const rooms = [
                     { value: '', label: 'No Room' },
-                    { value: 'All Rooms', label: '🏠 All Rooms (Split Equally)' },
+                    {
+                        value: 'All Rooms',
+                        label: '🏠 All Rooms (Split Equally)',
+                    },
                     { value: 'Cocina', label: 'Cocina' },
                     { value: 'Sala', label: 'Sala' },
                     { value: 'Cuarto 1', label: 'Cuarto 1' },
@@ -893,7 +904,10 @@
                 // Recalculate subtotal
                 const item = roomData.items[index];
                 // Use actual price if defined and > 0, otherwise use budget price
-                const rate = (item.actualRate && item.actualRate > 0) ? item.actualRate : item.budgetRate;
+                const rate =
+                    item.actualRate && item.actualRate > 0
+                        ? item.actualRate
+                        : item.budgetRate;
                 item.subtotal = rate * item.quantity;
 
                 displayRoomData();
@@ -932,23 +946,28 @@
                         // Fetch all unique categories from all rooms
                         const response = await fetch('/api/get-all-categories');
                         const result = await response.json();
-                        
+
                         if (result.success && result.categories) {
-                            let options = '<option value="">General (New Item)</option>';
+                            let options =
+                                '<option value="">General (New Item)</option>';
                             result.categories.forEach((category) => {
                                 options += `<option value="${category}" ${
-                                    expense.roomCategory === category ? 'selected' : ''
+                                    expense.roomCategory === category
+                                        ? 'selected'
+                                        : ''
                                 }>${category}</option>`;
                             });
                             dropdown.innerHTML = options;
                         } else {
                             // Fallback to basic options if API fails
-                            dropdown.innerHTML = '<option value="">General (New Item)</option>';
+                            dropdown.innerHTML =
+                                '<option value="">General (New Item)</option>';
                         }
                     } catch (error) {
                         console.error('Error loading all categories:', error);
                         // Fallback to basic options
-                        dropdown.innerHTML = '<option value="">General (New Item)</option>';
+                        dropdown.innerHTML =
+                            '<option value="">General (New Item)</option>';
                     }
                     return;
                 }
@@ -1006,23 +1025,23 @@
 
             function sortItems() {
                 const sortBy = document.getElementById('sortBy').value;
-                
+
                 if (sortBy === 'original') {
                     // Don't sort, just refresh display
                     displayRoomData();
                     return;
                 }
-                
+
                 // Create a copy with original indices
                 const itemsWithIndex = roomData.items.map((item, index) => ({
                     ...item,
-                    originalIndex: index
+                    originalIndex: index,
                 }));
-                
+
                 // Sort based on selected criteria
-                switch(sortBy) {
+                switch (sortBy) {
                     case 'category':
-                        itemsWithIndex.sort((a, b) => 
+                        itemsWithIndex.sort((a, b) =>
                             (a.category || '').localeCompare(b.category || '')
                         );
                         break;
@@ -1030,23 +1049,33 @@
                         itemsWithIndex.sort((a, b) => b.subtotal - a.subtotal);
                         break;
                     case 'budgetPrice':
-                        itemsWithIndex.sort((a, b) => b.budgetRate - a.budgetRate);
+                        itemsWithIndex.sort(
+                            (a, b) => b.budgetRate - a.budgetRate
+                        );
                         break;
                     case 'actualPrice':
-                        itemsWithIndex.sort((a, b) => b.actualRate - a.actualRate);
+                        itemsWithIndex.sort(
+                            (a, b) => b.actualRate - a.actualRate
+                        );
                         break;
                     case 'status':
-                        const statusOrder = { 'Completed': 1, 'Pending': 2, 'Planning': 3 };
-                        itemsWithIndex.sort((a, b) => 
-                            (statusOrder[a.status] || 4) - (statusOrder[b.status] || 4)
+                        const statusOrder = {
+                            Completed: 1,
+                            Pending: 2,
+                            Planning: 3,
+                        };
+                        itemsWithIndex.sort(
+                            (a, b) =>
+                                (statusOrder[a.status] || 4) -
+                                (statusOrder[b.status] || 4)
                         );
                         break;
                 }
-                
+
                 // Update the table display only (don't modify roomData.items order)
                 const tbody = document.getElementById('itemsTable');
                 tbody.innerHTML = '';
-                
+
                 itemsWithIndex.forEach((item) => {
                     const row = createItemRow(item, item.originalIndex);
                     tbody.appendChild(row);
@@ -1100,7 +1129,7 @@
             function removeItem(index) {
                 if (confirm('Are you sure you want to delete this item?')) {
                     roomData.items.splice(index, 1);
-                    
+
                     if (currentRoom === 'main-costs') {
                         // For expenses, we need to re-display the data
                         displayExpensesData();

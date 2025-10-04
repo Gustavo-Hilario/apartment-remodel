@@ -8,7 +8,17 @@ class DataAggregator {
     constructor() {
         this.dataDir = path.join(__dirname, '..', 'data');
         this.roomsDir = path.join(this.dataDir, 'rooms');
-        this.rooms = ['cocina', 'sala', 'cuarto1', 'cuarto2', 'cuarto3', 'bano1', 'bano2', 'bano_visita', 'balcon'];
+        this.rooms = [
+            'cocina',
+            'sala',
+            'cuarto1',
+            'cuarto2',
+            'cuarto3',
+            'bano1',
+            'bano2',
+            'bano_visita',
+            'balcon',
+        ];
     }
 
     parseCurrency(value) {
@@ -24,7 +34,9 @@ class DataAggregator {
     async loadRoomData(roomName) {
         const filePath = path.join(this.roomsDir, `${roomName}.csv`);
         if (!fs.existsSync(filePath)) {
-            console.warn(`Warning: ${roomName}.csv not found, creating template...`);
+            console.warn(
+                `Warning: ${roomName}.csv not found, creating template...`
+            );
             await this.createRoomTemplate(roomName);
             return null;
         }
@@ -39,7 +51,7 @@ class DataAggregator {
         const roomData = {
             name: roomNameLine[1],
             budget: this.parseCurrency(budgetLine[1]),
-            items: []
+            items: [],
         };
 
         // Parse items starting from line 3 (after headers)
@@ -57,7 +69,7 @@ class DataAggregator {
                     budgetRate: this.parseCurrency(parts[4]),
                     actualRate: this.parseCurrency(parts[5]),
                     subtotal: this.parseCurrency(parts[6]),
-                    status: parts[7] || 'Planning'
+                    status: parts[7] || 'Planning',
                 };
                 roomData.items.push(item);
             }
@@ -86,30 +98,30 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
 
     getRoomDisplayName(roomName) {
         const names = {
-            'cocina': 'Cocina',
-            'sala': 'Sala',
-            'cuarto1': 'Cuarto 1',
-            'cuarto2': 'Cuarto 2',
-            'cuarto3': 'Cuarto 3',
-            'bano1': 'Baño 1',
-            'bano2': 'Baño 2',
-            'bano_visita': 'Baño Visita',
-            'balcon': 'Balcón'
+            cocina: 'Cocina',
+            sala: 'Sala',
+            cuarto1: 'Cuarto 1',
+            cuarto2: 'Cuarto 2',
+            cuarto3: 'Cuarto 3',
+            bano1: 'Baño 1',
+            bano2: 'Baño 2',
+            bano_visita: 'Baño Visita',
+            balcon: 'Balcón',
         };
         return names[roomName] || roomName;
     }
 
     getDefaultBudget(roomName) {
         const budgets = {
-            'cocina': 40000,
-            'sala': 30000,
-            'cuarto1': 20000,
-            'cuarto2': 20000,
-            'cuarto3': 15000,
-            'bano1': 15000,
-            'bano2': 15000,
-            'bano_visita': 10000,
-            'balcon': 5000
+            cocina: 40000,
+            sala: 30000,
+            cuarto1: 20000,
+            cuarto2: 20000,
+            cuarto3: 15000,
+            bano1: 15000,
+            bano2: 15000,
+            bano_visita: 10000,
+            balcon: 5000,
         };
         return budgets[roomName] || 15000;
     }
@@ -128,12 +140,14 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
             const budget = roomData.budget;
             // ONLY count Completed items for actual spending
             const actual = roomData.items
-                .filter(item => item.status === 'Completed')
+                .filter((item) => item.status === 'Completed')
                 .reduce((sum, item) => sum + item.subtotal, 0);
             const difference = budget - actual;
-            
+
             // Determine status based on completed items
-            const completedCount = roomData.items.filter(item => item.status === 'Completed').length;
+            const completedCount = roomData.items.filter(
+                (item) => item.status === 'Completed'
+            ).length;
             const totalCount = roomData.items.length;
             let status;
             if (completedCount === 0) {
@@ -147,12 +161,25 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
             totalBudget += budget;
             totalActual += actual;
 
-            budgetLines.push(`${roomData.name},"${this.formatCurrency(budget)}","${this.formatCurrency(actual)}","${this.formatCurrency(Math.abs(difference))}",${status}`);
+            budgetLines.push(
+                `${roomData.name},"${this.formatCurrency(
+                    budget
+                )}","${this.formatCurrency(actual)}","${this.formatCurrency(
+                    Math.abs(difference)
+                )}",${status}`
+            );
         }
 
         // Add total row
         const totalDifference = totalBudget - totalActual;
-        budgetLines.push(`Total,"${this.formatCurrency(totalBudget)}","${this.formatCurrency(totalActual)}","${this.formatCurrency(Math.abs(totalDifference))}",${((totalActual/totalBudget)*100).toFixed(1)}% Complete`);
+        budgetLines.push(
+            `Total,"${this.formatCurrency(totalBudget)}","${this.formatCurrency(
+                totalActual
+            )}","${this.formatCurrency(Math.abs(totalDifference))}",${(
+                (totalActual / totalBudget) *
+                100
+            ).toFixed(1)}% Complete`
+        );
 
         const filePath = path.join(this.dataDir, 'budget-overview.csv');
         fs.writeFileSync(filePath, budgetLines.join('\n'), 'utf8');
@@ -164,25 +191,32 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
     async generateProducts() {
         console.log('🛍️ Generating products list from room data...');
 
-        const productLines = ['Room,Category,Description,Quantity,Unit,Budget_Rate,Actual_Rate,Subtotal,Status'];
+        const productLines = [
+            'Room,Category,Description,Quantity,Unit,Budget_Rate,Actual_Rate,Subtotal,Status',
+        ];
 
         for (const roomName of this.rooms) {
             const roomData = await this.loadRoomData(roomName);
             if (!roomData) continue;
 
             for (const item of roomData.items) {
-                if (item.category === 'Products' || item.category === 'Producto') {
-                    productLines.push([
-                        roomData.name,
-                        item.category,
-                        item.description,
-                        item.quantity,
-                        item.unit,
-                        item.budgetRate,
-                        item.actualRate,
-                        item.subtotal,
-                        item.status
-                    ].join(','));
+                if (
+                    item.category === 'Products' ||
+                    item.category === 'Producto'
+                ) {
+                    productLines.push(
+                        [
+                            roomData.name,
+                            item.category,
+                            item.description,
+                            item.quantity,
+                            item.unit,
+                            item.budgetRate,
+                            item.actualRate,
+                            item.subtotal,
+                            item.status,
+                        ].join(',')
+                    );
                 }
             }
         }
@@ -207,7 +241,7 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
                     categories[category] = {
                         budget: 0,
                         actual: 0,
-                        items: 0
+                        items: 0,
                     };
                 }
 
@@ -217,17 +251,21 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
             }
         }
 
-        const summaryLines = ['Category,Budget_Total,Actual_Total,Items_Count,Avg_Cost'];
+        const summaryLines = [
+            'Category,Budget_Total,Actual_Total,Items_Count,Avg_Cost',
+        ];
 
         Object.entries(categories).forEach(([category, data]) => {
             const avgCost = data.items > 0 ? data.actual / data.items : 0;
-            summaryLines.push([
-                category,
-                this.formatCurrency(data.budget),
-                this.formatCurrency(data.actual),
-                data.items,
-                this.formatCurrency(avgCost)
-            ].join(','));
+            summaryLines.push(
+                [
+                    category,
+                    this.formatCurrency(data.budget),
+                    this.formatCurrency(data.actual),
+                    data.items,
+                    this.formatCurrency(avgCost),
+                ].join(',')
+            );
         });
 
         const filePath = path.join(this.dataDir, 'category-summary.csv');
@@ -238,33 +276,45 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
     async generateRoomProgress() {
         console.log('📈 Generating room progress report...');
 
-        const progressLines = ['Room,Budget,Actual,Progress_Percent,Completed_Items,Total_Items,Status'];
+        const progressLines = [
+            'Room,Budget,Actual,Progress_Percent,Completed_Items,Total_Items,Status',
+        ];
 
         for (const roomName of this.rooms) {
             const roomData = await this.loadRoomData(roomName);
             if (!roomData) continue;
 
             const budget = roomData.budget;
-            const actual = roomData.items.reduce((sum, item) => sum + item.subtotal, 0);
-            const progressPercent = budget > 0 ? ((actual / budget) * 100).toFixed(1) : 0;
+            const actual = roomData.items.reduce(
+                (sum, item) => sum + item.subtotal,
+                0
+            );
+            const progressPercent =
+                budget > 0 ? ((actual / budget) * 100).toFixed(1) : 0;
 
-            const completedItems = roomData.items.filter(item =>
-                item.status === 'Completed' || item.subtotal > 0
+            const completedItems = roomData.items.filter(
+                (item) => item.status === 'Completed' || item.subtotal > 0
             ).length;
             const totalItems = roomData.items.length;
 
-            const status = completedItems === 0 ? 'Not Started' :
-                         completedItems === totalItems ? 'Completed' : 'In Progress';
+            const status =
+                completedItems === 0
+                    ? 'Not Started'
+                    : completedItems === totalItems
+                    ? 'Completed'
+                    : 'In Progress';
 
-            progressLines.push([
-                roomData.name,
-                this.formatCurrency(budget),
-                this.formatCurrency(actual),
-                `${progressPercent}%`,
-                completedItems,
-                totalItems,
-                status
-            ].join(','));
+            progressLines.push(
+                [
+                    roomData.name,
+                    this.formatCurrency(budget),
+                    this.formatCurrency(actual),
+                    `${progressPercent}%`,
+                    completedItems,
+                    totalItems,
+                    status,
+                ].join(',')
+            );
         }
 
         const filePath = path.join(this.dataDir, 'room-progress.csv');
@@ -287,7 +337,7 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
             const summary = await this.generateBudgetOverview();
             await this.generateProducts();
             await this.generateCategorySummary();
-            
+
             // Use the new dedicated room progress updater
             const RoomProgressUpdater = require('./update-room-progress.js');
             const progressUpdater = new RoomProgressUpdater();
@@ -295,23 +345,35 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
 
             console.log('\n📊 AGGREGATION COMPLETE!');
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.log(`💰 Total Budget: ${this.formatCurrency(summary.totalBudget)}`);
-            console.log(`📈 Total Spent: ${this.formatCurrency(summary.totalActual)}`);
-            console.log(`📉 Remaining: ${this.formatCurrency(summary.totalDifference)}`);
-            console.log(`📊 Progress: ${((summary.totalActual/summary.totalBudget)*100).toFixed(1)}%`);
+            console.log(
+                `💰 Total Budget: ${this.formatCurrency(summary.totalBudget)}`
+            );
+            console.log(
+                `📈 Total Spent: ${this.formatCurrency(summary.totalActual)}`
+            );
+            console.log(
+                `📉 Remaining: ${this.formatCurrency(summary.totalDifference)}`
+            );
+            console.log(
+                `📊 Progress: ${(
+                    (summary.totalActual / summary.totalBudget) *
+                    100
+                ).toFixed(1)}%`
+            );
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
             console.log('\n📁 Generated Files:');
             console.log('  ✅ budget-overview.csv (main summary)');
             console.log('  ✅ products-detailed.csv (all products by room)');
             console.log('  ✅ category-summary.csv (spending by category)');
-            console.log('  ✅ room-progress.csv (completion status - ONLY Completed items)');
+            console.log(
+                '  ✅ room-progress.csv (completion status - ONLY Completed items)'
+            );
 
             console.log('\n💡 Next Steps:');
             console.log('  • Edit individual room files in data/rooms/');
             console.log('  • Run this script again to update all summaries');
             console.log('  • View updated charts in budget-overview.html');
-
         } catch (error) {
             console.error('❌ Error during aggregation:', error);
             throw error;
@@ -327,7 +389,9 @@ Contratista,Labor,20,Hrs.,54,0,0,Planning`;
             if (fs.existsSync(filePath)) {
                 console.log(`✅ ${roomName}.csv`);
             } else {
-                console.log(`⚠️ ${roomName}.csv - Missing (will create template)`);
+                console.log(
+                    `⚠️ ${roomName}.csv - Missing (will create template)`
+                );
                 allValid = false;
             }
         }
@@ -360,11 +424,14 @@ if (require.main === module) {
             break;
         case 'all':
         default:
-            aggregator.aggregateAll()
+            aggregator
+                .aggregateAll()
                 .then(() => {
-                    console.log('\n🎉 Data aggregation completed successfully!');
+                    console.log(
+                        '\n🎉 Data aggregation completed successfully!'
+                    );
                 })
-                .catch(error => {
+                .catch((error) => {
                     console.error('Failed to aggregate data:', error);
                     process.exit(1);
                 });

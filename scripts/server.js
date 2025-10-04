@@ -88,17 +88,20 @@ app.post('/api/save-room/:roomName', (req, res) => {
 // Helper function to check if categories match (handles legacy Spanish names)
 function categoriesMatch(category1, category2) {
     if (category1 === category2) return true;
-    
+
     // Map legacy Spanish names to English
     const categoryMap = {
-        'Servicio': 'Services',
-        'Material': 'Materials',
-        'Producto': 'Products',
-        'Mano de Obra': 'Labor'
+        Servicio: 'Services',
+        Material: 'Materials',
+        Producto: 'Products',
+        'Mano de Obra': 'Labor',
     };
-    
+
     // Check if either category maps to the other
-    return categoryMap[category1] === category2 || categoryMap[category2] === category1;
+    return (
+        categoryMap[category1] === category2 ||
+        categoryMap[category2] === category1
+    );
 }
 
 // Route to save expenses data
@@ -107,17 +110,22 @@ app.post('/api/save-expenses', (req, res) => {
         const { expenses } = req.body;
 
         // First, read existing expenses to detect deletions
-        const expensesFilePath = path.join(__dirname, '..', 'data', 'expenses.csv');
+        const expensesFilePath = path.join(
+            __dirname,
+            '..',
+            'data',
+            'expenses.csv'
+        );
         let existingExpenses = [];
-        
+
         if (fs.existsSync(expensesFilePath)) {
             const existingContent = fs.readFileSync(expensesFilePath, 'utf8');
             const existingLines = existingContent.split('\n');
-            
+
             for (let i = 1; i < existingLines.length; i++) {
                 const line = existingLines[i].trim();
                 if (!line) continue;
-                
+
                 const parts = parseCSVLine(line);
                 if (parts.length >= 6) {
                     existingExpenses.push({
@@ -126,26 +134,30 @@ app.post('/api/save-expenses', (req, res) => {
                         category: parts[2],
                         date: parts[3],
                         room: parts[4],
-                        roomCategory: parts[5]
+                        roomCategory: parts[5],
                     });
                 }
             }
         }
 
         // Detect deleted expenses (expenses that were in existing but not in new)
-        const deletedExpenses = existingExpenses.filter(existing => 
-            !expenses.some(exp => 
-                exp.description === existing.description && 
-                exp.category === existing.category &&
-                exp.room === existing.room &&
-                exp.roomCategory === existing.roomCategory
-            )
+        const deletedExpenses = existingExpenses.filter(
+            (existing) =>
+                !expenses.some(
+                    (exp) =>
+                        exp.description === existing.description &&
+                        exp.category === existing.category &&
+                        exp.room === existing.room &&
+                        exp.roomCategory === existing.roomCategory
+                )
         );
 
         // Remove deleted expenses from room CSVs
         if (deletedExpenses.length > 0) {
-            console.log(`\n🗑️  Removing ${deletedExpenses.length} deleted expense(s) from room CSVs...`);
-            
+            console.log(
+                `\n🗑️  Removing ${deletedExpenses.length} deleted expense(s) from room CSVs...`
+            );
+
             const roomNameMap = {
                 Cocina: 'cocina',
                 Sala: 'sala',
@@ -158,9 +170,13 @@ app.post('/api/save-expenses', (req, res) => {
                 Balcón: 'balcon',
             };
 
-            deletedExpenses.forEach(deleted => {
-                console.log(`   Deleting: "${deleted.description}" (${deleted.roomCategory || 'General'})`);
-                
+            deletedExpenses.forEach((deleted) => {
+                console.log(
+                    `   Deleting: "${deleted.description}" (${
+                        deleted.roomCategory || 'General'
+                    })`
+                );
+
                 // Determine which rooms to delete from
                 let roomsToClean = [];
                 if (deleted.room === 'All Rooms') {
@@ -169,48 +185,67 @@ app.post('/api/save-expenses', (req, res) => {
                     roomsToClean = [roomNameMap[deleted.room]];
                 }
 
-                roomsToClean.forEach(roomFileName => {
-                    const roomFilePath = path.join(__dirname, '..', 'data', 'rooms', `${roomFileName}.csv`);
-                    
+                roomsToClean.forEach((roomFileName) => {
+                    const roomFilePath = path.join(
+                        __dirname,
+                        '..',
+                        'data',
+                        'rooms',
+                        `${roomFileName}.csv`
+                    );
+
                     if (fs.existsSync(roomFilePath)) {
-                        const roomContent = fs.readFileSync(roomFilePath, 'utf8');
+                        const roomContent = fs.readFileSync(
+                            roomFilePath,
+                            'utf8'
+                        );
                         const roomLines = roomContent.split('\n');
-                        
+
                         // Filter out lines matching the deleted expense
                         const filteredLines = [];
                         let deletedCount = 0;
-                        
+
                         for (let i = 0; i < roomLines.length; i++) {
                             if (i < 3) {
                                 // Keep header lines
                                 filteredLines.push(roomLines[i]);
                                 continue;
                             }
-                            
+
                             const line = roomLines[i].trim();
                             if (!line) {
                                 filteredLines.push(roomLines[i]);
                                 continue;
                             }
-                            
+
                             const parts = line.split(',');
                             // Check if this line matches the deleted expense
-                            const matchesDescription = parts[0] === deleted.description;
-                            const matchesCategory = deleted.roomCategory ? 
-                                categoriesMatch(parts[1], deleted.roomCategory) : 
-                                parts[1] === 'General';
-                            
+                            const matchesDescription =
+                                parts[0] === deleted.description;
+                            const matchesCategory = deleted.roomCategory
+                                ? categoriesMatch(
+                                      parts[1],
+                                      deleted.roomCategory
+                                  )
+                                : parts[1] === 'General';
+
                             if (matchesDescription && matchesCategory) {
                                 deletedCount++;
-                                console.log(`      ✓ Removed from ${roomFileName}.csv`);
+                                console.log(
+                                    `      ✓ Removed from ${roomFileName}.csv`
+                                );
                                 continue; // Skip this line (delete it)
                             }
-                            
+
                             filteredLines.push(roomLines[i]);
                         }
-                        
+
                         if (deletedCount > 0) {
-                            fs.writeFileSync(roomFilePath, filteredLines.join('\n'), 'utf8');
+                            fs.writeFileSync(
+                                roomFilePath,
+                                filteredLines.join('\n'),
+                                'utf8'
+                            );
                         }
                     }
                 });
@@ -256,11 +291,17 @@ app.post('/api/save-expenses', (req, res) => {
                 const totalAmount = parseFloat(expense.amount);
                 const amountPerRoom = totalAmount / allRoomNames.length;
 
-                console.log(`\n🏠 Splitting "${expense.description}" (S/ ${totalAmount}) across ${allRoomNames.length} rooms...`);
-                console.log(`   Amount per room: S/ ${amountPerRoom.toFixed(2)}`);
-                
+                console.log(
+                    `\n🏠 Splitting "${expense.description}" (S/ ${totalAmount}) across ${allRoomNames.length} rooms...`
+                );
+                console.log(
+                    `   Amount per room: S/ ${amountPerRoom.toFixed(2)}`
+                );
+
                 if (expense.roomCategory && expense.roomCategory !== '') {
-                    console.log(`   Category: ${expense.roomCategory} (distributed to items in this category)\n`);
+                    console.log(
+                        `   Category: ${expense.roomCategory} (distributed to items in this category)\n`
+                    );
                 } else {
                     console.log(`   Category: General (new item)\n`);
                 }
@@ -276,11 +317,17 @@ app.post('/api/save-expenses', (req, res) => {
                     );
 
                     if (fs.existsSync(roomFilePath)) {
-                        const roomContent = fs.readFileSync(roomFilePath, 'utf8');
+                        const roomContent = fs.readFileSync(
+                            roomFilePath,
+                            'utf8'
+                        );
                         const roomLines = roomContent.split('\n');
 
                         // Check if a room category is selected - distribute to items in that category
-                        if (expense.roomCategory && expense.roomCategory !== '') {
+                        if (
+                            expense.roomCategory &&
+                            expense.roomCategory !== ''
+                        ) {
                             let itemUpdated = false;
 
                             // Look for an exact match: description AND category
@@ -289,12 +336,19 @@ app.post('/api/save-expenses', (req, res) => {
                                 if (!line) continue;
                                 const parts = line.split(',');
 
-                                if (parts.length >= 8 && 
-                                    parts[0] === expense.description && 
-                                    categoriesMatch(parts[1], expense.roomCategory)) {
+                                if (
+                                    parts.length >= 8 &&
+                                    parts[0] === expense.description &&
+                                    categoriesMatch(
+                                        parts[1],
+                                        expense.roomCategory
+                                    )
+                                ) {
                                     // Found exact match - update this item
-                                    const currentActual = parseFloat(parts[5]) || 0;
-                                    const newActual = currentActual + amountPerRoom;
+                                    const currentActual =
+                                        parseFloat(parts[5]) || 0;
+                                    const newActual =
+                                        currentActual + amountPerRoom;
                                     const quantity = parseFloat(parts[2]) || 1;
                                     const newSubtotal = newActual * quantity;
                                     parts[5] = newActual;
@@ -307,21 +361,43 @@ app.post('/api/save-expenses', (req, res) => {
                             }
 
                             if (itemUpdated) {
-                                fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
-                                console.log(`   ✅ Updated existing "${expense.description}" in ${roomDisplayName}`);
+                                fs.writeFileSync(
+                                    roomFilePath,
+                                    roomLines.join('\n'),
+                                    'utf8'
+                                );
+                                console.log(
+                                    `   ✅ Updated existing "${expense.description}" in ${roomDisplayName}`
+                                );
                             } else {
                                 // No exact match - add as new item with the expense description
                                 const newLine = `${expense.description},${expense.roomCategory},1,,0,${amountPerRoom},${amountPerRoom},Completed`;
 
-                                const lastLineEmpty = roomLines[roomLines.length - 1].trim() === '';
+                                const lastLineEmpty =
+                                    roomLines[roomLines.length - 1].trim() ===
+                                    '';
                                 if (lastLineEmpty) {
-                                    roomLines.splice(roomLines.length - 1, 0, newLine);
+                                    roomLines.splice(
+                                        roomLines.length - 1,
+                                        0,
+                                        newLine
+                                    );
                                 } else {
                                     roomLines.push(newLine);
                                 }
 
-                                fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
-                                console.log(`   ✅ Added S/ ${amountPerRoom.toFixed(2)} as new "${expense.roomCategory}" item in ${roomDisplayName}`);
+                                fs.writeFileSync(
+                                    roomFilePath,
+                                    roomLines.join('\n'),
+                                    'utf8'
+                                );
+                                console.log(
+                                    `   ✅ Added S/ ${amountPerRoom.toFixed(
+                                        2
+                                    )} as new "${
+                                        expense.roomCategory
+                                    }" item in ${roomDisplayName}`
+                                );
                             }
                         } else {
                             // No category - add as new General item
@@ -334,20 +410,34 @@ app.post('/api/save-expenses', (req, res) => {
                             if (!expenseExists) {
                                 const newLine = `${expense.description},General,1,,0,${amountPerRoom},${amountPerRoom},Completed`;
 
-                                const lastLineEmpty = roomLines[roomLines.length - 1].trim() === '';
+                                const lastLineEmpty =
+                                    roomLines[roomLines.length - 1].trim() ===
+                                    '';
                                 if (lastLineEmpty) {
-                                    roomLines.splice(roomLines.length - 1, 0, newLine);
+                                    roomLines.splice(
+                                        roomLines.length - 1,
+                                        0,
+                                        newLine
+                                    );
                                 } else {
                                     roomLines.push(newLine);
                                 }
 
-                                fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
-                                console.log(`   ✅ Added S/ ${amountPerRoom.toFixed(2)} to ${roomDisplayName}`);
+                                fs.writeFileSync(
+                                    roomFilePath,
+                                    roomLines.join('\n'),
+                                    'utf8'
+                                );
+                                console.log(
+                                    `   ✅ Added S/ ${amountPerRoom.toFixed(
+                                        2
+                                    )} to ${roomDisplayName}`
+                                );
                             }
                         }
                     }
                 });
-            } 
+            }
             // Handle single room assignment
             else if (expense.room && roomNameMap[expense.room]) {
                 const roomFileName = roomNameMap[expense.room];
@@ -375,9 +465,11 @@ app.post('/api/save-expenses', (req, res) => {
                             if (!line) continue;
                             const parts = line.split(',');
 
-                            if (parts.length >= 8 && 
-                                parts[0] === expense.description && 
-                                categoriesMatch(parts[1], expense.roomCategory)) {
+                            if (
+                                parts.length >= 8 &&
+                                parts[0] === expense.description &&
+                                categoriesMatch(parts[1], expense.roomCategory)
+                            ) {
                                 // Found exact match - update this item
                                 const currentActual = parseFloat(parts[5]) || 0;
                                 const newActual = currentActual + amount;
@@ -393,21 +485,38 @@ app.post('/api/save-expenses', (req, res) => {
                         }
 
                         if (itemUpdated) {
-                            fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
-                            console.log(`✅ Updated existing "${expense.description}" in ${expense.room}`);
+                            fs.writeFileSync(
+                                roomFilePath,
+                                roomLines.join('\n'),
+                                'utf8'
+                            );
+                            console.log(
+                                `✅ Updated existing "${expense.description}" in ${expense.room}`
+                            );
                         } else {
                             // No exact match - add as new item with the expense description
                             const newLine = `${expense.description},${expense.roomCategory},1,,0,${amount},${amount},Completed`;
 
-                            const lastLineEmpty = roomLines[roomLines.length - 1].trim() === '';
+                            const lastLineEmpty =
+                                roomLines[roomLines.length - 1].trim() === '';
                             if (lastLineEmpty) {
-                                roomLines.splice(roomLines.length - 1, 0, newLine);
+                                roomLines.splice(
+                                    roomLines.length - 1,
+                                    0,
+                                    newLine
+                                );
                             } else {
                                 roomLines.push(newLine);
                             }
 
-                            fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
-                            console.log(`✅ Added "${expense.description}" as new "${expense.roomCategory}" item in ${expense.room}`);
+                            fs.writeFileSync(
+                                roomFilePath,
+                                roomLines.join('\n'),
+                                'utf8'
+                            );
+                            console.log(
+                                `✅ Added "${expense.description}" as new "${expense.roomCategory}" item in ${expense.room}`
+                            );
                         }
                     } else {
                         // Check if General expense already exists
@@ -475,6 +584,85 @@ app.post('/api/save-expenses', (req, res) => {
             error: 'Failed to save expenses data',
             details: error.message,
         });
+    }
+});
+
+// Route to load expenses data
+app.get('/api/load-expenses', (req, res) => {
+    try {
+        const filePath = path.join(__dirname, '..', 'data', 'expenses.csv');
+
+        if (!fs.existsSync(filePath)) {
+            return res.json({ success: true, expenses: [] });
+        }
+
+        const csvContent = fs.readFileSync(filePath, 'utf8');
+        const lines = csvContent.split('\n').filter(line => line.trim());
+
+        const expenses = [];
+        // Skip header line
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const parts = line.split(',');
+            if (parts.length >= 3) {
+                expenses.push({
+                    description: parts[0] || '',
+                    amount: parseFloat(parts[1].replace(/[S/\s,]/g, '')) || 0,
+                    category: parts[2] || '',
+                    date: parts[3] || ''
+                });
+            }
+        }
+
+        res.json({ success: true, expenses });
+
+    } catch (error) {
+        console.error('Error loading expenses:', error);
+        res.status(500).json({ error: 'Failed to load expenses data', details: error.message });
+    }
+});
+
+// Route to save expenses data
+app.post('/api/save-expenses', (req, res) => {
+    try {
+        const { expenses } = req.body;
+
+        // Generate CSV content
+        let csvContent = 'Description,Amount,Category,Date\n';
+
+        expenses.forEach(expense => {
+            const amount = expense.amount || 0;
+            const formattedAmount = `"S/ ${amount.toLocaleString('es-PE')}"`;
+            csvContent += `${expense.description || ''},${formattedAmount},${expense.category || ''},${expense.date || ''}\n`;
+        });
+
+        // Save to file
+        const filePath = path.join(__dirname, '..', 'data', 'expenses.csv');
+        fs.writeFileSync(filePath, csvContent, 'utf8');
+
+        console.log(`✅ Saved expenses data to ${filePath}`);
+
+        // Auto-run aggregation
+        const { spawn } = require('child_process');
+        const aggregateProcess = spawn('node', [path.join(__dirname, 'data-aggregator.js')], {
+            cwd: path.join(__dirname, '..')
+        });
+
+        aggregateProcess.on('close', (code) => {
+            console.log(`📊 Data aggregation completed with code ${code}`);
+        });
+
+        res.json({
+            success: true,
+            message: 'Expenses data saved successfully',
+            filePath: 'data/expenses.csv'
+        });
+
+    } catch (error) {
+        console.error('Error saving expenses data:', error);
+        res.status(500).json({ error: 'Failed to save expenses data', details: error.message });
     }
 });
 
@@ -550,12 +738,12 @@ app.get('/api/get-all-categories', (req, res) => {
             'bano1.csv',
             'bano2.csv',
             'bano_visita.csv',
-            'balcon.csv'
+            'balcon.csv',
         ];
 
         const allCategories = new Set();
 
-        roomFiles.forEach(roomFile => {
+        roomFiles.forEach((roomFile) => {
             const filePath = path.join(roomsDir, roomFile);
             if (fs.existsSync(filePath)) {
                 const csvContent = fs.readFileSync(filePath, 'utf8');
@@ -580,7 +768,7 @@ app.get('/api/get-all-categories', (req, res) => {
             const spanishOrder = ['Servicio', 'Material', 'Producto'];
             const aIndex = spanishOrder.indexOf(a);
             const bIndex = spanishOrder.indexOf(b);
-            
+
             if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
             if (aIndex !== -1) return -1;
             if (bIndex !== -1) return 1;
