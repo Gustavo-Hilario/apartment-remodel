@@ -198,18 +198,6 @@
             }
 
             /* Category-based row colors */
-            .category-servicio {
-                background: #e3f2fd !important; /* Light Blue */
-            }
-            .category-material {
-                background: #fff3e0 !important; /* Light Orange */
-            }
-            .category-producto {
-                background: #f3e5f5 !important; /* Light Purple */
-            }
-            .category-mano-de-obra {
-                background: #e8f5e9 !important; /* Light Green */
-            }
             .category-services {
                 background: #e3f2fd !important; /* Light Blue */
             }
@@ -218,6 +206,9 @@
             }
             .category-products {
                 background: #f3e5f5 !important; /* Light Purple */
+            }
+            .category-labor {
+                background: #e8f5e9 !important; /* Light Green */
             }
             
             /* Status colors for expenses view */
@@ -306,6 +297,7 @@
                     <a href="../home.html">🏠 Home</a>
                     <a href="budget-overview.html">📊 Dashboard</a>
                     <a href="room-editor.html">✏️ Editor</a>
+                    <a href="products.html">🛍️ Products</a>
                     <a href="../README.html">📖 Documentation</a>
                 </div>
             </div>
@@ -434,10 +426,10 @@
             let roomData = {};
 
             const categories = [
-                'Servicio',
-                'Material',
-                'Producto',
-                'Mano de Obra',
+                'Services',
+                'Materials',
+                'Products',
+                'Labor',
             ];
             const statuses = ['Planning', 'Pending', 'Completed'];
 
@@ -825,10 +817,10 @@
             function createExpenseRow(item, index) {
                 const expenseCategories = [
                     'Documentación',
-                    'Mano de Obra',
-                    'Material',
-                    'Producto',
-                    'Servicio',
+                    'Labor',
+                    'Materials',
+                    'Products',
+                    'Services',
                     'Other',
                 ];
                 const rooms = [

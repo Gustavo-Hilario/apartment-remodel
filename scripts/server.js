@@ -85,20 +85,19 @@ app.post('/api/save-room/:roomName', (req, res) => {
     }
 });
 
-// Helper function to check if categories match (handles Spanish/English variations)
+// Helper function to check if categories match (handles legacy Spanish names)
 function categoriesMatch(category1, category2) {
     if (category1 === category2) return true;
     
-    // Map Spanish to English and vice versa
+    // Map legacy Spanish names to English
     const categoryMap = {
         'Servicio': 'Services',
-        'Services': 'Servicio',
         'Material': 'Materials',
-        'Materials': 'Material',
         'Producto': 'Products',
-        'Products': 'Producto'
+        'Mano de Obra': 'Labor'
     };
     
+    // Check if either category maps to the other
     return categoryMap[category1] === category2 || categoryMap[category2] === category1;
 }
 
