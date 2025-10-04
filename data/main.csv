@@ -1,0 +1,181 @@
+Presupuesto: Project Breakdown
+Description,Budget,Actual,Difference
+Sala,"S/ 30,000","S/ 22,601","-S/ 7,399"
+Cocina,"S/ 40,000","S/ 47,466","S/ 7,466"
+Baño Visita,"S/ 10,000",,"-S/ 10,000"
+Cuarto 3,"S/ 15,000",,"-S/ 15,000"
+Baño 2,"S/ 15,000",,"-S/ 15,000"
+Cuarto 2,"S/ 20,000",,"-S/ 20,000"
+Cuarto 1,"S/ 20,000",,"-S/ 20,000"
+Baño 1,"S/ 15,000",,"-S/ 15,000"
+Balcón,"S/ 5,000",,"-S/ 5,000"
+Total,"S/ 170,000","S/ 70,067","-S/ 99,933"
+
+Costos Reales: Table 1
+
+
+
+Costos Reales: Income
+Presupuesto, Monto Soles,Monto Dollar
+Total,"S/ 140,000","US$40,459"
+Total income,"S/ 140,000",
+
+Costos Reales: Expenses
+Costos,Monto,Categoría
+Redacción Minuta Compraventa,"S/ 1,300",Documentación
+Gastos Notariales,S/ 583,Documentación
+Gastos Registrales,"S/ 4,722",Documentación
+SAT,S/ 82,Documentación
+Arnold – Adelanto,"S/ 1,000",Mano de Obra
+,,
+,,
+,,
+,,
+,,
+,,
+,,
+,,
+,,
+,,
+,,
+,,
+Total expenses,"S/ 7,687",
+
+Costos Reales: Net
+Money Left Over,
+Income minus expenses,"S/ 132,313"
+
+Costos por Habitación: Costos cocina
+,Descripción,Categoria,Cantidad,Unidad,Presupuesto,Costo o Tasa,Subtotal
+Categoria:,,,,,,,Sum:
+Servicio,,,,,,,"S/ 1,000"
+,Electrical,Servicio,,,,,S/ 0
+,Plumbing,Servicio,,,,,S/ 0
+,Diseño - Arquitectura - Kaori,Servicio,,,"S/ 1,000","S/ 1,000","S/ 1,000"
+Material,,,,,,,"S/ 2,800"
+,Piso Mayólica,Material,30,m^2,S/ 60,S/ 60,"S/ 1,800"
+,Mayolica - Pared,Material,10,m^2,S/ 70,S/ 70,S/ 700
+,Pintura,Material,30,m^2,S/ 10,S/ 10,S/ 300
+,,Material,,,,,S/ 0
+Producto,,,,,,,"S/ 39,300"
+,Mueble Altos y Bajos,Producto,4,m^2,"S/ 3,800","S/ 3,800","S/ 15,200"
+,Torre de Horno y Micro,Producto,1,,"S/ 2,500","S/ 2,500","S/ 2,500"
+,Torre – Coffee Station,Producto,1,,"S/ 3,000","S/ 3,000","S/ 3,000"
+,Lavadero,Producto,1,,"S/ 1,500","S/ 1,500","S/ 1,500"
+,Grifería,Producto,1,,"S/ 1,000","S/ 1,000","S/ 1,000"
+,Cocina,Producto,1,,"S/ 2,500","S/ 2,500","S/ 2,500"
+,Horno,Producto,1,,"S/ 3,500","S/ 3,500","S/ 3,500"
+,Microndas,Producto,1,,S/ 600,S/ 600,S/ 600
+,Heladera,Producto,1,,"S/ 4,500","S/ 4,500","S/ 4,500"
+,Menajes y Otros,Producto,1,,"S/ 5,000","S/ 5,000","S/ 5,000"
+Mano de Obra,,,,,,,"S/ 2,106"
+,Contratista – Arnold,Mano de Obra,39,Hrs.,S/ 54,S/ 54,"S/ 2,106"
+(blank),,,,,,,0
+,,,,,,,
+,,,,,,,
+,Subtotal,,,,,,"S/ 45,206"
+,Margen de Sobregasto,5%,,,,,"S/ 2,260"
+,Total,,,,,,"S/ 47,466"
+,Presupuesto,,,,,,"S/ 40,000"
+,Diferencia,,,,,,"-S/ 7,466"
+
+Costos por Habitación: Costos sala
+,Description,Category,Qty,Unit,Rate or Cost,Subtotal
+Category:,,,,,,Sum:
+Services,,,,,,S/ 0
+,Electrical,Services,,,,S/ 0
+,Plumbing,Services,,,,S/ 0
+,Drywall,Services,,,,S/ 0
+,,Services,,,,S/ 0
+Materials,,,,,,"S/ 3,540"
+,Mayolica,Materials,30,m^2,S/ 80,"S/ 2,400"
+,Pintura,Materials,42,m^2,S/ 10,S/ 420
+,Papel Tapiz,Materials,18,m^2,S/ 40,S/ 720
+,,Materials,,,,S/ 0
+Products,,,,,,"S/ 14,900"
+,Mesa Comedor,Products,1,,"S/ 3,000","S/ 3,000"
+,Silas,Products,6,,S/ 200,"S/ 1,200"
+,Sillón,Products,1,,"S/ 2,500","S/ 2,500"
+,TV,Products,1,,"S/ 4,000","S/ 4,000"
+,Cortinas,Products,10,m^2,S/ 70,S/ 700
+,Mesa Centro,Products,1,,S/ 300,S/ 300
+,Puff,Products,1,,S/ 200,S/ 200
+,Altar,Products,1,,"S/ 2,000","S/ 2,000"
+,Cuadro,Products,1,,"S/ 1,000","S/ 1,000"
+Labor,,,,,,"S/ 2,106"
+,Contratista – Arnold,Labor,39,Hrs.,S/ 54,"S/ 2,106"
+(blank),,,,,,0
+,,,,,,
+,,,,,,
+,,,,,,
+,Subtotal,,,,,"S/ 20,546"
+,Overage,10%,,,,"S/ 2,055"
+,Total,,,,,"S/ 22,601"
+,Presupuesto,,,,,"S/ 30,000"
+,Diferencia,,,,,"S/ 7,399"
+
+Costos por Habitación: Costos sala-1
+,Descripción,Categoria,Cantidad,Unidad,Costo o Tasa,Subtotal
+Categoria:,,,,,,Sum:
+Servicio,,,,,,"S/ 1,000"
+,Electrical,Servicio,,,,S/ 0
+,Plumbing,Servicio,,,,S/ 0
+,Diseño - Arquitectura - Kaori,Servicio,,,"S/ 1,000","S/ 1,000"
+Material,,,,,,"S/ 3,940"
+,Piso SPC - Pisopak,Material,28,m^2,S/ 100,"S/ 2,800"
+,Pintura,Material,42,m^2,S/ 10,S/ 420
+,Papel Tapiz,Material,18,m^2,S/ 40,S/ 720
+Producto,,,,,,"S/ 22,500"
+,Recibidor,Producto,1,,S/ 800,S/ 800
+,Mesa Comedor + Sillas,Producto,1,,"S/ 4,500","S/ 4,500"
+,Sillón,Producto,1,,"S/ 4,000","S/ 4,000"
+,TV,Producto,1,,"S/ 4,000","S/ 4,000"
+,Mueble TV,Producto,1,,"S/ 2,500","S/ 2,500"
+,Cortinas,Producto,10,m^2,S/ 70,S/ 700
+,Mesa Centro,Producto,1,,"S/ 1,500","S/ 1,500"
+,Puff,Producto,1,,S/ 500,S/ 500
+,Altar,Producto,1,,"S/ 3,000","S/ 3,000"
+,Cuadro,Producto,1,,"S/ 1,000","S/ 1,000"
+Mano de Obra,,,,,,"S/ 2,106"
+,Contratista – Arnold,Mano de Obra,39,Hrs.,S/ 54,"S/ 2,106"
+(blank),,,,,,0
+,,,,,,
+,,,,,,
+,,,,,,
+,Subtotal,,,,,"S/ 29,546"
+,Margen de Sobregasto,5%,,,,"S/ 1,477"
+,Total,,,,,"S/ 31,023"
+,Presupuesto,,,,,"S/ 30,000"
+,Diferencia,,,,,"-S/ 1,023"
+
+Productos/Materiales: Totals
+,Price
+Project Budget,"S/ 5,000"
+Total for Selected Products,"S/ 4,177"
+Difference,-S/ 823
+
+Productos/Materiales: Range
+Description,Links,Selection,Price
+Refrigerator A,[link to product],FALSE,"S/ 2,098"
+Refrigerator B,[link to product],TRUE,"S/ 1,289"
+Refrigerator C,[link to product],FALSE,S/ 960
+Dishwasher A,[link to product],FALSE,S/ 765
+Dishwasher B,[link to product],FALSE,S/ 645
+Dishwasher C,[link to product],TRUE,S/ 489
+Range A,[link to product],FALSE,"S/ 2,837"
+Range B,[link to product],TRUE,"S/ 2,399"
+Range C,[link to product],FALSE,"S/ 1,345"
+,,FALSE,
+,,FALSE,
+,,FALSE,
+Selection Total,,,"S/ 4,177"
+
+To-Do List: To-Do List
+Done,Due Date,Task
+TRUE,10/25,Meet with architect
+
+
+Contact List: Contact Info
+Company,Phone,Email,Address
+Company Name,(123) 456-7890,no_reply@example.com,"1234 Main Street 
+Anytown, State 54321"
