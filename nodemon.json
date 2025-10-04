@@ -1,19 +1,11 @@
 {
-  "watch": [
-    "scripts/server.js",
-    "charts/**/*.html",
-    "*.html"
-  ],
-  "ignore": [
-    "data/**/*",
-    "node_modules/**/*",
-    "reports/**/*"
-  ],
-  "ext": "js,html,json",
-  "delay": "1000",
-  "env": {
-    "NODE_ENV": "development"
-  },
-  "verbose": false,
-  "restartable": "rs"
+    "watch": ["scripts/server.js", "charts/**/*.html", "*.html"],
+    "ignore": ["data/**/*", "node_modules/**/*", "reports/**/*"],
+    "ext": "js,html,json",
+    "delay": "1000",
+    "env": {
+        "NODE_ENV": "development"
+    },
+    "verbose": false,
+    "restartable": "rs"
 }

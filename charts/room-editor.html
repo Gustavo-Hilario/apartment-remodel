@@ -478,14 +478,14 @@
                     };
 
                     displayExpensesData();
-                    
+
                     // Load room categories for expenses that have a room selected
                     roomData.items.forEach((item, index) => {
                         if (item.room) {
                             loadRoomCategoriesForExpense(index);
                         }
                     });
-                    
+
                     document.getElementById('roomEditor').style.display =
                         'block';
                     showNotification(
@@ -787,52 +787,62 @@
             async function loadRoomCategoriesForExpense(expenseIndex) {
                 const expense = roomData.items[expenseIndex];
                 const roomName = expense.room;
-                
-                const dropdown = document.getElementById(`roomCategory_${expenseIndex}`);
-                
+
+                const dropdown = document.getElementById(
+                    `roomCategory_${expenseIndex}`
+                );
+
                 if (!roomName) {
                     // No room selected, show only General
-                    dropdown.innerHTML = '<option value="">General (New Item)</option>';
+                    dropdown.innerHTML =
+                        '<option value="">General (New Item)</option>';
                     return;
                 }
 
                 try {
                     // Map room names to file names
                     const roomFileMap = {
-                        'Cocina': 'cocina',
-                        'Sala': 'sala',
+                        Cocina: 'cocina',
+                        Sala: 'sala',
                         'Cuarto 1': 'cuarto1',
                         'Cuarto 2': 'cuarto2',
                         'Cuarto 3': 'cuarto3',
                         'Baño 1': 'bano1',
                         'Baño 2': 'bano2',
                         'Baño Visita': 'bano_visita',
-                        'Balcón': 'balcon'
+                        Balcón: 'balcon',
                     };
 
                     const roomFileName = roomFileMap[roomName];
                     if (!roomFileName) return;
 
                     // Load room data to get categories
-                    const response = await fetch(`/api/load-room/${roomFileName}`);
+                    const response = await fetch(
+                        `/api/load-room/${roomFileName}`
+                    );
                     const result = await response.json();
 
                     if (result.success && result.roomData) {
                         // Get unique categories from room items
                         const categories = new Set();
-                        result.roomData.items.forEach(item => {
+                        result.roomData.items.forEach((item) => {
                             if (item.category) {
                                 categories.add(item.category);
                             }
                         });
 
                         // Populate dropdown with unique categories
-                        let options = '<option value="">General (New Item)</option>';
-                        Array.from(categories).sort().forEach(category => {
-                            options += `<option value="${category}" ${
-                                expense.roomCategory === category ? 'selected' : ''
-                            }>${category}</option>`;
-                        });
+                        let options =
+                            '<option value="">General (New Item)</option>';
+                        Array.from(categories)
+                            .sort()
+                            .forEach((category) => {
+                                options += `<option value="${category}" ${
+                                    expense.roomCategory === category
+                                        ? 'selected'
+                                        : ''
+                                }>${category}</option>`;
+                            });
                         dropdown.innerHTML = options;
                     }
                 } catch (error) {

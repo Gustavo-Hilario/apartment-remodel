@@ -97,7 +97,9 @@ app.post('/api/save-expenses', (req, res) => {
             const amount = `"S/ ${expense.amount.toLocaleString('es-PE')}"`;
             csvContent += `${expense.description},${amount},${
                 expense.category
-            },${expense.date || ''},${expense.room || ''},${expense.roomCategory || ''}\n`;
+            },${expense.date || ''},${expense.room || ''},${
+                expense.roomCategory || ''
+            }\n`;
         });
 
         // Save to main expenses file
@@ -140,31 +142,39 @@ app.post('/api/save-expenses', (req, res) => {
                         // Add to ALL items in the specified category
                         let categoryUpdated = false;
                         let totalItemsInCategory = 0;
-                        
+
                         // First, count items in this category
                         for (let i = 3; i < roomLines.length; i++) {
                             const line = roomLines[i].trim();
                             if (!line) continue;
                             const parts = line.split(',');
-                            if (parts.length >= 8 && parts[1] === expense.roomCategory) {
+                            if (
+                                parts.length >= 8 &&
+                                parts[1] === expense.roomCategory
+                            ) {
                                 totalItemsInCategory++;
                             }
                         }
-                        
+
                         if (totalItemsInCategory > 0) {
                             // Distribute expense equally among items in this category
                             const amountPerItem = amount / totalItemsInCategory;
-                            
+
                             for (let i = 3; i < roomLines.length; i++) {
                                 const line = roomLines[i].trim();
                                 if (!line) continue;
                                 const parts = line.split(',');
-                                
+
                                 // Check if this line belongs to the selected category (column index 1)
-                                if (parts.length >= 8 && parts[1] === expense.roomCategory) {
+                                if (
+                                    parts.length >= 8 &&
+                                    parts[1] === expense.roomCategory
+                                ) {
                                     // Update the actual price and subtotal
-                                    const currentActual = parseFloat(parts[5]) || 0;
-                                    const newActual = currentActual + amountPerItem;
+                                    const currentActual =
+                                        parseFloat(parts[5]) || 0;
+                                    const newActual =
+                                        currentActual + amountPerItem;
                                     const quantity = parseFloat(parts[2]) || 1;
                                     const newSubtotal = newActual * quantity;
                                     parts[5] = newActual;
@@ -173,10 +183,16 @@ app.post('/api/save-expenses', (req, res) => {
                                     categoryUpdated = true;
                                 }
                             }
-                            
+
                             if (categoryUpdated) {
-                                fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
-                                console.log(`✅ Distributed ${amount} to ${totalItemsInCategory} items in category "${expense.roomCategory}" in ${expense.room}`);
+                                fs.writeFileSync(
+                                    roomFilePath,
+                                    roomLines.join('\n'),
+                                    'utf8'
+                                );
+                                console.log(
+                                    `✅ Distributed ${amount} to ${totalItemsInCategory} items in category "${expense.roomCategory}" in ${expense.room}`
+                                );
                             }
                         }
                     } else {
@@ -196,7 +212,11 @@ app.post('/api/save-expenses', (req, res) => {
                             const lastLineEmpty =
                                 roomLines[roomLines.length - 1].trim() === '';
                             if (lastLineEmpty) {
-                                roomLines.splice(roomLines.length - 1, 0, newLine);
+                                roomLines.splice(
+                                    roomLines.length - 1,
+                                    0,
+                                    newLine
+                                );
                             } else {
                                 roomLines.push(newLine);
                             }

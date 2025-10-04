@@ -171,6 +171,19 @@
                 </div>
             </div>
 
+            <!-- View Selector -->
+            <div style="margin-bottom: 20px; text-align: center;">
+                <label for="viewSelector" style="font-weight: bold; margin-right: 10px;">View:</label>
+                <select id="viewSelector" onchange="changeView()" style="padding: 10px 20px; font-size: 16px; border: 2px solid #667eea; border-radius: 5px; background: white; cursor: pointer;">
+                    <option value="overview">📊 Project Overview</option>
+                    <option value="room">🏠 Room Details</option>
+                </select>
+                
+                <select id="roomSelector" onchange="loadRoomDetails()" style="padding: 10px 20px; font-size: 16px; border: 2px solid #667eea; border-radius: 5px; background: white; margin-left: 10px; display: none; cursor: pointer;">
+                    <option value="">Select a room...</option>
+                </select>
+            </div>
+
             <div class="chart-container">
                 <canvas id="budgetChart"></canvas>
             </div>
@@ -212,9 +225,17 @@
                 const csvText = await response.text();
                 const data = Papa.parse(csvText, { header: true, skipEmptyLines: true });
 
-                displayChart(data.data);
-                displayTable(data.data);
-                updateStats(data.data);
+                // Filter out the Total row from the data
+                const roomData = data.data.filter(row => 
+                    row.Room && 
+                    !row.Room.toLowerCase().includes('total') &&
+                    row.Room.trim() !== ''
+                );
+
+                allRoomsData = roomData; // Store for later use
+                displayChart(roomData);
+                displayTable(roomData);
+                updateStats(roomData);
             } catch (error) {
                 console.error('Error loading data:', error);
                 // Fallback data
@@ -239,11 +260,16 @@
         function displayChart(data) {
             const ctx = document.getElementById('budgetChart').getContext('2d');
 
+            // Destroy existing chart if it exists
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
             const rooms = data.map(row => row.Room);
             const budgets = data.map(row => parseCurrency(row.Budget));
             const actuals = data.map(row => parseCurrency(row.Actual) || 0);
 
-            new Chart(ctx, {
+            currentChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: rooms,
@@ -295,6 +321,17 @@
 
         function displayTable(data) {
             const tbody = document.querySelector('#roomTable tbody');
+            const thead = document.querySelector('#roomTable thead tr');
+            
+            // Reset headers for overview
+            thead.innerHTML = `
+                <th>Room</th>
+                <th>Budget</th>
+                <th>Actual</th>
+                <th>Difference</th>
+                <th>Status</th>
+            `;
+            
             tbody.innerHTML = '';
 
             data.forEach(row => {
@@ -316,6 +353,187 @@
         function updateStats(data) {
             const totalBudget = data.reduce((sum, row) => sum + parseCurrency(row.Budget), 0);
             const totalSpent = data.reduce((sum, row) => sum + parseCurrency(row.Actual), 0);
+            const remaining = totalBudget - totalSpent;
+            const progress = ((totalSpent / totalBudget) * 100).toFixed(1);
+
+            document.getElementById('totalBudget').textContent = formatCurrency(totalBudget);
+            document.getElementById('totalSpent').textContent = formatCurrency(totalSpent);
+            document.getElementById('remaining').textContent = formatCurrency(remaining);
+            document.getElementById('progress').textContent = `${progress}%`;
+        }
+
+        let allRoomsData = [];
+        let currentChart = null;
+
+        // Change view between overview and room details
+        function changeView() {
+            const viewSelector = document.getElementById('viewSelector');
+            const roomSelector = document.getElementById('roomSelector');
+            
+            if (viewSelector.value === 'room') {
+                roomSelector.style.display = 'inline-block';
+                // Populate room selector if not already done
+                if (roomSelector.options.length === 1 && allRoomsData.length > 0) {
+                    allRoomsData.forEach(room => {
+                        const option = document.createElement('option');
+                        option.value = room.Room;
+                        option.textContent = room.Room;
+                        roomSelector.appendChild(option);
+                    });
+                }
+            } else {
+                roomSelector.style.display = 'none';
+                // Show overview
+                if (allRoomsData.length > 0) {
+                    displayChart(allRoomsData);
+                    displayTable(allRoomsData);
+                }
+            }
+        }
+
+        // Load individual room details
+        async function loadRoomDetails() {
+            const roomSelector = document.getElementById('roomSelector');
+            const selectedRoom = roomSelector.value;
+            
+            if (!selectedRoom) return;
+
+            try {
+                // Map room names to file names
+                const roomFileMap = {
+                    'Cocina': 'cocina',
+                    'Sala': 'sala',
+                    'Cuarto 1': 'cuarto1',
+                    'Cuarto 2': 'cuarto2',
+                    'Cuarto 3': 'cuarto3',
+                    'Baño 1': 'bano1',
+                    'Baño 2': 'bano2',
+                    'Baño Visita': 'bano_visita',
+                    'Balcón': 'balcon'
+                };
+
+                const roomFileName = roomFileMap[selectedRoom];
+                if (!roomFileName) return;
+
+                // Load room data from API
+                const response = await fetch(`/api/load-room/${roomFileName}`);
+                const result = await response.json();
+
+                if (result.success && result.roomData) {
+                    displayRoomChart(result.roomData);
+                    displayRoomTable(result.roomData);
+                    updateRoomStats(result.roomData);
+                }
+            } catch (error) {
+                console.error('Error loading room details:', error);
+            }
+        }
+
+        // Display chart for individual room
+        function displayRoomChart(roomData) {
+            const ctx = document.getElementById('budgetChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // Get categories and their totals
+            const categories = {};
+            roomData.items.forEach(item => {
+                if (!categories[item.category]) {
+                    categories[item.category] = { budget: 0, actual: 0 };
+                }
+                categories[item.category].budget += item.budgetRate * item.quantity;
+                categories[item.category].actual += item.actualRate * item.quantity;
+            });
+
+            const labels = Object.keys(categories);
+            const budgets = labels.map(cat => categories[cat].budget);
+            const actuals = labels.map(cat => categories[cat].actual);
+
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Budget',
+                            data: budgets,
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Actual',
+                            data: actuals,
+                            backgroundColor: 'rgba(118, 75, 162, 0.8)',
+                            borderColor: 'rgba(118, 75, 162, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${roomData.name} - Budget vs Actual by Category`,
+                            font: { size: 16 }
+                        },
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Display table for individual room
+        function displayRoomTable(roomData) {
+            const tbody = document.querySelector('#roomTable tbody');
+            const thead = document.querySelector('#roomTable thead tr');
+            
+            // Update table headers
+            thead.innerHTML = `
+                <th>Description</th>
+                <th>Category</th>
+                <th>Qty</th>
+                <th>Budget Price</th>
+                <th>Actual Price</th>
+                <th>Subtotal</th>
+                <th>Status</th>
+            `;
+
+            tbody.innerHTML = '';
+            roomData.items.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${item.description}</strong></td>
+                    <td>${item.category}</td>
+                    <td>${item.quantity} ${item.unit || ''}</td>
+                    <td>${formatCurrency(item.budgetRate)}</td>
+                    <td>${formatCurrency(item.actualRate)}</td>
+                    <td>${formatCurrency(item.subtotal)}</td>
+                    <td><span class="status-${item.status.toLowerCase()}">${item.status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Update stats for individual room
+        function updateRoomStats(roomData) {
+            const totalBudget = roomData.budget;
+            const totalSpent = roomData.items.reduce((sum, item) => sum + item.subtotal, 0);
             const remaining = totalBudget - totalSpent;
             const progress = ((totalSpent / totalBudget) * 100).toFixed(1);
 

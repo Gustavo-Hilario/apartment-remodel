@@ -1,14 +1,14 @@
 Room,Category,Description,Quantity,Unit,Budget_Rate,Actual_Rate,Subtotal,Status
-Cocina,Producto,Mueble Altos y Bajos,4,m^2,3800,3800,15200,Planning
-Cocina,Producto,Torre de Horno y Micro,1,,2500,2500,2500,Planning
-Cocina,Producto,Torre – Coffee Station,1,,3000,3000,3000,Planning
-Cocina,Producto,Lavadero,1,,1500,1500,1500,Planning
-Cocina,Producto,Grifería,1,,1000,1000,1000,Planning
-Cocina,Producto,Cocina,1,,2500,2500,2500,Planning
-Cocina,Producto,Horno,1,,3500,3500,3500,Planning
-Cocina,Producto,Microndas,1,,600,600,600,Planning
-Cocina,Producto,Heladera,1,,4500,4500,4500,Planning
-Cocina,Producto,Menajes y Otros,1,,5000,5000,5000,Planning
+Cocina,Producto,Mueble Altos y Bajos,4,m^2,3800,0,15200,Planning
+Cocina,Producto,Torre de Horno y Micro,1,,2500,0,2500,Planning
+Cocina,Producto,Torre – Coffee Station,1,,3000,0,3000,Planning
+Cocina,Producto,Lavadero,1,,1500,0,1500,Planning
+Cocina,Producto,Grifería,1,,1000,0,1000,Planning
+Cocina,Producto,Cocina,1,,2500,0,2500,Planning
+Cocina,Producto,Horno,1,,3500,0,3500,Planning
+Cocina,Producto,Microndas,1,,600,0,600,Planning
+Cocina,Producto,Heladera,1,,4500,0,4500,Planning
+Cocina,Producto,Menajes y Otros,1,,5000,0,5000,Planning
 Sala,Products,Mesa Comedor,1,,3000,3000,3000,Completed
 Sala,Products,Silas,6,,200,200,1200,Completed
 Sala,Products,Sillón,1,,2500,2500,2500,Completed
