@@ -4,16 +4,15 @@ Description,Category,Quantity,Unit,Budget_Price,Actual_Price,Subtotal,Status
 Electrical,Services,1,,0,0,0,Pending
 Plumbing,Services,1,,0,0,0,Pending
 Drywall,Services,1,,0,0,0,Pending
-Mayolica,Materials,30,m^2,80,0,2400,Completed
-Pintura,Materials,42,m^2,10,0,420,Planning
-Papel Tapiz,Materials,18,m^2,40,0,720,Planning
-Mesa Comedor,Products,1,,3000,0,3000,Planning
-Silas,Products,6,,200,0,1200,Planning
-Sillón,Products,1,,2500,0,2500,Planning
-TV,Products,1,,4000,0,4000,Planning
-Cortinas,Products,10,m^2,70,0,700,Planning
-Mesa Centro,Products,1,,300,0,300,Planning
-Puff,Products,1,,200,0,200,Planning
-Altar,Products,1,,2000,0,2000,Planning
-Cuadro,Products,1,,1000,0,1000,Planning
-Contratista – Arnold,Labor,39,Hrs.,54,0,2106,Planning
+Mayolica,Material,30,m^2,80,0,2400,Completed
+Pintura,Material,42,m^2,10,0,420,Planning
+Papel Tapiz,Material,18,m^2,40,0,720,Planning
+Mesa Comedor,Producto,1,,3000,0,3000,Planning
+Silas,Producto,6,,200,0,1200,Planning
+Sillón,Producto,1,,2500,0,2500,Planning
+TV,Producto,1,,4000,0,4000,Planning
+Cortinas,Producto,10,m^2,70,0,700,Planning
+Mesa Centro,Producto,1,,300,0,300,Planning
+Puff,Producto,1,,200,0,200,Planning
+Altar,Producto,1,,2000,0,2000,Planning
+Cuadro,Producto,1,,1000,0,1000,Planning
