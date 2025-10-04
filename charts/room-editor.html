@@ -299,8 +299,8 @@
                                 <th>Category</th>
                                 <th>Qty</th>
                                 <th>Unit</th>
-                                <th>Budget Rate</th>
-                                <th>Actual Rate</th>
+                                <th>Budget Price</th>
+                                <th>Actual Price</th>
                                 <th>Subtotal</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -415,7 +415,8 @@
                         actualRate: expense.amount,
                         subtotal: expense.amount,
                         status: 'Completed',
-                        date: expense.date || ''
+                        date: expense.date || '',
+                        room: expense.room || ''
                     }))
                 };
 
@@ -501,6 +502,7 @@
                 <th>Category</th>
                 <th>Amount</th>
                 <th>Date</th>
+                <th>Room</th>
                 <th>Actions</th>
             `;
 
@@ -543,6 +545,18 @@
 
         function createExpenseRow(item, index) {
             const expenseCategories = ['Documentación', 'Mano de Obra', 'Material', 'Producto', 'Servicio', 'Other'];
+            const rooms = [
+                { value: '', label: 'No Room' },
+                { value: 'Cocina', label: 'Cocina' },
+                { value: 'Sala', label: 'Sala' },
+                { value: 'Cuarto 1', label: 'Cuarto 1' },
+                { value: 'Cuarto 2', label: 'Cuarto 2' },
+                { value: 'Cuarto 3', label: 'Cuarto 3' },
+                { value: 'Baño 1', label: 'Baño 1' },
+                { value: 'Baño 2', label: 'Baño 2' },
+                { value: 'Baño Visita', label: 'Baño Visita' },
+                { value: 'Balcón', label: 'Balcón' }
+            ];
             
             const row = document.createElement('tr');
             row.className = 'status-completed';
@@ -555,7 +569,12 @@
                     </select>
                 </td>
                 <td><input type="number" value="${item.actualRate}" onchange="updateExpenseItem(${index}, 'actualRate', parseFloat(this.value) || 0)"></td>
-                <td><input type="date" value="${item.date}" onchange="updateExpenseItem(${index}, 'date', this.value)"></td>
+                <td><input type="date" value="${item.date || ''}" onchange="updateExpenseItem(${index}, 'date', this.value)"></td>
+                <td>
+                    <select onchange="updateExpenseItem(${index}, 'room', this.value)">
+                        ${rooms.map(room => `<option value="${room.value}" ${(item.room || '') === room.value ? 'selected' : ''}>${room.label}</option>`).join('')}
+                    </select>
+                </td>
                 <td><button onclick="removeItem(${index})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Delete</button></td>
             `;
 
@@ -601,7 +620,8 @@
                     actualRate: 0,
                     subtotal: 0,
                     status: 'Completed',
-                    date: new Date().toISOString().split('T')[0]
+                    date: new Date().toISOString().split('T')[0],
+                    room: ''
                 };
 
                 roomData.items.push(newItem);
@@ -651,7 +671,8 @@
                         description: item.description,
                         amount: item.actualRate || item.subtotal,
                         category: item.category,
-                        date: item.date || ''
+                        date: item.date || '',
+                        room: item.room || ''
                     }));
 
                     const response = await fetch('/api/save-expenses', {

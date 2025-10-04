@@ -28,7 +28,7 @@ app.post('/api/save-room/:roomName', (req, res) => {
         // Generate CSV content
         let csvContent = `Room,${roomData.name}\n`;
         csvContent += `Budget,${roomData.budget}\n`;
-        csvContent += 'Description,Category,Quantity,Unit,Budget_Rate,Actual_Rate,Subtotal,Status\n';
+        csvContent += 'Description,Category,Quantity,Unit,Budget_Price,Actual_Price,Subtotal,Status\n';
 
         roomData.items.forEach(item => {
             csvContent += `${item.description},${item.category},${item.quantity},${item.unit},${item.budgetRate},${item.actualRate},${item.subtotal},${item.status}\n`;
@@ -67,19 +67,68 @@ app.post('/api/save-expenses', (req, res) => {
     try {
         const { expenses } = req.body;
 
-        // Generate CSV content
-        let csvContent = 'Description,Amount,Category,Date\n';
+        // Generate CSV content for main expenses file
+        let csvContent = 'Description,Amount,Category,Date,Room\n';
         
         expenses.forEach(expense => {
             const amount = `"S/ ${expense.amount.toLocaleString('es-PE')}"`;
-            csvContent += `${expense.description},${amount},${expense.category},${expense.date || ''}\n`;
+            csvContent += `${expense.description},${amount},${expense.category},${expense.date || ''},${expense.room || ''}\n`;
         });
 
-        // Save to file
+        // Save to main expenses file
         const filePath = path.join(__dirname, '..', 'data', 'expenses.csv');
         fs.writeFileSync(filePath, csvContent, 'utf8');
 
         console.log(`✅ Saved expenses data to ${filePath}`);
+
+        // Save expenses to individual room CSV files
+        const roomNameMap = {
+            'Cocina': 'cocina',
+            'Sala': 'sala',
+            'Cuarto 1': 'cuarto1',
+            'Cuarto 2': 'cuarto2',
+            'Cuarto 3': 'cuarto3',
+            'Baño 1': 'bano1',
+            'Baño 2': 'bano2',
+            'Baño Visita': 'bano_visita',
+            'Balcón': 'balcon'
+        };
+
+        expenses.forEach(expense => {
+            if (expense.room && roomNameMap[expense.room]) {
+                const roomFileName = roomNameMap[expense.room];
+                const roomFilePath = path.join(__dirname, '..', 'data', 'rooms', `${roomFileName}.csv`);
+
+                if (fs.existsSync(roomFilePath)) {
+                    // Read existing room file
+                    const roomContent = fs.readFileSync(roomFilePath, 'utf8');
+                    const roomLines = roomContent.split('\n');
+
+                    // Check if this expense already exists in the room file
+                    const expenseExists = roomLines.some(line => 
+                        line.includes(expense.description) && line.includes('General')
+                    );
+
+                    if (!expenseExists) {
+                        // Add new line for this expense with category "General"
+                        const amount = parseFloat(expense.amount);
+                        const newLine = `${expense.description},General,1,,0,${amount},${amount},Completed`;
+                        
+                        // Insert before the last line (which might be empty)
+                        const lastLineEmpty = roomLines[roomLines.length - 1].trim() === '';
+                        if (lastLineEmpty) {
+                            roomLines.splice(roomLines.length - 1, 0, newLine);
+                        } else {
+                            roomLines.push(newLine);
+                        }
+
+                        // Write back to room file
+                        fs.writeFileSync(roomFilePath, roomLines.join('\n'), 'utf8');
+                        console.log(`✅ Added expense "${expense.description}" to ${expense.room} (${roomFileName}.csv)`);
+                    }
+                }
+            }
+        });
 
         // Auto-run aggregation
         const { spawn } = require('child_process');
@@ -179,7 +228,8 @@ app.get('/api/load-expenses', (req, res) => {
                     description: parts[0],
                     amount: parseCurrencyValue(parts[1]),
                     category: parts[2],
-                    date: parts[3] || ''
+                    date: parts[3] || '',
+                    room: parts[4] || ''
                 });
             }
         }

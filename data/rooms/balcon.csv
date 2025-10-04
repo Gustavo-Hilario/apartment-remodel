@@ -1,6 +1,6 @@
 Room,Balcón
 Budget,5000
-Description,Category,Quantity,Unit,Budget_Rate,Actual_Rate,Subtotal,Status
+Description,Category,Quantity,Unit,Budget_Price,Actual_Price,Subtotal,Status
 Electrical,Services,1,,0,0,0,Planning
 Plumbing,Services,1,,0,0,0,Planning
 Piso,Materials,20,m^2,0,0,0,Planning

@@ -1,6 +1,6 @@
 Room,Cocina
 Budget,40000
-Description,Category,Quantity,Unit,Budget_Rate,Actual_Rate,Subtotal,Status
+Description,Category,Quantity,Unit,Budget_Price,Actual_Price,Subtotal,Status
 Electrical,Servicio,1,,0,0,0,Pending
 Plumbing,Servicio,1,,0,0,0,Pending
 Diseño - Arquitectura - Kaori,Servicio,1,,1000,1000,1000,Pending
