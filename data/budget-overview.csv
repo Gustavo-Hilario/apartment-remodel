@@ -1,0 +1,10 @@
+Room,Budget,Actual,Difference,Status
+Sala,"S/ 30,000","S/ 22,601","S/ 7,399",Completed
+Cocina,"S/ 40,000","S/ 47,466","-S/ 7,466",Completed
+Baño Visita,"S/ 10,000","","S/ 10,000",Pending
+Cuarto 3,"S/ 15,000","","S/ 15,000",Pending
+Baño 2,"S/ 15,000","","S/ 15,000",Pending
+Cuarto 2,"S/ 20,000","","S/ 20,000",Pending
+Cuarto 1,"S/ 20,000","","S/ 20,000",Pending
+Baño 1,"S/ 15,000","","S/ 15,000",Pending
+Balcón,"S/ 5,000","","S/ 5,000",Pending

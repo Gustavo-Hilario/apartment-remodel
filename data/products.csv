@@ -1,0 +1,10 @@
+Category,Product,Description,Links,Selected,Price
+Kitchen,Refrigerator,Refrigerator A,[link to product],FALSE,"S/ 2,098"
+Kitchen,Refrigerator,Refrigerator B,[link to product],TRUE,"S/ 1,289"
+Kitchen,Refrigerator,Refrigerator C,[link to product],FALSE,"S/ 960"
+Kitchen,Dishwasher,Dishwasher A,[link to product],FALSE,"S/ 765"
+Kitchen,Dishwasher,Dishwasher B,[link to product],FALSE,"S/ 645"
+Kitchen,Dishwasher,Dishwasher C,[link to product],TRUE,"S/ 489"
+Kitchen,Range,Range A,[link to product],FALSE,"S/ 2,837"
+Kitchen,Range,Range B,[link to product],TRUE,"S/ 2,399"
+Kitchen,Range,Range C,[link to product],FALSE,"S/ 1,345"

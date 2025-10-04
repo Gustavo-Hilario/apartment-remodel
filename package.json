@@ -1,0 +1,23 @@
+{
+  "name": "apartment-remodel-tracker",
+  "version": "1.0.0",
+  "description": "Budget tracking and project management for apartment remodel",
+  "main": "index.js",
+  "scripts": {
+    "generate-excel": "node scripts/generate-excel.js",
+    "split-csv": "node scripts/csv-splitter.js",
+    "serve": "python3 -m http.server 8000",
+    "start": "npm run serve"
+  },
+  "keywords": ["remodel", "budget", "tracking", "apartment"],
+  "author": "Gustavo",
+  "license": "ISC",
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "papaparse": "^5.4.1"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
