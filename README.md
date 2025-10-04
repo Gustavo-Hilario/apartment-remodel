@@ -33,31 +33,35 @@ apartment-remodel/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v14 or higher)
+- Node.js (v14 or higher) - **No Python required!**
 - Modern web browser
 
 ### Installation
 ```bash
-# Install dependencies
+# Install dependencies (includes live-server for development)
 npm install
 
-# Start local server to view charts
+# Start local server with live reload
 npm start
+# or for auto-opening browser:
+npm run dev
 ```
 
 ## 📈 Viewing Charts & Reports
 
 ### Interactive Dashboard
-1. Start the local server: `npm start`
-2. Open your browser to: `http://localhost:8000`
-3. Navigate to `charts/budget-overview.html`
+1. Start the local server: `npm start` (opens automatically)
+2. Or use: `npm run dev` (opens browser automatically)
+3. Navigate through the beautiful home page interface
 
 ### Features:
 - **Budget vs Actual comparison** by room
 - **Real-time progress tracking**
 - **Interactive charts** with Chart.js
+- **Live reload** - Changes refresh automatically
 - **Responsive design** for mobile/desktop
 - **Automatic data loading** from CSV files
+- **Pure Node.js** - No Python dependencies!
 
 ## 📝 Updating Data
 
