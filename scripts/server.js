@@ -64,7 +64,9 @@ app.get('/api/load-room/:roomName', async (req, res) => {
                 subtotal: item.subtotal,
                 status: item.status,
                 favorite: item.favorite || false,
-                imageUrl: item.imageUrl || '',
+                images: item.images || [], // Return images array
+                imageUrl: item.imageUrl || '', // Keep legacy field
+                showImage: item.showImage || false,
                 links: item.links || [],
                 notes: item.notes || '',
             })),
@@ -126,7 +128,9 @@ app.post('/api/save-room/:roomName', async (req, res) => {
             subtotal: parseFloat(item.subtotal) || 0,
             status: item.status || 'Pending',
             favorite: item.favorite || false,
-            imageUrl: item.imageUrl || '',
+            images: item.images || [], // Save images array
+            imageUrl: item.imageUrl || '', // Keep legacy field for backward compatibility
+            showImage: item.showImage || false,
             links: item.links || [],
             notes: item.notes || '',
         }));

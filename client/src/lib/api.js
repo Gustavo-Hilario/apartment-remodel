@@ -50,11 +50,20 @@ export const roomsAPI = {
     getOne: (slug) => fetchAPI(`/load-room/${slug}`),
 
     // Save room data
-    save: (slug, roomData) =>
-        fetchAPI(`/save-room/${slug}`, {
-            method: 'POST',
-            body: JSON.stringify({ roomData }),
-        }),
+    save: async (slug, roomData) => {
+        console.log('🚀 Sending save request to server:', `/save-room/${slug}`, roomData);
+        try {
+            const result = await fetchAPI(`/save-room/${slug}`, {
+                method: 'POST',
+                body: JSON.stringify({ roomData }),
+            });
+            console.log('✅ Server save response:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Server save error:', error);
+            throw error;
+        }
+    },
 };
 
 /**
@@ -150,6 +159,12 @@ export const productsAPI = {
             ...roomData,
             items: updatedItems
         };
+
+        console.log('🔄 About to save room data to server:', {
+            room: productData.room,
+            itemsCount: updatedItems.length,
+            updatedProduct: updatedItems.find(item => item.description === productData.description)
+        });
 
         return await roomsAPI.save(productData.room, updatedRoomData);
     },

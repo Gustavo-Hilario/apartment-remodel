@@ -84,7 +84,9 @@ export default function ImageUpload({
     }
 
     if (newImages.length > 0) {
-      onImagesChange([...images, ...newImages]);
+      const updatedImages = [...images, ...newImages];
+      console.log('🖼️ ImageUpload calling onImagesChange with:', updatedImages);
+      onImagesChange(updatedImages);
     }
 
     setUploading(false);

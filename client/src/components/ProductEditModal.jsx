@@ -117,6 +117,7 @@ export default function ProductEditModal({
   };
 
   const handleImagesChange = (images) => {
+    console.log('📸 Images changed in ProductEditModal:', images);
     setFormData(prev => ({
       ...prev,
       images: images
@@ -155,13 +156,15 @@ export default function ProductEditModal({
 
     setLoading(true);
     try {
-      await onSave({
+      const saveData = {
         ...formData,
         quantity: parseFloat(formData.quantity),
         budget_price: parseFloat(formData.budget_price),
         actual_price: parseFloat(formData.actual_price),
         subtotal: parseFloat(formData.budget_price) * parseFloat(formData.quantity)
-      });
+      };
+      console.log('💾 Saving product data:', saveData);
+      await onSave(saveData);
       onClose();
     } catch (error) {
       console.error('Error saving product:', error);
