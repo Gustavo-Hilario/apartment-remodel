@@ -6,6 +6,8 @@ const cors = require('cors');
 const { connectDB } = require('../db/mongoose-connection');
 const Room = require('../db/models/Room');
 const Expense = require('../db/models/Expense');
+const roomsRepo = require('../db/roomsRepository');
+const expensesRepo = require('../db/expensesRepository');
 
 const app = express();
 const port = 8000;
@@ -26,7 +28,7 @@ app.use(express.static(path.join(__dirname, '..')));
 app.get('/api/rooms', async (req, res) => {
     try {
         const rooms = await Room.find({}).select(
-            'name slug budget actual_spent progress_percent completed_items total_items status'
+            'name slug budget actual_spent progress_percent completed_items total_items status items'
         );
         res.json({ success: true, rooms });
     } catch (error) {
@@ -198,8 +200,34 @@ app.get('/api/get-all-categories', async (req, res) => {
 // Get project totals
 app.get('/api/totals', async (req, res) => {
     try {
-        const totals = await roomsRepo.getTotals();
-        res.json({ success: true, totals: totals[0] || {} });
+        // Get room totals
+        const roomTotals = await roomsRepo.getTotals();
+        const totalsData = roomTotals[0] || {};
+        
+        // Get expenses count
+        const expenses = await Expense.find({});
+        
+        // Get products count (items with category='Products')
+        const rooms = await Room.find({});
+        let productsCount = 0;
+        rooms.forEach(room => {
+            if (room.items) {
+                productsCount += room.items.filter(item => item.category === 'Products').length;
+            }
+        });
+        
+        // Format response to match frontend expectations
+        const response = {
+            totalBudget: totalsData.total_budget || 0,
+            totalExpenses: totalsData.total_actual || 0,
+            totalRooms: totalsData.total_rooms || 0,
+            totalItems: totalsData.total_items || 0,
+            totalCompleted: totalsData.total_completed || 0,
+            totalProducts: productsCount,
+            expenseCount: expenses.length,
+        };
+        
+        res.json(response);
     } catch (error) {
         console.error('Error getting totals:', error);
         res.status(500).json({
