@@ -552,6 +552,117 @@ export default function ExpensesPage() {
           border-top: 2px solid #f0f0f0;
         }
 
+        /* Room Dropdown Styles */
+        .room-dropdown-cell {
+          position: relative;
+        }
+
+        .room-dropdown-wrapper {
+          position: relative;
+        }
+
+        .room-dropdown-button {
+          width: 100%;
+          padding: 8px 12px;
+          background: white;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+          text-align: left;
+          cursor: pointer;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          transition: all 0.2s;
+        }
+
+        .room-dropdown-button:hover {
+          border-color: #667eea;
+          background: #f8f9ff;
+        }
+
+        .room-dropdown-button:focus {
+          outline: none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .dropdown-arrow {
+          margin-left: 8px;
+          font-size: 10px;
+          color: #666;
+          transition: transform 0.2s;
+        }
+
+        .room-dropdown-menu {
+          position: absolute;
+          top: calc(100% + 4px);
+          left: 0;
+          right: 0;
+          background: white;
+          border: 1px solid #e5e5e5;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          max-height: 280px;
+          overflow-y: auto;
+          z-index: 1000;
+          padding: 8px;
+        }
+
+        .room-checkbox-label {
+          display: flex;
+          align-items: center;
+          padding: 10px 12px;
+          cursor: pointer;
+          border-radius: 6px;
+          transition: all 0.15s;
+          user-select: none;
+          margin-bottom: 2px;
+        }
+
+        .room-checkbox-label:hover {
+          background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+        }
+
+        .room-checkbox-label input[type="checkbox"] {
+          width: 18px;
+          height: 18px;
+          margin: 0 12px 0 0;
+          cursor: pointer;
+          accent-color: #667eea;
+          flex-shrink: 0;
+        }
+
+        .room-checkbox-label span {
+          font-size: 14px;
+          color: #333;
+          line-height: 1.4;
+        }
+
+        .room-checkbox-label input[type="checkbox"]:checked + span {
+          font-weight: 500;
+          color: #667eea;
+        }
+
+        /* Scrollbar styling for dropdown */
+        .room-dropdown-menu::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .room-dropdown-menu::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+
+        .room-dropdown-menu::-webkit-scrollbar-thumb {
+          background: #ccc;
+          border-radius: 4px;
+        }
+
+        .room-dropdown-menu::-webkit-scrollbar-thumb:hover {
+          background: #999;
+        }
+
         @media (max-width: 768px) {
           .editor-header {
             flex-direction: column;
