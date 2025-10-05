@@ -497,6 +497,55 @@
             display: none;
         }
 
+        .upload-zone {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background: #f9f9f9;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .upload-zone:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .upload-zone.dragover {
+            border-color: #667eea;
+            background: #e6e6ff;
+            transform: scale(1.02);
+        }
+
+        .upload-zone p {
+            margin: 10px 0 5px 0;
+            color: #666;
+        }
+
+        .upload-zone .file-name {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .upload-options {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .upload-options .separator {
+            color: #999;
+            font-weight: bold;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
         .modal-footer {
             padding: 20px 30px;
             background: #f8f9fa;
@@ -705,8 +754,29 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="productImage">Image URL</label>
-                        <input type="url" id="productImage" placeholder="https://example.com/image.jpg" oninput="previewImage()" />
+                        <label for="productImage">Product Image</label>
+                        
+                        <!-- Drag and Drop Zone -->
+                        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                            <div>📸</div>
+                            <p><strong>Drop image here or click to browse</strong></p>
+                            <p style="font-size: 12px; color: #999;">Supports: JPG, PNG, GIF, WebP</p>
+                            <p class="file-name" id="fileName"></p>
+                        </div>
+                        <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)" />
+                        
+                        <div class="upload-options">
+                            <span class="separator">OR</span>
+                            <input type="url" id="productImage" placeholder="Paste image URL" oninput="previewImage()" style="flex: 1;" />
+                        </div>
+                        
+                        <div style="margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="showImageCheckbox" />
+                                <span>Use this image as product thumbnail (replaces 📦 emoji)</span>
+                            </label>
+                        </div>
+                        
                         <img id="imagePreview" class="image-preview" />
                     </div>
 
@@ -882,11 +952,12 @@
             const subtotal = (actualPrice > 0 ? actualPrice : budgetPrice) * quantity;
 
             const imageUrl = product.imageUrl || '';
+            const showImage = product.showImage === true;
             const links = product.links || [];
             const notes = product.notes || '';
 
             card.innerHTML = `
-                ${imageUrl ? 
+                ${imageUrl && showImage ? 
                     `<div class="product-image"><img src="${imageUrl}" alt="${product.description}" onerror="this.parentElement.innerHTML='📦'"></div>` :
                     `<div class="product-image">📦</div>`
                 }
@@ -968,6 +1039,7 @@
             document.getElementById('modalTitle').textContent = 'Add New Product';
             document.getElementById('productForm').reset();
             document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('showImageCheckbox').checked = false;
             
             // Reset links container
             document.getElementById('linksContainer').innerHTML = `
@@ -1000,6 +1072,7 @@
             document.getElementById('productActualPrice').value = currentEditProduct.actualRate || 0;
             document.getElementById('productImage').value = currentEditProduct.imageUrl || '';
             document.getElementById('productNotes').value = currentEditProduct.notes || '';
+            document.getElementById('showImageCheckbox').checked = currentEditProduct.showImage === true;
             
             // Preview image if exists
             if (currentEditProduct.imageUrl) {
@@ -1055,6 +1128,76 @@
             }
         }
 
+        // Drag and drop handlers
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processImageFile(file);
+            }
+        }
+
+        function processImageFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showNotification('Please select an image file', 'error');
+                return;
+            }
+
+            // Show file name
+            document.getElementById('fileName').textContent = file.name;
+
+            // Convert to base64 and preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result;
+                document.getElementById('productImage').value = base64;
+                document.getElementById('imagePreview').src = base64;
+                document.getElementById('imagePreview').style.display = 'block';
+                showNotification('Image uploaded successfully!', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Initialize drag and drop on page load
+        function initializeDragAndDrop() {
+            const uploadZone = document.getElementById('uploadZone');
+            
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            // Highlight drop zone when item is dragged over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, () => {
+                    uploadZone.classList.add('dragover');
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, () => {
+                    uploadZone.classList.remove('dragover');
+                }, false);
+            });
+            
+            // Handle dropped files
+            uploadZone.addEventListener('drop', handleDrop, false);
+        }
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                processImageFile(files[0]);
+            }
+        }
+
         function addLinkItem() {
             const container = document.getElementById('linksContainer');
             const linkItem = document.createElement('div');
@@ -1099,14 +1242,22 @@
                 unit: document.getElementById('productUnit').value.trim(),
                 budgetRate: parseFloat(document.getElementById('productBudgetPrice').value) || 0,
                 actualRate: parseFloat(document.getElementById('productActualPrice').value) || 0,
+                subtotal: (parseFloat(document.getElementById('productQuantity').value) || 1) * (parseFloat(document.getElementById('productActualPrice').value) || 0),
                 imageUrl: document.getElementById('productImage').value.trim(),
+                showImage: document.getElementById('showImageCheckbox').checked,
                 links: links,
-                notes: document.getElementById('productNotes').value.trim()
+                notes: document.getElementById('productNotes').value.trim(),
+                favorite: currentEditProduct?.favorite || false // Preserve favorite status
             };
 
             try {
                 // Load current room data
                 const response = await fetch(`/api/load-room/${room}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                }
+                
                 const result = await response.json();
                 
                 if (!result.success) {
@@ -1132,13 +1283,25 @@
                 const saveResponse = await fetch(`/api/save-room/${room}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ items })
+                    body: JSON.stringify({ 
+                        roomData: {
+                            name: result.roomData.name,
+                            budget: result.roomData.budget,
+                            items: items
+                        }
+                    })
                 });
+
+                if (!saveResponse.ok) {
+                    const errorText = await saveResponse.text();
+                    console.error('Save error response:', errorText);
+                    throw new Error(`Server error: ${saveResponse.status} - ${errorText.substring(0, 100)}`);
+                }
 
                 const saveResult = await saveResponse.json();
                 
                 if (!saveResult.success) {
-                    throw new Error('Failed to save product');
+                    throw new Error(saveResult.error || 'Failed to save product');
                 }
 
                 showNotification('Product saved successfully!', 'success');
@@ -1184,6 +1347,7 @@
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function () {
+            initializeDragAndDrop();
             loadProducts();
         });
     </script>

@@ -46,6 +46,10 @@ const itemSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    showImage: {
+        type: Boolean,
+        default: false
+    },
     links: [{
         name: String,
         url: String
