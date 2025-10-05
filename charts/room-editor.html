@@ -413,16 +413,16 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width: 50px;">⭐</th>
+                                    <th style="width: 50px">⭐</th>
                                     <th>Description</th>
                                     <th>Category</th>
-                                    <th style="width: 60px;">Qty</th>
-                                    <th style="width: 80px;">Unit</th>
+                                    <th style="width: 60px">Qty</th>
+                                    <th style="width: 80px">Unit</th>
                                     <th>Budget Price</th>
                                     <th>Actual Price</th>
                                     <th>Subtotal</th>
                                     <th>Status</th>
-                                    <th style="width: 100px;">Actions</th>
+                                    <th style="width: 100px">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="itemsTable"></tbody>
@@ -801,7 +801,11 @@
 
                 row.innerHTML = `
                 <td>
-                    <button class="star-btn ${isFavorited ? 'favorited' : ''}" onclick="toggleFavorite(${index})" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}">
+                    <button class="star-btn ${
+                        isFavorited ? 'favorited' : ''
+                    }" onclick="toggleFavorite(${index})" title="${
+                    isFavorited ? 'Remove from favorites' : 'Add to favorites'
+                }">
                         ${isFavorited ? '⭐' : '☆'}
                     </button>
                 </td>
@@ -944,23 +948,29 @@
 
             function toggleFavorite(index) {
                 // Toggle the favorite status
-                roomData.items[index].favorite = !roomData.items[index].favorite;
-                
+                roomData.items[index].favorite =
+                    !roomData.items[index].favorite;
+
                 // Update the display
                 displayRoomData();
-                
+
                 // Show a notification and auto-save
                 const isFavorited = roomData.items[index].favorite;
                 const itemName = roomData.items[index].description;
-                
-                console.log('Toggling favorite for item:', itemName, 'to', isFavorited);
+
+                console.log(
+                    'Toggling favorite for item:',
+                    itemName,
+                    'to',
+                    isFavorited
+                );
                 console.log('Item data:', roomData.items[index]);
-                
+
                 // Auto-save the room data
                 saveRoom().then(() => {
                     showNotification(
-                        isFavorited 
-                            ? `⭐ "${itemName}" added to favorites!` 
+                        isFavorited
+                            ? `⭐ "${itemName}" added to favorites!`
                             : `"${itemName}" removed from favorites`,
                         'success'
                     );
@@ -1242,8 +1252,11 @@
                         );
                     } else {
                         // Save room data
-                        console.log('Saving room data:', JSON.stringify(roomData, null, 2));
-                        
+                        console.log(
+                            'Saving room data:',
+                            JSON.stringify(roomData, null, 2)
+                        );
+
                         const response = await fetch(
                             `/api/save-room/${currentRoom}`,
                             {

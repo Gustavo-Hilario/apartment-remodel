@@ -22,22 +22,22 @@ async function migrateAddProductFields() {
             console.log(`   Items in room: ${room.items.length}`);
 
             // Update each item to include the new fields if they don't exist
-            const updatedItems = room.items.map(item => ({
+            const updatedItems = room.items.map((item) => ({
                 ...item,
                 favorite: item.favorite !== undefined ? item.favorite : false,
                 imageUrl: item.imageUrl || '',
                 links: item.links || [],
-                notes: item.notes || ''
+                notes: item.notes || '',
             }));
 
             // Update the room with the new items
             const result = await roomsCollection.updateOne(
                 { _id: room._id },
-                { 
-                    $set: { 
+                {
+                    $set: {
                         items: updatedItems,
-                        updated_at: new Date()
-                    } 
+                        updated_at: new Date(),
+                    },
                 }
             );
 

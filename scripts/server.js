@@ -25,7 +25,9 @@ app.use(express.static(path.join(__dirname, '..')));
 // Get all rooms overview
 app.get('/api/rooms', async (req, res) => {
     try {
-        const rooms = await Room.find({}).select('name slug budget actual_spent progress_percent completed_items total_items status');
+        const rooms = await Room.find({}).select(
+            'name slug budget actual_spent progress_percent completed_items total_items status'
+        );
         res.json({ success: true, rooms });
     } catch (error) {
         console.error('Error loading rooms:', error);
@@ -141,14 +143,16 @@ app.post('/api/save-room/:roomName', async (req, res) => {
         ).length;
 
         room.actual_spent = totalActual;
-        room.progress_percent = totalBudget > 0 ? (totalActual / totalBudget) * 100 : 0;
+        room.progress_percent =
+            totalBudget > 0 ? (totalActual / totalBudget) * 100 : 0;
         room.completed_items = completedItems;
         room.total_items = room.items.length;
-        room.status = completedItems === room.items.length && room.items.length > 0
-            ? 'Completed'
-            : completedItems > 0
-            ? 'In Progress'
-            : 'Not Started';
+        room.status =
+            completedItems === room.items.length && room.items.length > 0
+                ? 'Completed'
+                : completedItems > 0
+                ? 'In Progress'
+                : 'Not Started';
 
         // Save using Mongoose
         await room.save();
@@ -219,10 +223,10 @@ app.get('/api/load-expenses', async (req, res) => {
             description: exp.description,
             amount: exp.amount,
             category: exp.category,
-            date: exp.date 
-                ? (exp.date instanceof Date 
-                    ? exp.date.toISOString().split('T')[0] 
-                    : exp.date.split('T')[0])
+            date: exp.date
+                ? exp.date instanceof Date
+                    ? exp.date.toISOString().split('T')[0]
+                    : exp.date.split('T')[0]
                 : '',
             room: exp.room,
             roomCategory: exp.roomCategory,
@@ -259,7 +263,7 @@ app.get('/api/expenses-summary', async (req, res) => {
             },
             { $sort: { total: -1 } },
         ]);
-        
+
         res.json({ success: true, summary });
     } catch (error) {
         console.error('Error getting expenses summary:', error);
@@ -282,10 +286,7 @@ app.post('/api/save-expenses', async (req, res) => {
         // Get existing expenses to detect changes
         const existing = await Expense.find();
         const existingMap = new Map(
-            existing.map((e) => [
-                `${e.description}|${e.category}|${e.room}`,
-                e,
-            ])
+            existing.map((e) => [`${e.description}|${e.category}|${e.room}`, e])
         );
 
         // Track what to delete
@@ -376,10 +377,7 @@ app.post('/api/save-expenses', async (req, res) => {
                 }
             }
             // If it was a room-specific expense, remove from that room only
-            else if (
-                deletedExpense.room &&
-                deletedExpense.room !== 'General'
-            ) {
+            else if (deletedExpense.room && deletedExpense.room !== 'General') {
                 const room = await Room.findOne({ name: deletedExpense.room });
                 if (room) {
                     const originalLength = room.items.length;
@@ -556,13 +554,17 @@ app.post('/api/save-expenses', async (req, res) => {
 async function startServer() {
     try {
         await connectDB();
-        
+
         app.listen(port, () => {
             console.log(`\n🚀 Server running on http://localhost:${port}`);
-            console.log(`📊 Using MongoDB with Mongoose (apartment_remodel database)`);
+            console.log(
+                `📊 Using MongoDB with Mongoose (apartment_remodel database)`
+            );
             console.log(`\n📍 Available endpoints:`);
             console.log(`   GET  /api/rooms - Get all rooms overview`);
-            console.log(`   GET  /api/load-room/:roomName - Load specific room`);
+            console.log(
+                `   GET  /api/load-room/:roomName - Load specific room`
+            );
             console.log(`   POST /api/save-room/:roomName - Save room data`);
             console.log(`   GET  /api/get-all-categories - Get all categories`);
             console.log(`   GET  /api/totals - Get project totals`);
