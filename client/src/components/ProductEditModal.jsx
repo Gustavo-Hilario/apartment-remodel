@@ -74,10 +74,10 @@ export default function ProductEditModal({
         category: product.category || 'Products',
         quantity: product.quantity || 1,
         unit: product.unit || 'unit',
-        budget_price: product.budgetRate || 0,
-        actual_price: product.actualRate || 0,
+        budget_price: product.budgetRate || product.budget_price || 0,
+        actual_price: product.actualRate || product.actual_price || 0,
         status: product.status || 'Planning',
-        favorite: product.favorite || false,
+        favorite: product.favorite || product.isFavorite || false,
         room: product.room || '',
         notes: product.notes || '',
         images: formattedImages
