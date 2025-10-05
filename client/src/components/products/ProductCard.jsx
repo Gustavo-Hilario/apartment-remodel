@@ -12,7 +12,7 @@ import Button from '../ui/Button';
 import { formatCurrency } from '@/lib/currency';
 import './ProductCard.css';
 
-export default function ProductCard({ product, onEdit, onDelete }) {
+export default function ProductCard({ product, onEdit, onQuickSave, onDelete }) {
   // Handle both new images array and legacy imageUrl field for initial state
   const initialIndex = (() => {
     if (product.images && product.images.length > 0) {
@@ -75,6 +75,21 @@ export default function ProductCard({ product, onEdit, onDelete }) {
     }
   };
 
+  const handleToggleFavorite = (e) => {
+    e.stopPropagation();
+    if (onQuickSave) {
+      const currentFavoriteStatus = product.isFavorite || product.favorite;
+      const updatedProduct = {
+        ...product,
+        isFavorite: !currentFavoriteStatus,
+        favorite: !currentFavoriteStatus // Backward compatibility
+      };
+      onQuickSave(updatedProduct);
+    }
+  };
+
+  const isFavorite = product.isFavorite || product.favorite;
+
   return (
     <Card className="product-card" hoverable>
       {/* Image Section */}
@@ -125,10 +140,19 @@ export default function ProductCard({ product, onEdit, onDelete }) {
       {/* Content Section */}
       <div className="product-content">
         <div className="product-header">
-          <h3 className="product-name">{product.description || 'Unnamed Product'}</h3>
-          {product.category && (
-            <span className="product-category">{product.category}</span>
-          )}
+          <div className="product-header-main">
+            <h3 className="product-name">{product.description || 'Unnamed Product'}</h3>
+            {product.category && (
+              <span className="product-category">{product.category}</span>
+            )}
+          </div>
+          <button 
+            className={`favorite-toggle ${isFavorite ? 'is-favorite' : ''}`}
+            onClick={handleToggleFavorite}
+            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {isFavorite ? '⭐' : '☆'}
+          </button>
         </div>
 
         <div className="product-details">
