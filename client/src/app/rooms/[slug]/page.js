@@ -18,6 +18,8 @@ export default function RoomEditorPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [sortBy, setSortBy] = useState('original');
+  const [sortDirection, setSortDirection] = useState('asc');
 
   const loadRoom = async () => {
     try {
@@ -42,13 +44,13 @@ export default function RoomEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomSlug]);
 
-  const handleItemChange = (index, field, value) => {
+  const handleItemChange = (originalIndex, field, value) => {
     const updatedItems = [...items];
-    updatedItems[index][field] = value;
+    updatedItems[originalIndex][field] = value;
 
     // Recalculate subtotal when quantity or prices change
     if (['quantity', 'budgetRate', 'actualRate'].includes(field)) {
-      const item = updatedItems[index];
+      const item = updatedItems[originalIndex];
       item.subtotal = (item.quantity || 0) * (item.budgetRate || 0);
     }
 
@@ -73,12 +75,72 @@ export default function RoomEditorPage() {
     setItems([...items, newItem]);
   };
 
-  const deleteItem = (index) => {
+  const deleteItem = (originalIndex) => {
     if (confirm('Delete this item?')) {
-      const updatedItems = items.filter((_, i) => i !== index);
+      const updatedItems = items.filter((_, i) => i !== originalIndex);
       setItems(updatedItems);
     }
   };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, default to ascending
+      setSortBy(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortedItems = () => {
+    // Add original index to each item for editing
+    const itemsWithIndex = items.map((item, index) => ({
+      ...item,
+      originalIndex: index
+    }));
+
+    if (sortBy === 'original') {
+      return itemsWithIndex;
+    }
+
+    const sorted = [...itemsWithIndex].sort((a, b) => {
+      let aVal, bVal;
+
+      switch (sortBy) {
+        case 'category':
+          aVal = (a.category || '').toLowerCase();
+          bVal = (b.category || '').toLowerCase();
+          break;
+        case 'budgetRate':
+          aVal = a.budgetRate || 0;
+          bVal = b.budgetRate || 0;
+          break;
+        case 'actualRate':
+          aVal = a.actualRate || 0;
+          bVal = b.actualRate || 0;
+          break;
+        case 'subtotal':
+          aVal = a.subtotal || 0;
+          bVal = b.subtotal || 0;
+          break;
+        case 'status':
+          aVal = (a.status || '').toLowerCase();
+          bVal = (b.status || '').toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return sorted;
+  };
+
+  const sortedItems = getSortedItems();
 
   const saveRoom = async () => {
     try {
@@ -90,7 +152,6 @@ export default function RoomEditorPage() {
       };
       
       await roomsAPI.save(roomSlug, updatedRoomData);
-      alert('Room saved successfully!');
       loadRoom(); // Reload to get updated totals
     } catch (err) {
       alert('Error saving room: ' + err.message);
@@ -214,24 +275,54 @@ export default function RoomEditorPage() {
                   <th style={{ width: '30px' }}>#</th>
                   <th style={{ width: '40px' }}>⭐</th>
                   <th style={{ width: '200px' }}>Description</th>
-                  <th style={{ width: '120px' }}>Category</th>
+                  <th 
+                    style={{ width: '120px', cursor: 'pointer' }}
+                    onClick={() => handleSort('category')}
+                    className="sortable"
+                  >
+                    Category {sortBy === 'category' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
                   <th style={{ width: '80px' }}>Qty</th>
                   <th style={{ width: '80px' }}>Unit</th>
-                  <th style={{ width: '100px' }}>Budget Rate</th>
-                  <th style={{ width: '100px' }}>Actual Rate</th>
-                  <th style={{ width: '100px' }}>Subtotal</th>
-                  <th style={{ width: '100px' }}>Status</th>
+                  <th 
+                    style={{ width: '100px', cursor: 'pointer' }}
+                    onClick={() => handleSort('budgetRate')}
+                    className="sortable"
+                  >
+                    Budget Price {sortBy === 'budgetRate' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th 
+                    style={{ width: '100px', cursor: 'pointer' }}
+                    onClick={() => handleSort('actualRate')}
+                    className="sortable"
+                  >
+                    Actual Price {sortBy === 'actualRate' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th 
+                    style={{ width: '100px', cursor: 'pointer' }}
+                    onClick={() => handleSort('subtotal')}
+                    className="sortable"
+                  >
+                    Subtotal {sortBy === 'subtotal' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th 
+                    style={{ width: '100px', cursor: 'pointer' }}
+                    onClick={() => handleSort('status')}
+                    className="sortable"
+                  >
+                    Status {sortBy === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
                   <th style={{ width: '80px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, index) => (
-                  <tr key={index}>
-                    <td>{index + 1}</td>
+                {sortedItems.map((item, displayIndex) => (
+                  <tr key={item.originalIndex}>
+                    <td>{displayIndex + 1}</td>
                     <td className="favorite-cell">
                       <button
                         className={`favorite-btn ${item.favorite ? 'active' : ''}`}
-                        onClick={() => handleItemChange(index, 'favorite', !item.favorite)}
+                        onClick={() => handleItemChange(item.originalIndex, 'favorite', !item.favorite)}
                         title="Mark as favorite"
                       >
                         ⭐
@@ -241,14 +332,14 @@ export default function RoomEditorPage() {
                       <input
                         type="text"
                         value={item.description || ''}
-                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                        onChange={(e) => handleItemChange(item.originalIndex, 'description', e.target.value)}
                         placeholder="Item description"
                       />
                     </td>
                     <td>
                       <select
                         value={item.category || 'Other'}
-                        onChange={(e) => handleItemChange(index, 'category', e.target.value)}
+                        onChange={(e) => handleItemChange(item.originalIndex, 'category', e.target.value)}
                       >
                         <option value="Plumbing">Plumbing</option>
                         <option value="Electrical">Electrical</option>
@@ -265,7 +356,7 @@ export default function RoomEditorPage() {
                       <input
                         type="number"
                         value={item.quantity || 0}
-                        onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleItemChange(item.originalIndex, 'quantity', parseFloat(e.target.value) || 0)}
                         min="0"
                         step="0.01"
                       />
@@ -274,7 +365,7 @@ export default function RoomEditorPage() {
                       <input
                         type="text"
                         value={item.unit || 'unit'}
-                        onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                        onChange={(e) => handleItemChange(item.originalIndex, 'unit', e.target.value)}
                         placeholder="unit"
                       />
                     </td>
@@ -282,7 +373,7 @@ export default function RoomEditorPage() {
                       <input
                         type="number"
                         value={item.budgetRate || 0}
-                        onChange={(e) => handleItemChange(index, 'budgetRate', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleItemChange(item.originalIndex, 'budgetRate', parseFloat(e.target.value) || 0)}
                         min="0"
                         step="0.01"
                       />
@@ -291,7 +382,7 @@ export default function RoomEditorPage() {
                       <input
                         type="number"
                         value={item.actualRate || 0}
-                        onChange={(e) => handleItemChange(index, 'actualRate', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleItemChange(item.originalIndex, 'actualRate', parseFloat(e.target.value) || 0)}
                         min="0"
                         step="0.01"
                       />
@@ -302,7 +393,7 @@ export default function RoomEditorPage() {
                     <td>
                       <select
                         value={item.status || 'Pending'}
-                        onChange={(e) => handleItemChange(index, 'status', e.target.value)}
+                        onChange={(e) => handleItemChange(item.originalIndex, 'status', e.target.value)}
                       >
                         <option value="Planning">Planning</option>
                         <option value="Pending">Pending</option>
@@ -313,7 +404,7 @@ export default function RoomEditorPage() {
                     <td>
                       <button
                         className="delete-btn"
-                        onClick={() => deleteItem(index)}
+                        onClick={() => deleteItem(item.originalIndex)}
                         title="Delete item"
                       >
                         🗑️
@@ -471,6 +562,19 @@ export default function RoomEditorPage() {
           font-size: 0.9rem;
           font-weight: 600;
           white-space: nowrap;
+        }
+
+        .items-table th.sortable {
+          user-select: none;
+          transition: background 0.2s;
+        }
+
+        .items-table th.sortable:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .items-table th.sortable:active {
+          background: rgba(255, 255, 255, 0.2);
         }
 
         .items-table td {
