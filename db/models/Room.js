@@ -42,6 +42,15 @@ const itemSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    images: {
+        type: [{
+            url: String,
+            isThumbnail: { type: Boolean, default: false },
+            uploadedAt: { type: Date, default: Date.now }
+        }],
+        default: [] // Ensure images is always an array
+    },
+    // Legacy fields (keep for backward compatibility)
     imageUrl: {
         type: String,
         default: ''
