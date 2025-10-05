@@ -341,12 +341,15 @@ export default function RoomEditorPage() {
                         value={item.category || 'Other'}
                         onChange={(e) => handleItemChange(item.originalIndex, 'category', e.target.value)}
                       >
+                        <option value="Services">Services</option>
+                        <option value="Labor">Labor</option>
+                        <option value="Materials">Materials</option>
+                        <option value="Products">Products</option>
                         <option value="Plumbing">Plumbing</option>
                         <option value="Electrical">Electrical</option>
                         <option value="Flooring">Flooring</option>
                         <option value="Painting">Painting</option>
                         <option value="Carpentry">Carpentry</option>
-                        <option value="Products">Products</option>
                         <option value="Furniture">Furniture</option>
                         <option value="Fixtures">Fixtures</option>
                         <option value="Other">Other</option>
