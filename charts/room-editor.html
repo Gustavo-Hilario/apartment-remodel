@@ -698,15 +698,16 @@
                 const table = document.querySelector('.items-table table');
                 const thead = table.querySelector('thead tr');
                 thead.innerHTML = `
+                <th style="width: 50px;">⭐</th>
                 <th>Description</th>
                 <th>Category</th>
-                <th>Qty</th>
-                <th>Unit</th>
+                <th style="width: 60px;">Qty</th>
+                <th style="width: 80px;">Unit</th>
                 <th>Budget Price</th>
                 <th>Actual Price</th>
                 <th>Subtotal</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th style="width: 100px;">Actions</th>
             `;
 
                 // Show sort controls for room views
@@ -764,7 +765,7 @@
                 <th>Date</th>
                 <th>Room</th>
                 <th>Room Category</th>
-                <th>Actions</th>
+                <th style="width: 100px;">Actions</th>
             `;
 
                 // Update items table
