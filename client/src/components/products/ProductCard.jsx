@@ -13,12 +13,33 @@ import { formatCurrency } from '@/lib/currency';
 import './ProductCard.css';
 
 export default function ProductCard({ product, onEdit, onDelete }) {
-  const [selectedImageIndex, setSelectedImageIndex] = useState(
-    product.images?.findIndex(img => img.showImage) || 0
-  );
+  // Handle both new images array and legacy imageUrl field for initial state
+  const initialIndex = (() => {
+    if (product.images && product.images.length > 0) {
+      return product.images.findIndex(img => img.showImage) || 0;
+    }
+    return 0; // For legacy images, always start with index 0
+  })();
 
-  const currentImage = product.images?.[selectedImageIndex];
-  const hasImages = product.images && product.images.length > 0;
+  const [selectedImageIndex, setSelectedImageIndex] = useState(initialIndex);
+
+  // Handle both new images array and legacy imageUrl field
+  let displayImages = [];
+  if (product.images && product.images.length > 0) {
+    displayImages = product.images;
+  } else if (product.imageUrl) {
+    // Convert legacy imageUrl to new format for display
+    displayImages = [{
+      id: 'legacy',
+      name: product.description || 'Product Image',
+      url: product.imageUrl,
+      data: product.imageUrl,
+      showImage: true
+    }];
+  }
+
+  const currentImage = displayImages[selectedImageIndex];
+  const hasImages = displayImages.length > 0;
   const legacyImage = product.imageUrl; // Fallback for old format
   
   // Support both field naming conventions
@@ -34,7 +55,7 @@ export default function ProductCard({ product, onEdit, onDelete }) {
     e.stopPropagation();
     if (onEdit) {
       // Update the product's images to set the new primary
-      const updatedImages = product.images.map((img, idx) => ({
+      const updatedImages = displayImages.map((img, idx) => ({
         ...img,
         showImage: idx === imageIndex
       }));
@@ -69,11 +90,11 @@ export default function ProductCard({ product, onEdit, onDelete }) {
             </div>
           ) : null}
           
-          {hasImages && product.images.length > 1 && (
+          {hasImages && displayImages.length > 1 && (
             <div className="product-image-thumbnails">
-              {product.images.map((img, index) => (
+              {displayImages.map((img, index) => (
                 <button
-                  key={index}
+                  key={img.id || index}
                   className={`thumbnail ${index === selectedImageIndex ? 'active' : ''}`}
                   onClick={() => handleImageSelect(index)}
                 >
