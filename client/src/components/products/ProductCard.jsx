@@ -43,7 +43,7 @@ export default function ProductCard({ product, onEdit, onDelete }) {
   const legacyImage = product.imageUrl; // Fallback for old format
   
   // Support both field naming conventions
-  const unitPrice = product.unitPrice || product.actual_price || product.budget_price || 0;
+  const unitPrice = product.unitPrice || product.actualRate || product.budgetRate || 0;
   const quantity = product.quantity || 0;
   const total = quantity * unitPrice;
 
