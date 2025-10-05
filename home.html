@@ -131,6 +131,17 @@
             color: #6c757d;
         }
 
+        .loading {
+            color: #adb5bd;
+            font-style: italic;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
         .navigation-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -300,23 +311,23 @@
             <div class="project-stats">
                 <div class="stat-card">
                     <h3>Total Budget</h3>
-                    <div class="value">S/ 170,000</div>
+                    <div class="value" id="total-budget">S/ <span class="loading">...</span></div>
                     <div class="label">Project Value</div>
                 </div>
                 <div class="stat-card">
-                    <h3>Progress</h3>
-                    <div class="value">41.2%</div>
-                    <div class="label">Completion</div>
+                    <h3>Total Spent</h3>
+                    <div class="value" id="total-actual">S/ <span class="loading">...</span></div>
+                    <div class="label">Actual Cost</div>
                 </div>
                 <div class="stat-card">
                     <h3>Rooms</h3>
-                    <div class="value">2/9</div>
+                    <div class="value" id="rooms-completed"><span class="loading">...</span></div>
                     <div class="label">Completed</div>
                 </div>
                 <div class="stat-card">
-                    <h3>Remaining</h3>
-                    <div class="value">S/ 99,933</div>
-                    <div class="label">Budget Left</div>
+                    <h3>Difference</h3>
+                    <div class="value" id="budget-difference">S/ <span class="loading">...</span></div>
+                    <div class="label">Over/Under Budget</div>
                 </div>
             </div>
 
@@ -407,10 +418,43 @@
             alert('💻 Useful Commands:\n\n• npm start - Start local server\n• npm run update-all - Update all tables\n• npm run generate-excel - Create Excel report\n• npm run aggregate - Manual data sync\n\nFor detailed instructions, check README.md');
         }
 
-        // Auto-refresh stats (in a real app, this would fetch from API)
-        function loadStats() {
-            // This could fetch real-time data from your aggregated files
-            console.log('Stats loaded - ready for real-time updates');
+        // Load real-time stats from API
+        async function loadStats() {
+            try {
+                // Fetch rooms data
+                const roomsResponse = await fetch('http://localhost:8000/api/rooms');
+                const roomsData = await roomsResponse.json();
+
+                if (roomsData.success && roomsData.rooms) {
+                    const rooms = roomsData.rooms;
+                    
+                    // Calculate totals
+                    const totalBudget = rooms.reduce((sum, room) => sum + (room.budget || 0), 0);
+                    const totalActual = rooms.reduce((sum, room) => sum + (room.actual_spent || 0), 0);
+                    const difference = totalActual - totalBudget;
+                    const completedRooms = rooms.filter(r => r.status === 'Completed').length;
+                    const totalRooms = rooms.length;
+
+                    // Update UI
+                    document.getElementById('total-budget').innerHTML = `S/ ${totalBudget.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    document.getElementById('total-actual').innerHTML = `S/ ${totalActual.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    document.getElementById('rooms-completed').textContent = `${completedRooms}/${totalRooms}`;
+                    
+                    const diffElement = document.getElementById('budget-difference');
+                    const diffSign = difference >= 0 ? '+' : '';
+                    const diffColor = difference > 0 ? '#e74c3c' : '#27ae60';
+                    diffElement.innerHTML = `S/ ${diffSign}${difference.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    diffElement.style.color = diffColor;
+
+                    console.log('✅ Stats loaded from API');
+                } else {
+                    console.error('Failed to load rooms data');
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                // Show error state
+                document.querySelectorAll('.loading').forEach(el => el.textContent = 'Error');
+            }
         }
 
         document.addEventListener('DOMContentLoaded', loadStats);

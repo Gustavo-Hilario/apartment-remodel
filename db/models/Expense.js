@@ -17,8 +17,8 @@ const expenseSchema = new mongoose.Schema({
         default: 'Other'
     },
     date: {
-        type: String,
-        default: ''
+        type: Date,
+        default: Date.now
     },
     room: {
         type: String,

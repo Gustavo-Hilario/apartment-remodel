@@ -218,7 +218,11 @@ app.get('/api/load-expenses', async (req, res) => {
             description: exp.description,
             amount: exp.amount,
             category: exp.category,
-            date: exp.date ? exp.date.toISOString().split('T')[0] : '',
+            date: exp.date 
+                ? (exp.date instanceof Date 
+                    ? exp.date.toISOString().split('T')[0] 
+                    : exp.date.split('T')[0])
+                : '',
             room: exp.room,
             roomCategory: exp.roomCategory,
         }));
