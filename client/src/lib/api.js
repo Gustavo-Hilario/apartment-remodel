@@ -111,5 +111,9 @@ export const totalsAPI = {
  * Categories API
  */
 export const categoriesAPI = {
-    getAll: () => fetchAPI('/get-all-categories'),
+    getAll: async () => {
+        const result = await fetchAPI('/get-all-categories');
+        // API now returns array directly
+        return Array.isArray(result) ? result : [];
+    },
 };

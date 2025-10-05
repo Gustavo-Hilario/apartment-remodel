@@ -29,9 +29,11 @@ export default function BudgetPage() {
         categoriesAPI.getAll(),
       ]);
       setTotals(totalsData);
-      setCategories(categoriesData);
+      // Ensure categories is always an array
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (err) {
       console.error(err);
+      setCategories([]); // Set empty array on error
     } finally {
       setLoading(false);
     }

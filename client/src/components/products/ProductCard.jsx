@@ -19,6 +19,12 @@ export default function ProductCard({ product, onEdit, onDelete }) {
 
   const currentImage = product.images?.[selectedImageIndex];
   const hasImages = product.images && product.images.length > 0;
+  const legacyImage = product.imageUrl; // Fallback for old format
+  
+  // Support both field naming conventions
+  const unitPrice = product.unitPrice || product.actual_price || product.budget_price || 0;
+  const quantity = product.quantity || 0;
+  const total = quantity * unitPrice;
 
   const handleImageSelect = (index) => {
     setSelectedImageIndex(index);
@@ -27,18 +33,25 @@ export default function ProductCard({ product, onEdit, onDelete }) {
   return (
     <Card className="product-card" hoverable>
       {/* Image Section */}
-      {hasImages && (
+      {(hasImages || legacyImage) && (
         <div className="product-image-section">
-          {currentImage && (
+          {hasImages && currentImage ? (
             <div className="product-image-main">
               <img 
-                src={currentImage.data} 
+                src={currentImage.url || currentImage.data || currentImage} 
                 alt={product.description || 'Product'} 
               />
             </div>
-          )}
+          ) : legacyImage ? (
+            <div className="product-image-main">
+              <img 
+                src={legacyImage} 
+                alt={product.description || 'Product'} 
+              />
+            </div>
+          ) : null}
           
-          {product.images.length > 1 && (
+          {hasImages && product.images.length > 1 && (
             <div className="product-image-thumbnails">
               {product.images.map((img, index) => (
                 <button
@@ -46,7 +59,7 @@ export default function ProductCard({ product, onEdit, onDelete }) {
                   className={`thumbnail ${index === selectedImageIndex ? 'active' : ''}`}
                   onClick={() => handleImageSelect(index)}
                 >
-                  <img src={img.data} alt={`Thumbnail ${index + 1}`} />
+                  <img src={img.url || img.data || img} alt={`Thumbnail ${index + 1}`} />
                   {img.showImage && <span className="thumbnail-heart">❤️</span>}
                 </button>
               ))}
@@ -67,23 +80,23 @@ export default function ProductCard({ product, onEdit, onDelete }) {
         <div className="product-details">
           <div className="product-detail-row">
             <span className="detail-label">Room:</span>
-            <span className="detail-value">{product.room || 'N/A'}</span>
+            <span className="detail-value">{product.roomDisplayName || product.room || 'N/A'}</span>
           </div>
           
           <div className="product-detail-row">
             <span className="detail-label">Quantity:</span>
-            <span className="detail-value">{product.quantity || 0}</span>
+            <span className="detail-value">{quantity} {product.unit || 'units'}</span>
           </div>
 
           <div className="product-detail-row">
             <span className="detail-label">Unit Price:</span>
-            <span className="detail-value">{formatCurrency(product.unitPrice || 0)}</span>
+            <span className="detail-value">{formatCurrency(unitPrice)}</span>
           </div>
 
           <div className="product-detail-row highlight">
             <span className="detail-label">Total:</span>
             <span className="detail-value total">
-              {formatCurrency((product.quantity || 0) * (product.unitPrice || 0))}
+              {formatCurrency(total)}
             </span>
           </div>
         </div>

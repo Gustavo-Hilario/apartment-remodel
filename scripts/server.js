@@ -178,16 +178,37 @@ app.post('/api/save-room/:roomName', async (req, res) => {
 // Get all unique categories across all rooms
 app.get('/api/get-all-categories', async (req, res) => {
     try {
+        // Aggregate to get category totals and counts
         const categories = await Room.aggregate([
             { $unwind: '$items' },
-            { $group: { _id: '$items.category' } },
-            { $sort: { _id: 1 } },
-            { $project: { _id: 0, category: '$_id' } },
+            {
+                $group: {
+                    _id: '$items.category',
+                    count: { $sum: 1 },
+                    budgetTotal: { $sum: '$items.subtotal' },
+                    actualTotal: {
+                        $sum: {
+                            $multiply: [
+                                '$items.quantity',
+                                '$items.actual_price',
+                            ],
+                        },
+                    },
+                },
+            },
+            { $sort: { budgetTotal: -1 } },
+            {
+                $project: {
+                    _id: 0,
+                    category: '$_id',
+                    count: 1,
+                    total: '$budgetTotal',
+                    actualTotal: '$actualTotal',
+                },
+            },
         ]);
 
-        const categoryList = categories.map((c) => c.category).filter(Boolean);
-
-        res.json({ success: true, categories: categoryList });
+        res.json(categories);
     } catch (error) {
         console.error('Error getting categories:', error);
         res.status(500).json({

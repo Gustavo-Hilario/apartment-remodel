@@ -27,9 +27,11 @@ export default function ProductsPage() {
     try {
       setLoading(true);
       const data = await productsAPI.getAll();
-      setProducts(data);
+      // Ensure products is always an array
+      setProducts(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message);
+      setProducts([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
