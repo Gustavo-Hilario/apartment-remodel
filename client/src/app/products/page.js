@@ -93,7 +93,7 @@ export default function ProductsPage() {
               ) : (
                 products.map((product) => (
                   <ProductCard
-                    key={product._id}
+                    key={product.uniqueId || product._id || `${product.room}-${product.originalIndex}`}
                     product={product}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
