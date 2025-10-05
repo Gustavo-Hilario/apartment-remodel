@@ -1,0 +1,199 @@
+/**
+ * Image Upload Component
+ *
+ * Drag & drop image upload with gallery management
+ */
+
+'use client';
+
+import { useState, useRef } from 'react';
+import { fileToBase64, isImageFile, isFileTooLarge } from '@/lib/image';
+import Button from './ui/Button';
+import './ImageUpload.css';
+
+export default function ImageUpload({
+  images = [],
+  onImagesChange,
+  maxImages = 5,
+  maxSizeMB = 2
+}) {
+  const [dragActive, setDragActive] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    await processFiles(files);
+  };
+
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files);
+    await processFiles(files);
+    // Reset input value to allow selecting the same file again
+    e.target.value = '';
+  };
+
+  const processFiles = async (files) => {
+    setUploading(true);
+    const newImages = [];
+
+    for (const file of files) {
+      if (!isImageFile(file)) {
+        alert(`${file.name} is not a valid image file.`);
+        continue;
+      }
+
+      if (isFileTooLarge(file, maxSizeMB)) {
+        alert(`${file.name} is too large. Maximum size is ${maxSizeMB}MB.`);
+        continue;
+      }
+
+      if (images.length + newImages.length >= maxImages) {
+        alert(`Maximum ${maxImages} images allowed.`);
+        break;
+      }
+
+      try {
+        const base64 = await fileToBase64(file);
+        newImages.push({
+          id: Date.now() + Math.random(),
+          name: file.name,
+          data: base64,
+          url: base64,
+          showImage: images.length === 0 && newImages.length === 0, // First image is favorite by default
+          size: file.size
+        });
+      } catch (error) {
+        console.error('Error processing file:', file.name, error);
+        alert(`Failed to process ${file.name}`);
+      }
+    }
+
+    if (newImages.length > 0) {
+      onImagesChange([...images, ...newImages]);
+    }
+
+    setUploading(false);
+  };
+
+  const removeImage = (imageId) => {
+    const updatedImages = images.filter(img => img.id !== imageId);
+
+    // If we removed the favorite image, make the first remaining image favorite
+    if (updatedImages.length > 0 && !updatedImages.some(img => img.showImage)) {
+      updatedImages[0].showImage = true;
+    }
+
+    onImagesChange(updatedImages);
+  };
+
+  const setFavoriteImage = (imageId) => {
+    const updatedImages = images.map(img => ({
+      ...img,
+      showImage: img.id === imageId
+    }));
+    onImagesChange(updatedImages);
+  };
+
+  const openFileDialog = () => {
+    fileInputRef.current?.click();
+  };
+
+  return (
+    <div className="image-upload">
+      <div className="upload-area-container">
+        <div
+          className={`upload-area ${dragActive ? 'drag-active' : ''} ${uploading ? 'uploading' : ''}`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          onClick={openFileDialog}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleFileSelect}
+            style={{ display: 'none' }}
+          />
+
+          {uploading ? (
+            <div className="upload-message">
+              <div className="upload-spinner"></div>
+              <p>Processing images...</p>
+            </div>
+          ) : (
+            <div className="upload-message">
+              <div className="upload-icon">📷</div>
+              <p><strong>Drop images here</strong> or click to browse</p>
+              <p className="upload-hint">
+                Max {maxImages} images, {maxSizeMB}MB each
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {images.length > 0 && (
+        <div className="image-gallery">
+          <h4>Product Gallery ({images.length}/{maxImages})</h4>
+          <div className="image-grid">
+            {images.map((image, index) => (
+              <div key={image.id} className="image-item">
+                <div className="image-preview">
+                  <img
+                    src={image.url || image.data}
+                    alt={image.name || `Image ${index + 1}`}
+                  />
+
+                  <div className="image-overlay">
+                    <button
+                      type="button"
+                      className={`favorite-btn ${image.showImage ? 'active' : ''}`}
+                      onClick={() => setFavoriteImage(image.id)}
+                      title={image.showImage ? 'Favorite image' : 'Set as favorite'}
+                    >
+                      ❤️
+                    </button>
+
+                    <button
+                      type="button"
+                      className="remove-btn"
+                      onClick={() => removeImage(image.id)}
+                      title="Remove image"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+
+                <div className="image-info">
+                  <p className="image-name">{image.name || `Image ${index + 1}`}</p>
+                  {image.showImage && (
+                    <span className="favorite-badge">⭐ Favorite</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

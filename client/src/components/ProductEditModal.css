@@ -102,6 +102,18 @@
   color: #666666;
 }
 
+.form-section {
+  margin: 20px 0;
+}
+
+.section-label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #333333;
+  font-size: 14px;
+}
+
 .product-modal-footer {
   display: flex;
   gap: 12px;
@@ -123,7 +135,8 @@
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
-  .form-group label {
+  .form-group label,
+  .section-label {
     color: #ffffff;
   }
 

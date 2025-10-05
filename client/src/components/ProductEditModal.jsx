@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
+import ImageUpload from './ImageUpload';
 import './ProductEditModal.css';
 
 const CATEGORIES = ['Products', 'Materials', 'Services'];
@@ -32,7 +33,8 @@ export default function ProductEditModal({
     status: 'Planning',
     favorite: false,
     room: '',
-    notes: ''
+    notes: '',
+    images: []
   });
 
   const [loading, setLoading] = useState(false);
@@ -41,6 +43,17 @@ export default function ProductEditModal({
   // Initialize form data when product changes
   useEffect(() => {
     if (product) {
+      // Convert existing images to the new format with IDs if needed
+      const existingImages = product.images || [];
+      const formattedImages = existingImages.map((img, index) => ({
+        id: img.id || `existing-${index}`,
+        name: img.name || `Image ${index + 1}`,
+        data: img.data || img.url || img,
+        url: img.url || img.data || img,
+        showImage: img.showImage || false,
+        size: img.size || 0
+      }));
+
       setFormData({
         description: product.description || '',
         category: product.category || 'Products',
@@ -51,7 +64,8 @@ export default function ProductEditModal({
         status: product.status || 'Planning',
         favorite: product.favorite || false,
         room: product.room || '',
-        notes: product.notes || ''
+        notes: product.notes || '',
+        images: formattedImages
       });
     } else {
       // Reset for new product
@@ -65,7 +79,8 @@ export default function ProductEditModal({
         status: 'Planning',
         favorite: false,
         room: availableRooms[0]?.slug || '',
-        notes: ''
+        notes: '',
+        images: []
       });
     }
     setErrors({});
@@ -84,6 +99,13 @@ export default function ProductEditModal({
         [field]: null
       }));
     }
+  };
+
+  const handleImagesChange = (images) => {
+    setFormData(prev => ({
+      ...prev,
+      images: images
+    }));
   };
 
   const validateForm = () => {
@@ -298,6 +320,16 @@ export default function ProductEditModal({
               rows="3"
             />
           </div>
+        </div>
+
+        <div className="form-section">
+          <label className="section-label">Product Images</label>
+          <ImageUpload
+            images={formData.images}
+            onImagesChange={handleImagesChange}
+            maxImages={5}
+            maxSizeMB={2}
+          />
         </div>
 
         <div className="calculated-fields">
