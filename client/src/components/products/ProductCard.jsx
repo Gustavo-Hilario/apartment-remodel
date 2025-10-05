@@ -56,11 +56,14 @@ export default function ProductCard({ product, onEdit, onDelete }) {
   const handleSetPrimary = (imageIndex, e) => {
     e.stopPropagation();
     if (onEdit) {
-      // Update the product's images to set the new primary
+      const clickedImage = displayImages[imageIndex];
+      const isCurrentlyMain = clickedImage?.isMainImage || clickedImage?.showImage;
+      
+      // Toggle: if clicking on main image, unset it; otherwise set it as main
       const updatedImages = displayImages.map((img, idx) => ({
         ...img,
-        isMainImage: idx === imageIndex,
-        showImage: idx === imageIndex // Backward compatibility
+        isMainImage: isCurrentlyMain ? false : idx === imageIndex,
+        showImage: isCurrentlyMain ? false : idx === imageIndex // Backward compatibility
       }));
 
       const updatedProduct = {

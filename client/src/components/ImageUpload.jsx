@@ -106,10 +106,13 @@ export default function ImageUpload({
   };
 
   const setPrimaryImage = (imageId) => {
+    const clickedImage = images.find(img => img.id === imageId);
+    const isCurrentlyMain = clickedImage?.isMainImage || clickedImage?.showImage;
+    
     const updatedImages = images.map(img => ({
       ...img,
-      isMainImage: img.id === imageId,
-      showImage: img.id === imageId // Backward compatibility
+      isMainImage: isCurrentlyMain ? false : img.id === imageId,
+      showImage: isCurrentlyMain ? false : img.id === imageId // Backward compatibility
     }));
     onImagesChange(updatedImages);
   };
