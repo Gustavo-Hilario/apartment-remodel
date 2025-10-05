@@ -14,6 +14,7 @@ export default function RoomEditorPage() {
 
   const [roomData, setRoomData] = useState(null);
   const [items, setItems] = useState([]);
+  const [roomBudget, setRoomBudget] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -25,6 +26,7 @@ export default function RoomEditorPage() {
       if (data.success && data.roomData) {
         setRoomData(data.roomData);
         setItems(data.roomData.items || []);
+        setRoomBudget(data.roomData.budget || 0);
       }
     } catch (err) {
       setError(err.message);
@@ -83,6 +85,7 @@ export default function RoomEditorPage() {
       setSaving(true);
       const updatedRoomData = {
         ...roomData,
+        budget: roomBudget,
         items: items,
       };
       
@@ -122,7 +125,7 @@ export default function RoomEditorPage() {
 
   const totalBudget = items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
   const totalActual = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.actualRate || 0)), 0);
-  const difference = totalBudget - totalActual;
+  const difference = roomBudget - totalActual;
 
   return (
     <MainLayout>
@@ -154,8 +157,22 @@ export default function RoomEditorPage() {
         <div className="budget-summary">
           <Card>
             <div className="summary-stat">
-              <span className="stat-label">Budget Total</span>
-              <span className="stat-value budget">{formatCurrency(totalBudget)}</span>
+              <span className="stat-label">Room Budget</span>
+              <input
+                type="number"
+                className="budget-input"
+                value={roomBudget}
+                onChange={(e) => setRoomBudget(parseFloat(e.target.value) || 0)}
+                min="0"
+                step="0.01"
+              />
+              <span className="stat-value budget">{formatCurrency(roomBudget)}</span>
+            </div>
+          </Card>
+          <Card>
+            <div className="summary-stat">
+              <span className="stat-label">Expected Total (Items)</span>
+              <span className="stat-value expected">{formatCurrency(totalBudget)}</span>
             </div>
           </Card>
           <Card>
@@ -173,12 +190,6 @@ export default function RoomEditorPage() {
               >
                 {formatCurrency(difference)}
               </span>
-            </div>
-          </Card>
-          <Card>
-            <div className="summary-stat">
-              <span className="stat-label">Items</span>
-              <span className="stat-value items">{items.length}</span>
             </div>
           </Card>
         </div>
@@ -201,6 +212,7 @@ export default function RoomEditorPage() {
               <thead>
                 <tr>
                   <th style={{ width: '30px' }}>#</th>
+                  <th style={{ width: '40px' }}>⭐</th>
                   <th style={{ width: '200px' }}>Description</th>
                   <th style={{ width: '120px' }}>Category</th>
                   <th style={{ width: '80px' }}>Qty</th>
@@ -216,6 +228,15 @@ export default function RoomEditorPage() {
                 {items.map((item, index) => (
                   <tr key={index}>
                     <td>{index + 1}</td>
+                    <td className="favorite-cell">
+                      <button
+                        className={`favorite-btn ${item.favorite ? 'active' : ''}`}
+                        onClick={() => handleItemChange(index, 'favorite', !item.favorite)}
+                        title="Mark as favorite"
+                      >
+                        ⭐
+                      </button>
+                    </td>
                     <td>
                       <input
                         type="text"
@@ -388,8 +409,31 @@ export default function RoomEditorPage() {
           color: #ee0979;
         }
 
+        .stat-value.expected {
+          color: #764ba2;
+        }
+
         .stat-value.items {
           color: #764ba2;
+        }
+
+        .budget-input {
+          width: 100%;
+          max-width: 200px;
+          padding: 8px 12px;
+          margin: 10px auto;
+          border: 2px solid #667eea;
+          border-radius: 6px;
+          font-size: 1.1rem;
+          text-align: center;
+          font-weight: 600;
+          box-sizing: border-box;
+        }
+
+        .budget-input:focus {
+          outline: none;
+          border-color: #764ba2;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
         }
 
         .table-header {
@@ -477,6 +521,33 @@ export default function RoomEditorPage() {
 
         .delete-btn:hover {
           opacity: 1;
+        }
+
+        .favorite-cell {
+          text-align: center;
+          padding: 4px;
+        }
+
+        .favorite-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 1.3rem;
+          padding: 4px;
+          opacity: 0.3;
+          transition: all 0.2s;
+          filter: grayscale(100%);
+        }
+
+        .favorite-btn:hover {
+          opacity: 0.7;
+          filter: grayscale(0%);
+          transform: scale(1.2);
+        }
+
+        .favorite-btn.active {
+          opacity: 1;
+          filter: grayscale(0%);
         }
 
         .bottom-actions {
