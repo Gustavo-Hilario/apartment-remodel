@@ -57,10 +57,23 @@ export default function ProductsPage() {
 
   const handleQuickSave = async (product) => {
     try {
+      // Optimistically update the UI first
+      setProducts(prevProducts => 
+        prevProducts.map(p => {
+          // Match by unique identifier
+          const pId = p.uniqueId || p._id || `${p.room}-${p.originalIndex}`;
+          const productId = product.uniqueId || product._id || `${product.room}-${product.originalIndex}`;
+          
+          return pId === productId ? product : p;
+        })
+      );
+      
+      // Save to backend silently
       await productsAPI.save(product, product);
-      await loadData();
     } catch (err) {
       console.error('Error saving product:', err);
+      // Revert on error by reloading
+      await loadData();
       alert('Failed to save product. Please try again.');
     }
   };

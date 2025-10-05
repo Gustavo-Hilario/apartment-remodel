@@ -2,11 +2,12 @@
  * Image Upload Component
  *
  * Drag & drop image upload with gallery management
+ * Supports paste from clipboard
  */
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { fileToBase64, isImageFile, isFileTooLarge } from '@/lib/image';
 import Button from './ui/Button';
 import './ImageUpload.css';
@@ -19,7 +20,38 @@ export default function ImageUpload({
 }) {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pasteHint, setPasteHint] = useState(false);
   const fileInputRef = useRef(null);
+  const uploadAreaRef = useRef(null);
+
+  // Add paste event listener
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      // Only handle paste if the upload area or its children are focused/hovered
+      if (!uploadAreaRef.current?.contains(document.activeElement) && 
+          !uploadAreaRef.current?.matches(':hover')) {
+        return;
+      }
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageItems = Array.from(items).filter(item => item.type.startsWith('image/'));
+      
+      if (imageItems.length > 0) {
+        e.preventDefault();
+        const files = imageItems.map(item => item.getAsFile()).filter(Boolean);
+        if (files.length > 0) {
+          setPasteHint(true);
+          setTimeout(() => setPasteHint(false), 2000);
+          await processFiles(files);
+        }
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [images, maxImages, maxSizeMB]);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -125,12 +157,14 @@ export default function ImageUpload({
     <div className="image-upload">
       <div className="upload-area-container">
         <div
-          className={`upload-area ${dragActive ? 'drag-active' : ''} ${uploading ? 'uploading' : ''}`}
+          ref={uploadAreaRef}
+          className={`upload-area ${dragActive ? 'drag-active' : ''} ${uploading ? 'uploading' : ''} ${pasteHint ? 'paste-active' : ''}`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
           onClick={openFileDialog}
+          tabIndex={0}
         >
           <input
             ref={fileInputRef}
@@ -151,8 +185,11 @@ export default function ImageUpload({
               <div className="upload-icon">📷</div>
               <p><strong>Drop images here</strong> or click to browse</p>
               <p className="upload-hint">
-                Max {maxImages} images, {maxSizeMB}MB each
+                Max {maxImages} images, {maxSizeMB}MB each • Or press <kbd>Ctrl+V</kbd> / <kbd>⌘+V</kbd> to paste
               </p>
+              {pasteHint && (
+                <p className="paste-success">✓ Image pasted!</p>
+              )}
             </div>
           )}
         </div>

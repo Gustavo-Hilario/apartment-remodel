@@ -7,7 +7,7 @@
 .form-row {
   display: flex;
   gap: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .form-row:last-child {
@@ -23,29 +23,36 @@
 .form-group label {
   margin-bottom: 8px;
   font-weight: 600;
-  color: #333333;
+  color: #333;
   font-size: 14px;
+  display: block;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
-  padding: 12px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  background: #ffffff;
-  color: #333333;
+  transition: all 0.2s ease;
+  background: white;
+  color: #333;
+}
+
+.form-group input:hover,
+.form-group select:hover,
+.form-group textarea:hover {
+  border-color: #667eea;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #ee0979;
-  box-shadow: 0 0 0 3px rgba(238, 9, 121, 0.1);
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .form-group input.error,
@@ -62,7 +69,7 @@
 .checkbox-group {
   justify-content: center;
   align-items: flex-end;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
 }
 
 .checkbox-label {
@@ -71,53 +78,70 @@
   gap: 8px;
   cursor: pointer;
   margin-bottom: 0 !important;
-  font-weight: 400 !important;
-  color: #333333;
+  font-weight: 500 !important;
+  color: #333;
+  user-select: none;
 }
 
 .checkbox-label input[type="checkbox"] {
   width: 18px;
   height: 18px;
   margin: 0;
-  accent-color: #ee0979;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.checkbox-label:hover {
+  color: #667eea;
 }
 
 .error-text {
   color: #e74c3c;
   font-size: 12px;
   margin-top: 4px;
+  font-weight: 500;
 }
 
 .calculated-fields {
-  margin-top: 20px;
-  padding: 15px;
-  background: #f8f9fa;
+  margin-top: 24px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
   border-radius: 8px;
-  border-left: 4px solid #ee0979;
+  border-left: 4px solid #667eea;
 }
 
 .calculated-fields p {
   margin: 0;
-  font-size: 14px;
-  color: #666666;
+  font-size: 15px;
+  color: #333;
+  font-weight: 500;
+}
+
+.calculated-fields strong {
+  color: #667eea;
 }
 
 .form-section {
-  margin: 20px 0;
+  margin: 24px 0;
+  padding-top: 24px;
+  border-top: 1px solid #e5e5e5;
 }
 
 .section-label {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   font-weight: 600;
-  color: #333333;
-  font-size: 14px;
+  color: #333;
+  font-size: 15px;
 }
 
 .product-modal-footer {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid #e5e5e5;
+  margin-top: 24px;
 }
 
 /* Responsive design */
@@ -130,41 +154,5 @@
   .checkbox-group {
     align-items: flex-start;
     padding-bottom: 0;
-  }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .form-group label,
-  .section-label {
-    color: #ffffff;
-  }
-
-  .form-group input,
-  .form-group select,
-  .form-group textarea {
-    background: #2a2a2a;
-    border-color: #555;
-    color: #ffffff;
-  }
-
-  .form-group input:focus,
-  .form-group select:focus,
-  .form-group textarea:focus {
-    border-color: #ee0979;
-    box-shadow: 0 0 0 3px rgba(238, 9, 121, 0.2);
-  }
-
-  .checkbox-label {
-    color: #ffffff;
-  }
-
-  .calculated-fields {
-    background: #2a2a2a;
-    color: #ffffff;
-  }
-
-  .calculated-fields p {
-    color: #cccccc;
   }
 }

@@ -21,17 +21,34 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  outline: none;
 }
 
 .upload-area:hover {
-  border-color: #ee0979;
-  background: #fff5f9;
+  border-color: #667eea;
+  background: #f8f9ff;
+}
+
+.upload-area:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .upload-area.drag-active {
-  border-color: #ee0979;
-  background: #fff0f6;
-  box-shadow: 0 0 20px rgba(238, 9, 121, 0.1);
+  border-color: #667eea;
+  background: #f0f2ff;
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
+}
+
+.upload-area.paste-active {
+  border-color: #10b981;
+  background: #f0fdf4;
+  animation: pasteFlash 0.5s ease;
+}
+
+@keyframes pasteFlash {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
 }
 
 .upload-area.uploading {
@@ -57,15 +74,38 @@
 }
 
 .upload-hint {
-  font-size: 14px;
+  font-size: 13px;
   color: #666 !important;
+  line-height: 1.5;
+}
+
+.upload-hint kbd {
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-family: monospace;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.paste-success {
+  color: #10b981 !important;
+  font-weight: 600;
+  font-size: 14px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .upload-spinner {
   width: 32px;
   height: 32px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #ee0979;
+  border-top: 3px solid #667eea;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 12px;
