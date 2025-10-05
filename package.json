@@ -4,7 +4,12 @@
     "description": "Apartment remodeling budget and progress tracker",
     "scripts": {
         "start": "node scripts/server.js",
-        "dev": "nodemon scripts/server.js"
+        "dev": "nodemon scripts/server.js",
+        "client": "cd client && npm run dev",
+        "server": "npm run dev",
+        "dev:all": "concurrently \"npm run server\" \"npm run client\" --names \"API,NEXT\" --prefix-colors \"cyan,magenta\"",
+        "build:client": "cd client && npm run build",
+        "start:prod": "concurrently \"npm start\" \"cd client && npm start\" --names \"API,NEXT\""
     },
     "dependencies": {
         "cors": "^2.8.5",
@@ -13,6 +18,7 @@
         "mongoose": "^8.19.0"
     },
     "devDependencies": {
+        "concurrently": "^9.2.1",
         "nodemon": "^3.1.10"
     }
 }
