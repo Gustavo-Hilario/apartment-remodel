@@ -64,11 +64,14 @@ export const roomsAPI = {
 export const productsAPI = {
     // Get all products across all rooms
     getAll: async () => {
-        const result = await roomsAPI.getAll();
-        if (!result.success) throw new Error('Failed to load products');
+        const rooms = await roomsAPI.getAll();
+
+        if (!rooms || !Array.isArray(rooms)) {
+            throw new Error('Failed to load products');
+        }
 
         const products = [];
-        result.rooms.forEach((room) => {
+        rooms.forEach((room) => {
             room.items?.forEach((item, index) => {
                 if (item.category === 'Products') {
                     products.push({
@@ -84,6 +87,90 @@ export const productsAPI = {
 
         return products;
     },
+
+    // Save/update a product
+    save: async (productData, originalProduct = null) => {
+        // Load the target room data
+        const roomData = await roomsAPI.getOne(productData.room);
+
+        if (!roomData || !roomData.items) {
+            throw new Error('Failed to load room data');
+        }
+
+        let updatedItems = [...roomData.items];
+
+        if (originalProduct) {
+            // Update existing product
+            const itemIndex = originalProduct.originalIndex;
+            if (itemIndex >= 0 && itemIndex < updatedItems.length) {
+                updatedItems[itemIndex] = {
+                    ...updatedItems[itemIndex],
+                    description: productData.description,
+                    category: productData.category,
+                    quantity: productData.quantity,
+                    unit: productData.unit,
+                    budget_price: productData.budget_price,
+                    actual_price: productData.actual_price,
+                    subtotal: productData.subtotal,
+                    status: productData.status,
+                    favorite: productData.favorite,
+                    notes: productData.notes || '',
+                    imageUrl: productData.imageUrl || '',
+                    links: productData.links || [],
+                    images: productData.images || []
+                };
+            } else {
+                throw new Error('Product not found in room');
+            }
+        } else {
+            // Add new product
+            updatedItems.push({
+                description: productData.description,
+                category: productData.category,
+                quantity: productData.quantity,
+                unit: productData.unit,
+                budget_price: productData.budget_price,
+                actual_price: productData.actual_price,
+                subtotal: productData.subtotal,
+                status: productData.status,
+                favorite: productData.favorite,
+                notes: productData.notes || '',
+                imageUrl: productData.imageUrl || '',
+                showImage: false,
+                links: productData.links || [],
+                images: productData.images || []
+            });
+        }
+
+        // Save the updated room data
+        const updatedRoomData = {
+            ...roomData,
+            items: updatedItems
+        };
+
+        return await roomsAPI.save(productData.room, updatedRoomData);
+    },
+
+    // Delete a product
+    delete: async (product) => {
+        // Load the room data
+        const roomData = await roomsAPI.getOne(product.room);
+
+        if (!roomData || !roomData.items) {
+            throw new Error('Failed to load room data');
+        }
+
+        // Remove the item at the specified index
+        const updatedItems = roomData.items.filter((_, index) => index !== product.originalIndex);
+
+        // Save the updated room data
+        const updatedRoomData = {
+            ...roomData,
+            items: updatedItems
+        };
+
+        return await roomsAPI.save(product.room, updatedRoomData);
+    }
 };
 
 /**

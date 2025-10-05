@@ -8,30 +8,39 @@
 
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout';
-import { Card, Button, LoadingSpinner, Modal } from '@/components/ui';
+import { Card, Button, LoadingSpinner } from '@/components/ui';
 import ProductCard from '@/components/products/ProductCard';
-import { productsAPI } from '@/lib/api';
+import ProductEditModal from '@/components/ProductEditModal';
+import { productsAPI, roomsAPI } from '@/lib/api';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    loadProducts();
+    loadData();
   }, []);
 
-  const loadProducts = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await productsAPI.getAll();
-      // Ensure products is always an array
-      setProducts(Array.isArray(data) ? data : []);
+      // Load both products and rooms data
+      const [productsData, roomsData] = await Promise.all([
+        productsAPI.getAll(),
+        roomsAPI.getAll()
+      ]);
+
+      setProducts(Array.isArray(productsData) ? productsData : []);
+      setRooms(Array.isArray(roomsData) ? roomsData : []);
     } catch (err) {
+      console.error('Error loading data:', err);
       setError(err.message);
-      setProducts([]); // Set empty array on error
+      setProducts([]);
+      setRooms([]);
     } finally {
       setLoading(false);
     }
@@ -42,10 +51,33 @@ export default function ProductsPage() {
     setShowModal(true);
   };
 
-  const handleDelete = (product) => {
+  const handleAddNew = () => {
+    setSelectedProduct(null);
+    setShowModal(true);
+  };
+
+  const handleSave = async (productData) => {
+    await productsAPI.save(productData, selectedProduct);
+    // Refresh the products list
+    await loadData();
+  };
+
+  const handleDelete = async (product) => {
     if (confirm(`Delete ${product.description}?`)) {
-      alert('Delete functionality coming soon!');
+      try {
+        await productsAPI.delete(product);
+        // Refresh the products list
+        await loadData();
+      } catch (err) {
+        console.error('Error deleting product:', err);
+        alert('Failed to delete product. Please try again.');
+      }
     }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedProduct(null);
   };
 
   return (
@@ -53,7 +85,7 @@ export default function ProductsPage() {
       <div className="products-page">
         <header className="page-header">
           <h1>🛍️ Products</h1>
-          <Button icon="➕" onClick={() => setShowModal(true)}>
+          <Button icon="➕" onClick={handleAddNew}>
             Add Product
           </Button>
         </header>
@@ -69,7 +101,7 @@ export default function ProductsPage() {
             <div style={{ padding: '20px', textAlign: 'center', color: '#ee0979' }}>
               <h3>❌ Error Loading Products</h3>
               <p>{error}</p>
-              <Button onClick={loadProducts}>Try Again</Button>
+              <Button onClick={loadData}>Try Again</Button>
             </div>
           </Card>
         )}
@@ -108,19 +140,13 @@ export default function ProductsPage() {
           </>
         )}
 
-        <Modal
+        <ProductEditModal
           isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          title={selectedProduct ? 'Edit Product' : 'Add Product'}
-          size="large"
-        >
-          <div style={{ padding: '20px', textAlign: 'center' }}>
-            <p>Product form coming soon!</p>
-            <p style={{ color: '#666' }}>
-              {selectedProduct ? `Editing: ${selectedProduct.description}` : 'Adding new product'}
-            </p>
-          </div>
-        </Modal>
+          onClose={handleCloseModal}
+          product={selectedProduct}
+          onSave={handleSave}
+          availableRooms={rooms}
+        />
       </div>
 
       <style jsx>{`
