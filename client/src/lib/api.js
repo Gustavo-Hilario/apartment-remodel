@@ -40,7 +40,11 @@ async function fetchAPI(endpoint, options = {}) {
  */
 export const roomsAPI = {
     // Get all rooms overview
-    getAll: () => fetchAPI('/rooms'),
+    getAll: async () => {
+        const response = await fetchAPI('/rooms');
+        // The API returns { success: true, rooms: [...] }
+        return response.rooms || response;
+    },
 
     // Get specific room data
     getOne: (slug) => fetchAPI(`/load-room/${slug}`),

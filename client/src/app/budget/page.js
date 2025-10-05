@@ -1,43 +1,164 @@
 /**
  * Budget Overview Page
  * 
- * View budget summary and progress
+ * View budget summary and progress with charts
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MainLayout } from '@/components/layout';
 import { Card, LoadingSpinner, Button } from '@/components/ui';
-import { totalsAPI, categoriesAPI } from '@/lib/api';
+import { totalsAPI, categoriesAPI, roomsAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
+import Chart from 'chart.js/auto';
 
 export default function BudgetPage() {
   const [totals, setTotals] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState('overview'); // 'overview' or 'room'
+  const [selectedRoom, setSelectedRoom] = useState('');
+  const chartRef = useRef(null);
+  const chartInstance = useRef(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
+  useEffect(() => {
+    // Cleanup chart on unmount
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+    };
+  }, []);
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const [totalsData, categoriesData] = await Promise.all([
+      const [totalsData, categoriesData, roomsData] = await Promise.all([
         totalsAPI.get(),
         categoriesAPI.getAll(),
+        roomsAPI.getAll(),
       ]);
       setTotals(totalsData);
       // Ensure categories is always an array
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+      setRooms(Array.isArray(roomsData) ? roomsData : []);
+      if (roomsData && roomsData.length > 0) {
+        setSelectedRoom(roomsData[0].name);
+      }
     } catch (err) {
       console.error(err);
       setCategories([]); // Set empty array on error
+      setRooms([]);
     } finally {
       setLoading(false);
     }
   };
+
+  const updateChart = useCallback(() => {
+    if (!chartRef.current || rooms.length === 0) return;
+
+    // Destroy existing chart
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+    }
+
+    const ctx = chartRef.current.getContext('2d');
+    
+    let labels, budgetData, actualData;
+
+    if (view === 'overview') {
+      // Show all rooms
+      labels = rooms.map(room => room.name);
+      budgetData = rooms.map(room => room.budget || 0);
+      actualData = rooms.map(room => {
+        const items = room.items || [];
+        return items.reduce((sum, item) => {
+          const qty = parseFloat(item.quantity) || 0;
+          const price = parseFloat(item.actualRate || item.actual_price || 0);
+          return sum + (qty * price);
+        }, 0);
+      });
+    } else {
+      // Show single room
+      const room = rooms.find(r => r.name === selectedRoom);
+      if (!room) return;
+
+      labels = (room.items || []).map((item, idx) => item.name || `Item ${idx + 1}`);
+      budgetData = (room.items || []).map(item => {
+        const qty = parseFloat(item.quantity) || 0;
+        const price = parseFloat(item.budgetRate || item.budget_price || 0);
+        return qty * price;
+      });
+      actualData = (room.items || []).map(item => {
+        const qty = parseFloat(item.quantity) || 0;
+        const price = parseFloat(item.actualRate || item.actual_price || 0);
+        return qty * price;
+      });
+    }
+
+    chartInstance.current = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Budget',
+            data: budgetData,
+            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+            borderColor: 'rgba(102, 126, 234, 1)',
+            borderWidth: 1,
+          },
+          {
+            label: 'Actual',
+            data: actualData,
+            backgroundColor: 'rgba(118, 75, 162, 0.8)',
+            borderColor: 'rgba(118, 75, 162, 1)',
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return formatCurrency(value);
+              }
+            }
+          }
+        }
+      }
+    });
+  }, [view, selectedRoom, rooms]);
+
+  useEffect(() => {
+    // Update chart when view or selectedRoom changes
+    if (rooms.length > 0 && !loading) {
+      updateChart();
+    }
+  }, [view, selectedRoom, rooms, loading, updateChart]);
 
   if (loading) {
     return (
@@ -112,6 +233,183 @@ export default function BudgetPage() {
               />
             </div>
           </div>
+        </Card>
+
+        {/* Chart Section */}
+        <Card title="Budget vs Actual">
+          <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <select 
+              value={view} 
+              onChange={(e) => setView(e.target.value)}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '8px',
+                border: '2px solid #667eea',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                background: 'white',
+                color: '#667eea',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              <option value="overview">📊 Project Overview</option>
+              <option value="room">🏠 Room Details</option>
+            </select>
+
+            {view === 'room' && rooms.length > 0 && (
+              <select 
+                value={selectedRoom} 
+                onChange={(e) => setSelectedRoom(e.target.value)}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: '2px solid #764ba2',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  background: 'white',
+                  color: '#764ba2',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {rooms.map(room => (
+                  <option key={room.name} value={room.name}>
+                    {room.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div style={{ height: '400px', position: 'relative', marginBottom: '30px' }}>
+            <canvas ref={chartRef}></canvas>
+          </div>
+
+          {/* Room Breakdown Table */}
+          {view === 'overview' && rooms.length > 0 && (
+            <div style={{ marginTop: '30px' }}>
+              <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', color: '#333' }}>
+                Room Breakdown
+              </h3>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="room-breakdown-table">
+                  <thead>
+                    <tr>
+                      <th>Room</th>
+                      <th>Budget</th>
+                      <th>Actual</th>
+                      <th>Difference</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rooms.map((room) => {
+                      const budget = room.budget || 0;
+                      const actual = (room.items || []).reduce((sum, item) => {
+                        const qty = parseFloat(item.quantity) || 0;
+                        const price = parseFloat(item.actualRate || item.actual_price || 0);
+                        return sum + (qty * price);
+                      }, 0);
+                      const difference = budget - actual;
+                      const percentUsed = budget > 0 ? (actual / budget) * 100 : 0;
+                      
+                      let status = 'Pending';
+                      let statusClass = 'pending';
+                      
+                      if (actual > 0 && percentUsed >= 100) {
+                        status = 'Completed';
+                        statusClass = 'completed';
+                      } else if (actual > 0 && percentUsed < 100) {
+                        status = 'In Progress';
+                        statusClass = 'in-progress';
+                      }
+
+                      return (
+                        <tr key={room.name}>
+                          <td><strong>{room.name}</strong></td>
+                          <td>{formatCurrency(budget)}</td>
+                          <td>{actual > 0 ? formatCurrency(actual) : 'Not started'}</td>
+                          <td className={difference >= 0 ? 'positive' : 'negative'}>
+                            {formatCurrency(difference)}
+                          </td>
+                          <td>
+                            <span className={`status-badge status-${statusClass}`}>
+                              {status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Item Breakdown Table for Room View */}
+          {view === 'room' && selectedRoom && rooms.length > 0 && (
+            <div style={{ marginTop: '30px' }}>
+              <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', color: '#333' }}>
+                Item Breakdown - {selectedRoom}
+              </h3>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="room-breakdown-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Category</th>
+                      <th>Qty</th>
+                      <th>Budget Price</th>
+                      <th>Actual Price</th>
+                      <th>Budget Total</th>
+                      <th>Actual Total</th>
+                      <th>Difference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const room = rooms.find(r => r.name === selectedRoom);
+                      const items = room?.items || [];
+                      
+                      return items.map((item, idx) => {
+                        const qty = parseFloat(item.quantity) || 0;
+                        const budgetPrice = parseFloat(item.budgetRate || item.budget_price || 0);
+                        const actualPrice = parseFloat(item.actualRate || item.actual_price || 0);
+                        const budgetTotal = qty * budgetPrice;
+                        const actualTotal = qty * actualPrice;
+                        const difference = budgetTotal - actualTotal;
+
+                        return (
+                          <tr key={idx}>
+                            <td>{item.name || `Item ${idx + 1}`}</td>
+                            <td>
+                              <span style={{ 
+                                padding: '4px 8px', 
+                                background: '#f0f0f0', 
+                                borderRadius: '4px',
+                                fontSize: '12px'
+                              }}>
+                                {item.category || 'Other'}
+                              </span>
+                            </td>
+                            <td>{qty}</td>
+                            <td>{formatCurrency(budgetPrice)}</td>
+                            <td>{formatCurrency(actualPrice)}</td>
+                            <td>{formatCurrency(budgetTotal)}</td>
+                            <td>{formatCurrency(actualTotal)}</td>
+                            <td className={difference >= 0 ? 'positive' : 'negative'}>
+                              {formatCurrency(difference)}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* Categories */}
@@ -252,6 +550,69 @@ export default function BudgetPage() {
           color: #667eea;
         }
 
+        .room-breakdown-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.9rem;
+        }
+
+        .room-breakdown-table th {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 12px;
+          text-align: left;
+          font-weight: 600;
+          position: sticky;
+          top: 0;
+          z-index: 1;
+        }
+
+        .room-breakdown-table td {
+          padding: 12px;
+          border-bottom: 1px solid #e5e5e5;
+        }
+
+        .room-breakdown-table tbody tr {
+          transition: background-color 0.2s;
+        }
+
+        .room-breakdown-table tbody tr:hover {
+          background-color: #f9f9f9;
+        }
+
+        .room-breakdown-table .positive {
+          color: #10b981;
+          font-weight: 600;
+        }
+
+        .room-breakdown-table .negative {
+          color: #ef4444;
+          font-weight: 600;
+        }
+
+        .status-badge {
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+
+        .status-completed {
+          background: #d1fae5;
+          color: #065f46;
+        }
+
+        .status-in-progress {
+          background: #fef3c7;
+          color: #92400e;
+        }
+
+        .status-pending {
+          background: #e0e7ff;
+          color: #3730a3;
+        }
+
         @media (max-width: 768px) {
           .page-header {
             flex-direction: column;
@@ -261,6 +622,15 @@ export default function BudgetPage() {
 
           .stat-value {
             font-size: 1.5rem;
+          }
+
+          .room-breakdown-table {
+            font-size: 0.8rem;
+          }
+
+          .room-breakdown-table th,
+          .room-breakdown-table td {
+            padding: 8px 6px;
           }
         }
       `}</style>
