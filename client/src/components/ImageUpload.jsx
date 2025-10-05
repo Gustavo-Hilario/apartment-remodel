@@ -74,7 +74,7 @@ export default function ImageUpload({
           name: file.name,
           data: base64,
           url: base64,
-          showImage: images.length === 0 && newImages.length === 0, // First image is favorite by default
+          showImage: images.length === 0 && newImages.length === 0, // First image is primary by default
           size: file.size
         });
       } catch (error) {
@@ -93,7 +93,7 @@ export default function ImageUpload({
   const removeImage = (imageId) => {
     const updatedImages = images.filter(img => img.id !== imageId);
 
-    // If we removed the favorite image, make the first remaining image favorite
+    // If we removed the primary image, make the first remaining image primary
     if (updatedImages.length > 0 && !updatedImages.some(img => img.showImage)) {
       updatedImages[0].showImage = true;
     }
@@ -101,7 +101,7 @@ export default function ImageUpload({
     onImagesChange(updatedImages);
   };
 
-  const setFavoriteImage = (imageId) => {
+  const setPrimaryImage = (imageId) => {
     const updatedImages = images.map(img => ({
       ...img,
       showImage: img.id === imageId
@@ -165,9 +165,9 @@ export default function ImageUpload({
                   <div className="image-overlay">
                     <button
                       type="button"
-                      className={`favorite-btn ${image.showImage ? 'active' : ''}`}
-                      onClick={() => setFavoriteImage(image.id)}
-                      title={image.showImage ? 'Favorite image' : 'Set as favorite'}
+                      className={`primary-btn ${image.showImage ? 'active' : ''}`}
+                      onClick={() => setPrimaryImage(image.id)}
+                      title={image.showImage ? 'Primary image' : 'Set as primary'}
                     >
                       ❤️
                     </button>
@@ -186,7 +186,7 @@ export default function ImageUpload({
                 <div className="image-info">
                   <p className="image-name">{image.name || `Image ${index + 1}`}</p>
                   {image.showImage && (
-                    <span className="favorite-badge">⭐ Favorite</span>
+                    <span className="primary-badge">⭐ Primary</span>
                   )}
                 </div>
               </div>

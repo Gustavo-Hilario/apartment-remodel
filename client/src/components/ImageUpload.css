@@ -142,7 +142,7 @@
   opacity: 1;
 }
 
-.favorite-btn,
+.primary-btn,
 .remove-btn {
   width: 32px;
   height: 32px;
@@ -157,17 +157,17 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.favorite-btn {
+.primary-btn {
   background: rgba(255, 255, 255, 0.9);
   color: #ccc;
 }
 
-.favorite-btn:hover {
+.primary-btn:hover {
   background: #fff;
   transform: scale(1.1);
 }
 
-.favorite-btn.active {
+.primary-btn.active {
   background: #fff;
   color: #ff4757;
   transform: scale(1.1);
@@ -197,7 +197,7 @@
   text-overflow: ellipsis;
 }
 
-.favorite-badge {
+.primary-badge {
   font-size: 10px;
   background: #ee0979;
   color: white;

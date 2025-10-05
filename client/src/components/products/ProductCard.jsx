@@ -30,6 +30,24 @@ export default function ProductCard({ product, onEdit, onDelete }) {
     setSelectedImageIndex(index);
   };
 
+  const handleSetPrimary = (imageIndex, e) => {
+    e.stopPropagation();
+    if (onEdit) {
+      // Update the product's images to set the new primary
+      const updatedImages = product.images.map((img, idx) => ({
+        ...img,
+        showImage: idx === imageIndex
+      }));
+
+      const updatedProduct = {
+        ...product,
+        images: updatedImages
+      };
+
+      onEdit(updatedProduct);
+    }
+  };
+
   return (
     <Card className="product-card" hoverable>
       {/* Image Section */}
@@ -60,7 +78,16 @@ export default function ProductCard({ product, onEdit, onDelete }) {
                   onClick={() => handleImageSelect(index)}
                 >
                   <img src={img.url || img.data || img} alt={`Thumbnail ${index + 1}`} />
-                  {img.showImage && <span className="thumbnail-heart">❤️</span>}
+                  <div className="thumbnail-overlay">
+                    {img.showImage && <span className="thumbnail-heart primary">⭐</span>}
+                    <button
+                      className={`set-primary-btn ${img.showImage ? 'is-primary' : ''}`}
+                      onClick={(e) => handleSetPrimary(index, e)}
+                      title={img.showImage ? 'Primary image' : 'Set as primary'}
+                    >
+                      ❤️
+                    </button>
+                  </div>
                 </button>
               ))}
             </div>
