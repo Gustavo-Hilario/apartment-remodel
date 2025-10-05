@@ -45,7 +45,10 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete }) 
   const legacyImage = product.imageUrl; // Fallback for old format
   
   // Support both field naming conventions
-  const unitPrice = product.unitPrice || product.actualRate || product.budgetRate || 0;
+  // Priority: actualRate (actual price) > budgetRate (budget price) > legacy fields
+  const actualPrice = product.actualRate || product.actual_price || 0;
+  const budgetPrice = product.budgetRate || product.budget_price || 0;
+  const unitPrice = actualPrice > 0 ? actualPrice : budgetPrice;
   const quantity = product.quantity || 0;
   const total = quantity * unitPrice;
 
@@ -122,13 +125,20 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete }) 
                   <img src={img.url || img.data || img} alt={`Thumbnail ${index + 1}`} />
                   <div className="thumbnail-overlay">
                     {(img.isMainImage || img.showImage) && <span className="thumbnail-heart primary">⭐</span>}
-                    <button
+                    <span
                       className={`set-primary-btn ${(img.isMainImage || img.showImage) ? 'is-primary' : ''}`}
                       onClick={(e) => handleSetPrimary(index, e)}
                       title={(img.isMainImage || img.showImage) ? 'Primary image' : 'Set as primary'}
+                      role="button"
+                      tabIndex={0}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          handleSetPrimary(index, e);
+                        }
+                      }}
                     >
                       ❤️
-                    </button>
+                    </span>
                   </div>
                 </button>
               ))}
