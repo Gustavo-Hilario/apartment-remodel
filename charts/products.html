@@ -784,7 +784,8 @@
                                     ...item,
                                     room: room,
                                     roomDisplayName: roomNames[room],
-                                    originalIndex: index
+                                    originalIndex: index,
+                                    uniqueId: `${room}-${index}` // Unique identifier
                                 });
                             }
                         });
@@ -920,8 +921,8 @@
                     ${notes ? `<div class="product-notes">${notes}</div>` : ''}
                 </div>
                 <div class="card-footer">
-                    <button class="btn btn-primary" onclick="editProduct(${index})">✏️ Edit</button>
-                    ${links.length > 0 ? `<button class="btn btn-success" onclick="openFirstLink(${index})">🛒 Buy</button>` : ''}
+                    <button class="btn btn-primary" onclick="editProduct('${product.uniqueId}')">✏️ Edit</button>
+                    ${links.length > 0 ? `<button class="btn btn-success" onclick="openFirstLink('${product.uniqueId}')">🛒 Buy</button>` : ''}
                 </div>
             `;
 
@@ -980,8 +981,13 @@
             document.getElementById('productModal').style.display = 'block';
         }
 
-        function editProduct(index) {
-            currentEditProduct = filteredProducts[index];
+        function editProduct(uniqueId) {
+            currentEditProduct = filteredProducts.find(p => p.uniqueId === uniqueId);
+            if (!currentEditProduct) {
+                showNotification('Product not found', 'error');
+                return;
+            }
+            
             document.getElementById('modalTitle').textContent = 'Edit Product';
             
             // Populate form
@@ -1161,9 +1167,9 @@
             }
         }
 
-        function openFirstLink(index) {
-            const product = filteredProducts[index];
-            if (product.links && product.links.length > 0) {
+        function openFirstLink(uniqueId) {
+            const product = filteredProducts.find(p => p.uniqueId === uniqueId);
+            if (product && product.links && product.links.length > 0) {
                 window.open(product.links[0].url, '_blank');
             }
         }
