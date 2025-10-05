@@ -16,7 +16,8 @@ export default function ProductCard({ product, onEdit, onDelete }) {
   // Handle both new images array and legacy imageUrl field for initial state
   const initialIndex = (() => {
     if (product.images && product.images.length > 0) {
-      return product.images.findIndex(img => img.showImage) || 0;
+      const mainImageIndex = product.images.findIndex(img => img.isMainImage || img.showImage);
+      return mainImageIndex >= 0 ? mainImageIndex : 0;
     }
     return 0; // For legacy images, always start with index 0
   })();
@@ -34,7 +35,8 @@ export default function ProductCard({ product, onEdit, onDelete }) {
       name: product.description || 'Product Image',
       url: product.imageUrl,
       data: product.imageUrl,
-      showImage: true
+      isMainImage: true,
+      showImage: true // Backward compatibility
     }];
   }
 
@@ -57,7 +59,8 @@ export default function ProductCard({ product, onEdit, onDelete }) {
       // Update the product's images to set the new primary
       const updatedImages = displayImages.map((img, idx) => ({
         ...img,
-        showImage: idx === imageIndex
+        isMainImage: idx === imageIndex,
+        showImage: idx === imageIndex // Backward compatibility
       }));
 
       const updatedProduct = {
@@ -100,11 +103,11 @@ export default function ProductCard({ product, onEdit, onDelete }) {
                 >
                   <img src={img.url || img.data || img} alt={`Thumbnail ${index + 1}`} />
                   <div className="thumbnail-overlay">
-                    {img.showImage && <span className="thumbnail-heart primary">⭐</span>}
+                    {(img.isMainImage || img.showImage) && <span className="thumbnail-heart primary">⭐</span>}
                     <button
-                      className={`set-primary-btn ${img.showImage ? 'is-primary' : ''}`}
+                      className={`set-primary-btn ${(img.isMainImage || img.showImage) ? 'is-primary' : ''}`}
                       onClick={(e) => handleSetPrimary(index, e)}
-                      title={img.showImage ? 'Primary image' : 'Set as primary'}
+                      title={(img.isMainImage || img.showImage) ? 'Primary image' : 'Set as primary'}
                     >
                       ❤️
                     </button>

@@ -46,8 +46,12 @@ const itemSchema = new mongoose.Schema(
         images: {
             type: [
                 {
+                    id: String,
+                    name: String,
                     url: String,
-                    isThumbnail: { type: Boolean, default: false },
+                    data: String, // Base64 data or URL
+                    isMainImage: { type: Boolean, default: false }, // Primary/thumbnail image flag
+                    showImage: { type: Boolean, default: false }, // Backward compatibility
                     uploadedAt: { type: Date, default: Date.now },
                 },
             ],
