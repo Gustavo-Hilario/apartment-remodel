@@ -91,7 +91,8 @@ export const productsAPI = {
     // Save/update a product
     save: async (productData, originalProduct = null) => {
         // Load the target room data
-        const roomData = await roomsAPI.getOne(productData.room);
+        const response = await roomsAPI.getOne(productData.room);
+        const roomData = response.roomData;
 
         if (!roomData || !roomData.items) {
             throw new Error('Failed to load room data');
@@ -154,7 +155,8 @@ export const productsAPI = {
     // Delete a product
     delete: async (product) => {
         // Load the room data
-        const roomData = await roomsAPI.getOne(product.room);
+        const response = await roomsAPI.getOne(product.room);
+        const roomData = response.roomData;
 
         if (!roomData || !roomData.items) {
             throw new Error('Failed to load room data');
