@@ -116,7 +116,8 @@ export const productsAPI = {
                     status: productData.status,
                     favorite: productData.favorite,
                     notes: productData.notes || '',
-                    imageUrl: productData.imageUrl || '',
+                    // Clear legacy imageUrl if we have images array
+                    imageUrl: (productData.images && productData.images.length > 0) ? '' : (productData.imageUrl || ''),
                     links: productData.links || [],
                     images: productData.images || []
                 };
@@ -136,7 +137,8 @@ export const productsAPI = {
                 status: productData.status,
                 favorite: productData.favorite,
                 notes: productData.notes || '',
-                imageUrl: productData.imageUrl || '',
+                // Clear legacy imageUrl if we have images array
+                imageUrl: (productData.images && productData.images.length > 0) ? '' : (productData.imageUrl || ''),
                 showImage: false,
                 links: productData.links || [],
                 images: productData.images || []

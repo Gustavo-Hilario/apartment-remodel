@@ -44,15 +44,30 @@ export default function ProductEditModal({
   useEffect(() => {
     if (product) {
       // Convert existing images to the new format with IDs if needed
-      const existingImages = product.images || [];
-      const formattedImages = existingImages.map((img, index) => ({
-        id: img.id || `existing-${index}`,
-        name: img.name || `Image ${index + 1}`,
-        data: img.data || img.url || img,
-        url: img.url || img.data || img,
-        showImage: img.showImage || false,
-        size: img.size || 0
-      }));
+      let formattedImages = [];
+
+      // Handle new images array format
+      if (product.images && product.images.length > 0) {
+        formattedImages = product.images.map((img, index) => ({
+          id: img.id || `existing-${index}`,
+          name: img.name || `Image ${index + 1}`,
+          data: img.data || img.url || img,
+          url: img.url || img.data || img,
+          showImage: img.showImage || false,
+          size: img.size || 0
+        }));
+      }
+      // Handle legacy imageUrl field
+      else if (product.imageUrl) {
+        formattedImages = [{
+          id: 'legacy-image',
+          name: product.description || 'Product Image',
+          data: product.imageUrl,
+          url: product.imageUrl,
+          showImage: true, // Legacy images are automatically primary
+          size: 0
+        }];
+      }
 
       setFormData({
         description: product.description || '',
