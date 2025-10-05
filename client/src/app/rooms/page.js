@@ -20,7 +20,8 @@ export default function RoomsPage() {
     try {
       setLoading(true);
       const data = await roomsAPI.getAll();
-      setRooms(Array.isArray(data.rooms) ? data.rooms : []);
+      // API now returns rooms array directly after our fix
+      setRooms(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message);
       setRooms([]);

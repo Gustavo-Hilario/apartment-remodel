@@ -85,21 +85,29 @@ export default function BudgetPage() {
         }, 0);
       });
     } else {
-      // Show single room
+      // Show single room - group by category
       const room = rooms.find(r => r.name === selectedRoom);
       if (!room) return;
 
-      labels = (room.items || []).map((item, idx) => item.name || `Item ${idx + 1}`);
-      budgetData = (room.items || []).map(item => {
+      // Group items by category and calculate totals
+      const categoryTotals = {};
+      (room.items || []).forEach(item => {
+        const category = item.category || 'Other';
         const qty = parseFloat(item.quantity) || 0;
-        const price = parseFloat(item.budgetRate || item.budget_price || 0);
-        return qty * price;
+        const budgetPrice = parseFloat(item.budgetRate || item.budget_price || 0);
+        const actualPrice = parseFloat(item.actualRate || item.actual_price || 0);
+        
+        if (!categoryTotals[category]) {
+          categoryTotals[category] = { budget: 0, actual: 0 };
+        }
+        
+        categoryTotals[category].budget += qty * budgetPrice;
+        categoryTotals[category].actual += qty * actualPrice;
       });
-      actualData = (room.items || []).map(item => {
-        const qty = parseFloat(item.quantity) || 0;
-        const price = parseFloat(item.actualRate || item.actual_price || 0);
-        return qty * price;
-      });
+
+      labels = Object.keys(categoryTotals);
+      budgetData = labels.map(cat => categoryTotals[cat].budget);
+      actualData = labels.map(cat => categoryTotals[cat].actual);
     }
 
     chartInstance.current = new Chart(ctx, {
@@ -292,7 +300,7 @@ export default function BudgetPage() {
               <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', color: '#333' }}>
                 Room Breakdown
               </h3>
-              <div style={{ overflowX: 'auto' }}>
+              <div className="table-wrapper">
                 <table className="room-breakdown-table">
                   <thead>
                     <tr>
@@ -351,12 +359,13 @@ export default function BudgetPage() {
           {view === 'room' && selectedRoom && rooms.length > 0 && (
             <div style={{ marginTop: '30px' }}>
               <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', color: '#333' }}>
-                Item Breakdown - {selectedRoom}
+                All Items - {selectedRoom}
               </h3>
-              <div style={{ overflowX: 'auto' }}>
+              <div className="table-wrapper">
                 <table className="room-breakdown-table">
                   <thead>
                     <tr>
+                      <th>⭐</th>
                       <th>Item</th>
                       <th>Category</th>
                       <th>Qty</th>
@@ -364,7 +373,7 @@ export default function BudgetPage() {
                       <th>Actual Price</th>
                       <th>Budget Total</th>
                       <th>Actual Total</th>
-                      <th>Difference</th>
+                      <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -372,34 +381,49 @@ export default function BudgetPage() {
                       const room = rooms.find(r => r.name === selectedRoom);
                       const items = room?.items || [];
                       
+                      if (items.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                              No items in this room
+                            </td>
+                          </tr>
+                        );
+                      }
+                      
                       return items.map((item, idx) => {
                         const qty = parseFloat(item.quantity) || 0;
                         const budgetPrice = parseFloat(item.budgetRate || item.budget_price || 0);
                         const actualPrice = parseFloat(item.actualRate || item.actual_price || 0);
                         const budgetTotal = qty * budgetPrice;
                         const actualTotal = qty * actualPrice;
-                        const difference = budgetTotal - actualTotal;
 
                         return (
                           <tr key={idx}>
-                            <td>{item.name || `Item ${idx + 1}`}</td>
+                            <td style={{ textAlign: 'center', fontSize: '18px', width: '40px' }}>
+                              {item.favorite ? '⭐' : ''}
+                            </td>
+                            <td style={{ fontWeight: '600' }}>
+                              {item.description || item.name || `Item ${idx + 1}`}
+                            </td>
                             <td>
-                              <span style={{ 
-                                padding: '4px 8px', 
-                                background: '#f0f0f0', 
-                                borderRadius: '4px',
-                                fontSize: '12px'
-                              }}>
+                              <span className="category-badge">
                                 {item.category || 'Other'}
                               </span>
                             </td>
-                            <td>{qty}</td>
-                            <td>{formatCurrency(budgetPrice)}</td>
-                            <td>{formatCurrency(actualPrice)}</td>
-                            <td>{formatCurrency(budgetTotal)}</td>
-                            <td>{formatCurrency(actualTotal)}</td>
-                            <td className={difference >= 0 ? 'positive' : 'negative'}>
-                              {formatCurrency(difference)}
+                            <td style={{ textAlign: 'center' }}>{qty}</td>
+                            <td style={{ textAlign: 'right' }}>{formatCurrency(budgetPrice)}</td>
+                            <td style={{ textAlign: 'right' }}>{formatCurrency(actualPrice)}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '600', color: '#667eea' }}>
+                              {formatCurrency(budgetTotal)}
+                            </td>
+                            <td style={{ textAlign: 'right', fontWeight: '600', color: '#764ba2' }}>
+                              {formatCurrency(actualTotal)}
+                            </td>
+                            <td>
+                              <span className={`status-badge status-${item.status || 'pending'}`}>
+                                {item.status || 'pending'}
+                              </span>
                             </td>
                           </tr>
                         );
@@ -550,26 +574,38 @@ export default function BudgetPage() {
           color: #667eea;
         }
 
+        .table-wrapper {
+          overflow-x: auto;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          margin-bottom: 20px;
+        }
+
         .room-breakdown-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 0.9rem;
+          min-width: 800px;
+          background: white;
+        }
+
+        .room-breakdown-table thead {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
         }
 
         .room-breakdown-table th {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          padding: 12px;
+          padding: 14px 12px;
           text-align: left;
+          font-size: 0.95rem;
           font-weight: 600;
-          position: sticky;
-          top: 0;
-          z-index: 1;
+          white-space: nowrap;
         }
 
         .room-breakdown-table td {
           padding: 12px;
           border-bottom: 1px solid #e5e5e5;
+          color: #333;
+          font-size: 0.9rem;
         }
 
         .room-breakdown-table tbody tr {
@@ -577,7 +613,7 @@ export default function BudgetPage() {
         }
 
         .room-breakdown-table tbody tr:hover {
-          background-color: #f9f9f9;
+          background-color: #f8f9fa;
         }
 
         .room-breakdown-table .positive {
@@ -611,6 +647,15 @@ export default function BudgetPage() {
         .status-pending {
           background: #e0e7ff;
           color: #3730a3;
+        }
+
+        .category-badge {
+          padding: 4px 10px;
+          background: #f0f0f0;
+          border-radius: 4px;
+          fontSize: 0.85rem;
+          font-weight: 500;
+          color: #555;
         }
 
         @media (max-width: 768px) {
