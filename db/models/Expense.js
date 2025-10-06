@@ -25,6 +25,10 @@ const expenseSchema = new mongoose.Schema(
             type: String,
             default: '',
         },
+        rooms: {
+            type: [String],
+            default: [],
+        },
         roomCategory: {
             type: String,
             default: '',

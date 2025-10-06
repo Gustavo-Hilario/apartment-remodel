@@ -282,6 +282,7 @@ app.get('/api/load-expenses', async (req, res) => {
                     : exp.date.split('T')[0]
                 : '',
             room: exp.room,
+            rooms: exp.rooms || [], // Include rooms array for frontend
             roomCategory: exp.roomCategory,
         }));
 
@@ -336,10 +337,18 @@ app.post('/api/save-expenses', async (req, res) => {
             return res.status(400).json({ error: 'Expenses must be an array' });
         }
 
+        // Helper function to create unique key for expense
+        const getExpenseKey = (exp) => {
+            const roomsKey = Array.isArray(exp.rooms) && exp.rooms.length > 0
+                ? exp.rooms.sort().join(',')
+                : 'General';
+            return `${exp.description}|${exp.category}|${roomsKey}`;
+        };
+
         // Get existing expenses to detect changes
         const existing = await Expense.find();
         const existingMap = new Map(
-            existing.map((e) => [`${e.description}|${e.category}|${e.room}`, e])
+            existing.map((e) => [getExpenseKey(e), e])
         );
 
         // Track what to delete
@@ -349,10 +358,7 @@ app.post('/api/save-expenses', async (req, res) => {
 
         // Build map of new expenses
         const newExpensesMap = new Map(
-            expenses.map((e) => [
-                `${e.description}|${e.category}|${e.room || 'General'}`,
-                e,
-            ])
+            expenses.map((e) => [getExpenseKey(e), e])
         );
 
         // Find deleted expenses
@@ -364,13 +370,12 @@ app.post('/api/save-expenses', async (req, res) => {
 
         // Process new/updated expenses
         for (const expense of expenses) {
-            const key = `${expense.description}|${expense.category}|${
-                expense.room || 'General'
-            }`;
+            const key = getExpenseKey(expense);
             const existing = existingMap.get(key);
 
             const expenseData = {
-                room: expense.room || 'General',
+                rooms: Array.isArray(expense.rooms) ? expense.rooms : [],
+                room: expense.room || 'General', // Keep for backward compatibility
                 date: expense.date ? new Date(expense.date) : new Date(),
                 category: expense.category,
                 roomCategory: expense.roomCategory || expense.category,
@@ -407,126 +412,111 @@ app.post('/api/save-expenses', async (req, res) => {
             await room.save();
         };
 
-        // Execute deletions (and remove from rooms if "All Rooms" or specific room)
+        // Execute deletions (remove from rooms using expenseId tracking)
         for (const deletedExpense of toDelete) {
+            console.log(`\n🗑️  Deleting expense: "${deletedExpense.description}"`);
+            
+            // Remove from all rooms that have items with this expenseId
+            const allRooms = await Room.find();
+            for (const room of allRooms) {
+                const originalLength = room.items.length;
+                room.items = room.items.filter(
+                    (item) => !item.expenseId || !item.expenseId.equals(deletedExpense._id)
+                );
+                if (room.items.length !== originalLength) {
+                    await recalculateRoomStats(room);
+                    console.log(`   ✅ Removed from ${room.name}`);
+                }
+            }
+            
+            // Delete the expense itself
             await Expense.deleteOne({ _id: deletedExpense._id });
-
-            // If it was an "All Rooms" expense, remove from all room items
-            if (deletedExpense.room === 'All Rooms') {
-                const allRooms = await Room.find();
-                for (const room of allRooms) {
-                    const originalLength = room.items.length;
-                    room.items = room.items.filter(
-                        (item) =>
-                            item.description !== deletedExpense.description ||
-                            item.category !== deletedExpense.roomCategory
-                    );
-                    if (room.items.length !== originalLength) {
-                        await recalculateRoomStats(room);
-                        console.log(
-                            `   🗑️  Removed "${deletedExpense.description}" from ${room.name}`
-                        );
-                    }
-                }
-            }
-            // If it was a room-specific expense, remove from that room only
-            else if (deletedExpense.room && deletedExpense.room !== 'General') {
-                const room = await Room.findOne({ name: deletedExpense.room });
-                if (room) {
-                    const originalLength = room.items.length;
-                    room.items = room.items.filter(
-                        (item) =>
-                            item.description !== deletedExpense.description ||
-                            item.category !== deletedExpense.roomCategory
-                    );
-                    if (room.items.length !== originalLength) {
-                        await recalculateRoomStats(room);
-                        console.log(
-                            `   🗑️  Removed "${deletedExpense.description}" from ${room.name}`
-                        );
-                    }
-                }
-            }
         }
 
-        // Execute updates (update amounts in rooms if "All Rooms" or specific room)
+        // Execute updates (update amounts in rooms using expenseId)
         for (const { expense, data } of toUpdate) {
+            const oldAmount = expense.amount;
+            const oldRooms = expense.rooms || [];
+            const newRooms = data.rooms || [];
+            
+            // Update the expense
             Object.assign(expense, data);
             await expense.save();
 
-            // If it's an "All Rooms" expense, update in all room items
-            if (data.room === 'All Rooms') {
+            console.log(`\n✏️  Updating expense: "${data.description}"`);
+            
+            // Determine which rooms to update based on rooms array
+            let roomsToUpdate = [];
+            if (newRooms.length > 0) {
+                roomsToUpdate = newRooms;
+            } else if (data.room === 'All Rooms') {
                 const allRooms = await Room.find();
-                const amountPerRoom = data.amount / allRooms.length;
+                roomsToUpdate = allRooms.map(r => r.slug);
+            }
+            
+            // Calculate amount per room
+            const amountPerRoom = roomsToUpdate.length > 0 
+                ? data.amount / roomsToUpdate.length 
+                : data.amount;
 
-                for (const room of allRooms) {
+            // Update items in affected rooms
+            for (const roomSlug of roomsToUpdate) {
+                const room = await Room.findOne({ slug: roomSlug });
+                if (room) {
                     const item = room.items.find(
-                        (item) =>
-                            item.description === data.description &&
-                            item.category === data.roomCategory
+                        (item) => item.expenseId && item.expenseId.equals(expense._id)
                     );
 
                     if (item) {
                         item.actual_price = amountPerRoom;
                         item.subtotal = amountPerRoom;
+                        item.description = data.description;
+                        item.category = data.roomCategory;
                         await recalculateRoomStats(room);
                         console.log(
-                            `   ✏️  Updated "${data.description}" in ${
-                                room.name
-                            }: S/ ${amountPerRoom.toFixed(2)}`
-                        );
-                    }
-                }
-            }
-            // If it's a room-specific expense, update in that room only
-            else if (data.room && data.room !== 'General') {
-                const room = await Room.findOne({ name: data.room });
-                if (room) {
-                    const item = room.items.find(
-                        (item) =>
-                            item.description === data.description &&
-                            item.category === data.roomCategory
-                    );
-
-                    if (item) {
-                        item.actual_price = data.amount;
-                        item.subtotal = data.amount;
-                        await recalculateRoomStats(room);
-                        console.log(
-                            `   ✏️  Updated "${data.description}" in ${
-                                room.name
-                            }: S/ ${data.amount.toFixed(2)}`
+                            `   ✅ Updated in ${room.name}: S/ ${amountPerRoom.toFixed(2)}`
                         );
                     }
                 }
             }
         }
 
-        // Execute creations (and add to rooms if "All Rooms" or specific room)
+        // Execute creations (add to rooms based on rooms array)
         for (const data of toCreate) {
-            await Expense.create(data);
+            // Create the expense first to get the ID
+            const newExpense = await Expense.create(data);
+            console.log(`\n➕ Creating expense: "${data.description}" (S/ ${data.amount})`);
 
-            // Handle "All Rooms" expense - split across all rooms
-            if (data.room === 'All Rooms') {
+            // Determine which rooms to add this expense to
+            let roomsToAddTo = [];
+            if (data.rooms && data.rooms.length > 0) {
+                roomsToAddTo = data.rooms;
+            } else if (data.room === 'All Rooms') {
                 const allRooms = await Room.find();
-                const amountPerRoom = data.amount / allRooms.length;
+                roomsToAddTo = allRooms.map(r => r.slug);
+            }
 
-                console.log(
-                    `\n🏠 Splitting "${data.description}" (S/ ${data.amount}) across ${allRooms.length} rooms...`
-                );
-                console.log(
-                    `   Amount per room: S/ ${amountPerRoom.toFixed(2)}`
-                );
+            // Skip room addition if it's a General expense (no rooms)
+            if (roomsToAddTo.length === 0) {
+                console.log(`   ℹ️  General expense - not added to any room`);
+                continue;
+            }
 
-                for (const room of allRooms) {
+            // Calculate amount per room (split equally)
+            const amountPerRoom = data.amount / roomsToAddTo.length;
+            console.log(`   💰 Splitting across ${roomsToAddTo.length} room(s): S/ ${amountPerRoom.toFixed(2)} each`);
+
+            // Add expense item to each selected room
+            for (const roomSlug of roomsToAddTo) {
+                const room = await Room.findOne({ slug: roomSlug });
+                if (room) {
                     const existingItem = room.items.find(
-                        (item) =>
-                            item.description === data.description &&
-                            item.category === data.roomCategory
+                        (item) => item.expenseId && item.expenseId.equals(newExpense._id)
                     );
 
                     if (!existingItem) {
                         room.items.push({
+                            expenseId: newExpense._id,
                             description: data.description,
                             category: data.roomCategory,
                             quantity: 1,
@@ -538,39 +528,7 @@ app.post('/api/save-expenses', async (req, res) => {
                         });
                         await recalculateRoomStats(room);
                         console.log(
-                            `   ✅ Added to ${
-                                room.name
-                            }: S/ ${amountPerRoom.toFixed(2)}`
-                        );
-                    }
-                }
-            }
-            // Handle room-specific expense
-            else if (data.room && data.room !== 'General') {
-                const room = await Room.findOne({ name: data.room });
-                if (room) {
-                    const existingItem = room.items.find(
-                        (item) =>
-                            item.description === data.description &&
-                            item.category === data.roomCategory
-                    );
-
-                    if (!existingItem) {
-                        room.items.push({
-                            description: data.description,
-                            category: data.roomCategory,
-                            quantity: 1,
-                            unit: 'unit',
-                            budget_price: 0,
-                            actual_price: data.amount,
-                            subtotal: data.amount,
-                            status: 'Completed',
-                        });
-                        await recalculateRoomStats(room);
-                        console.log(
-                            `   ✅ Added "${data.description}" to ${
-                                room.name
-                            }: S/ ${data.amount.toFixed(2)}`
+                            `   ✅ Added to ${room.name}: S/ ${amountPerRoom.toFixed(2)}`
                         );
                     }
                 }

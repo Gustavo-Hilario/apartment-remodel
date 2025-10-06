@@ -36,6 +36,7 @@ export default function ExpensesPage() {
       ]);
       
       if (expensesData.success) {
+        // Backend now sends rooms array directly, just use it
         setExpenses(expensesData.expenses || []);
       }
       
@@ -82,6 +83,7 @@ export default function ExpensesPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
+      // Backend now handles rooms array directly, no transformation needed
       await expensesAPI.save(expenses);
       await loadData();
     } catch (err) {
@@ -143,7 +145,7 @@ export default function ExpensesPage() {
   };
 
   const getRoomDisplay = (expenseRooms) => {
-    if (!expenseRooms || expenseRooms.length === 0) return 'No rooms';
+    if (!expenseRooms || expenseRooms.length === 0) return 'General';
     
     const allRoomValues = rooms.filter(r => r.value !== 'all').map(r => r.value);
     if (expenseRooms.length === allRoomValues.length) {

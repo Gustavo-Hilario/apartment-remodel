@@ -3,10 +3,14 @@ const mongoose = require('mongoose');
 // Item Schema - for items within a room
 const itemSchema = new mongoose.Schema(
     {
+        expenseId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Expense',
+            default: null,
+        },
         description: {
             type: String,
             required: true,
-            default: '',
         },
         category: {
             type: String,
