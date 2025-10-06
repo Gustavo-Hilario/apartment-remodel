@@ -108,6 +108,17 @@ export default function RoomEditorPage() {
       let aVal, bVal;
 
       switch (sortBy) {
+        case 'favorite':
+          // Favorites first (true > false), then by description
+          const aFav = a.favorite || a.isFavorite || false;
+          const bFav = b.favorite || b.isFavorite || false;
+          if (aFav !== bFav) {
+            return sortDirection === 'asc' ? (aFav ? -1 : 1) : (aFav ? 1 : -1);
+          }
+          // If same favorite status, sort by description
+          aVal = (a.description || '').toLowerCase();
+          bVal = (b.description || '').toLowerCase();
+          break;
         case 'category':
           aVal = (a.category || '').toLowerCase();
           bVal = (b.category || '').toLowerCase();
@@ -185,7 +196,9 @@ export default function RoomEditorPage() {
   }
 
   const totalBudget = items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
-  const totalActual = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.actualRate || 0)), 0);
+  const totalActual = items
+    .filter(item => item.status === 'Completed')
+    .reduce((sum, item) => sum + ((item.quantity || 0) * (item.actualRate || 0)), 0);
   const difference = roomBudget - totalActual;
 
   return (
@@ -273,7 +286,14 @@ export default function RoomEditorPage() {
               <thead>
                 <tr>
                   <th style={{ width: '30px' }}>#</th>
-                  <th style={{ width: '40px' }}>⭐</th>
+                  <th 
+                    style={{ width: '40px', cursor: 'pointer' }}
+                    onClick={() => handleSort('favorite')}
+                    className="sortable"
+                    title="Sort by favorites"
+                  >
+                    ⭐ {sortBy === 'favorite' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
                   <th style={{ width: '200px' }}>Description</th>
                   <th 
                     style={{ width: '120px', cursor: 'pointer' }}
