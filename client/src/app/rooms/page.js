@@ -5,12 +5,14 @@ import { MainLayout } from '@/components/layout';
 import { Card, Button, LoadingSpinner, Input } from '@/components/ui';
 import { roomsAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
+import AllItemsView from '@/components/rooms/AllItemsView';
 import Link from 'next/link';
 
 export default function RoomsPage() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAllItems, setShowAllItems] = useState(false);
 
   useEffect(() => {
     loadRooms();
@@ -44,8 +46,17 @@ export default function RoomsPage() {
     <MainLayout>
       <div className="rooms-page">
         <header className="page-header">
-          <h1>🚪 Rooms</h1>
-          <p>Manage room budgets and items</p>
+          <div>
+            <h1>🚪 Rooms</h1>
+            <p>Manage room budgets and items</p>
+          </div>
+          <Button
+            variant={showAllItems ? 'secondary' : 'primary'}
+            onClick={() => setShowAllItems(!showAllItems)}
+            icon="�"
+          >
+            {showAllItems ? 'Hide All Items' : 'Show All Items'}
+          </Button>
         </header>
 
         {error && (
@@ -58,7 +69,11 @@ export default function RoomsPage() {
           </Card>
         )}
 
-        {!loading && !error && (
+        {showAllItems && !loading && !error && (
+          <AllItemsView rooms={rooms} onRefresh={loadRooms} />
+        )}
+
+        {!showAllItems && !loading && !error && (
           <div className="rooms-grid">
             {rooms.map((room) => {
               const remaining = (room.budget || 0) - (room.actual_spent || 0);
@@ -140,8 +155,16 @@ export default function RoomsPage() {
         }
 
         .page-header {
-          text-align: center;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           margin-bottom: 40px;
+          flex-wrap: wrap;
+          gap: 20px;
+        }
+
+        .page-header > div {
+          text-align: left;
         }
 
         .page-header h1 {

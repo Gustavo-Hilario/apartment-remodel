@@ -44,14 +44,26 @@ export default function RoomEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomSlug]);
 
+  // Calculate subtotal: use actual_price if set, otherwise budget_price
+  const calculateSubtotal = (item) => {
+    const quantity = parseFloat(item.quantity) || 0;
+    const actualPrice = parseFloat(item.actual_price || item.actualRate) || 0;
+    const budgetPrice = parseFloat(item.budget_price || item.budgetRate) || 0;
+    
+    // Use actual price if it's set and non-zero, otherwise use budget price
+    const price = actualPrice > 0 ? actualPrice : budgetPrice;
+    return quantity * price;
+  };
+
   const handleItemChange = (originalIndex, field, value) => {
     const updatedItems = [...items];
     updatedItems[originalIndex][field] = value;
 
-    // Recalculate subtotal when quantity or prices change
-    if (['quantity', 'budgetRate', 'actualRate'].includes(field)) {
-      const item = updatedItems[originalIndex];
-      item.subtotal = (item.quantity || 0) * (item.budgetRate || 0);
+    // Map frontend field names to database field names
+    if (field === 'budgetRate') {
+      updatedItems[originalIndex].budget_price = value;
+    } else if (field === 'actualRate') {
+      updatedItems[originalIndex].actual_price = value;
     }
 
     setItems(updatedItems);
@@ -63,9 +75,10 @@ export default function RoomEditorPage() {
       category: 'Other',
       quantity: 1,
       unit: 'unit',
-      budgetRate: 0,
-      actualRate: 0,
-      subtotal: 0,
+      budget_price: 0,
+      actual_price: 0,
+      budgetRate: 0,  // For backward compatibility with UI
+      actualRate: 0,   // For backward compatibility with UI
       status: 'Pending',
       favorite: false,
       imageUrl: '',
@@ -132,8 +145,8 @@ export default function RoomEditorPage() {
           bVal = b.actualRate || 0;
           break;
         case 'subtotal':
-          aVal = a.subtotal || 0;
-          bVal = b.subtotal || 0;
+          aVal = calculateSubtotal(a);
+          bVal = calculateSubtotal(b);
           break;
         case 'status':
           aVal = (a.status || '').toLowerCase();
@@ -411,7 +424,7 @@ export default function RoomEditorPage() {
                       />
                     </td>
                     <td className="subtotal-cell">
-                      {formatCurrency(item.subtotal || 0)}
+                      {formatCurrency(calculateSubtotal(item))}
                     </td>
                     <td>
                       <select

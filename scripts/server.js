@@ -27,13 +27,14 @@ app.use(express.static(path.join(__dirname, '..')));
 // Get all rooms overview
 app.get('/api/rooms', async (req, res) => {
     try {
-        const rooms = await Room.find({}).select(
-            'name slug budget actual_spent progress_percent completed_items total_items status items'
-        );
+        // Fetch rooms - virtuals will automatically calculate actual_spent, progress_percent, etc.
+        const rooms = await Room.find({});
+        
+        // Return rooms with all virtual fields included (toJSON is configured to include virtuals)
         res.json({ success: true, rooms });
     } catch (error) {
         console.error('Error loading rooms:', error);
-        res.status(500).json({
+        res.json({
             error: 'Failed to load rooms',
             details: error.message,
         });
@@ -135,24 +136,8 @@ app.post('/api/save-room/:roomName', async (req, res) => {
             notes: item.notes || '',
         }));
 
-        // Recalculate room statistics
-        const totalBudget = room.items.reduce(
-            (sum, item) => sum + item.budget_price * item.quantity,
-            0
-        );
-        const totalActual = room.items.reduce(
-            (sum, item) => sum + item.actual_price * item.quantity,
-            0
-        );
-        const completedItems = room.items.filter(
-            (item) => item.status === 'Completed'
-        ).length;
-
-        room.actual_spent = totalActual;
-        room.progress_percent =
-            totalBudget > 0 ? (totalActual / totalBudget) * 100 : 0;
-        room.completed_items = completedItems;
-        room.total_items = room.items.length;
+        // Update status based on completed items
+        const completedItems = room.items.filter(item => item.status === 'Completed').length;
         room.status =
             completedItems === room.items.length && room.items.length > 0
                 ? 'Completed'
@@ -160,7 +145,7 @@ app.post('/api/save-room/:roomName', async (req, res) => {
                 ? 'In Progress'
                 : 'Not Started';
 
-        // Save using Mongoose
+        // Save using Mongoose (virtuals will calculate actual_spent, progress_percent, etc.)
         await room.save();
 
         console.log(`✅ Saved ${roomData.name} data to MongoDB with Mongoose`);
@@ -225,17 +210,25 @@ app.get('/api/get-all-categories', async (req, res) => {
 // Get project totals
 app.get('/api/totals', async (req, res) => {
     try {
-        // Get room totals
-        const roomTotals = await roomsRepo.getTotals();
-        const totalsData = roomTotals[0] || {};
+        // Get all rooms with virtuals (actual_spent, progress_percent, etc.)
+        const rooms = await Room.find({});
         
         // Get expenses count
         const expenses = await Expense.find({});
         
-        // Get products count (items with category='Products')
-        const rooms = await Room.find({});
+        // Calculate totals from room virtuals
+        let totalBudget = 0;
+        let totalActualSpent = 0;
+        let totalItems = 0;
+        let totalCompleted = 0;
         let productsCount = 0;
+        
         rooms.forEach(room => {
+            totalBudget += room.budget || 0;
+            totalActualSpent += room.actual_spent || 0; // This is a virtual
+            totalItems += room.total_items || 0; // This is a virtual
+            totalCompleted += room.completed_items || 0; // This is a virtual
+            
             if (room.items) {
                 productsCount += room.items.filter(item => item.category === 'Products').length;
             }
@@ -243,11 +236,11 @@ app.get('/api/totals', async (req, res) => {
         
         // Format response to match frontend expectations
         const response = {
-            totalBudget: totalsData.total_budget || 0,
-            totalExpenses: totalsData.total_actual || 0,
-            totalRooms: totalsData.total_rooms || 0,
-            totalItems: totalsData.total_items || 0,
-            totalCompleted: totalsData.total_completed || 0,
+            totalBudget,
+            totalExpenses: totalActualSpent,
+            totalRooms: rooms.length,
+            totalItems,
+            totalCompleted,
             totalProducts: productsCount,
             expenseCount: expenses.length,
         };

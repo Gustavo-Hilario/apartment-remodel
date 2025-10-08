@@ -107,9 +107,7 @@ export default function ExpensesPage() {
   };
 
   const deleteExpense = (index) => {
-    if (confirm('Delete this expense?')) {
-      setExpenses(expenses.filter((_, i) => i !== index));
-    }
+    setExpenses(expenses.filter((_, i) => i !== index));
   };
 
   const handleExpenseChange = (index, field, value) => {

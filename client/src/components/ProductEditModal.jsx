@@ -160,8 +160,7 @@ export default function ProductEditModal({
         ...formData,
         quantity: parseFloat(formData.quantity),
         budget_price: parseFloat(formData.budget_price),
-        actual_price: parseFloat(formData.actual_price),
-        subtotal: parseFloat(formData.budget_price) * parseFloat(formData.quantity)
+        actual_price: parseFloat(formData.actual_price)
       };
       console.log('💾 Saving product data:', saveData);
       await onSave(saveData);

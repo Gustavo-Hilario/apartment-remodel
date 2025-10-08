@@ -72,8 +72,7 @@ export default function ProductsPage() {
       const saveData = {
         ...product,
         budget_price: product.budgetRate || product.budget_price || 0,
-        actual_price: product.actualRate || product.actual_price || 0,
-        subtotal: (product.budgetRate || product.budget_price || 0) * (product.quantity || 0)
+        actual_price: product.actualRate || product.actual_price || 0
       };
       
       // Save to backend silently

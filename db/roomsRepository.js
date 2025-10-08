@@ -92,10 +92,13 @@ class RoomsRepository {
             (sum, item) => sum + item.budget_price * item.quantity,
             0
         );
-        const totalActual = room.items.reduce(
-            (sum, item) => sum + item.actual_price * item.quantity,
-            0
-        );
+        // Only count actual spent for completed items
+        const totalActual = room.items
+            .filter((item) => item.status === 'Completed')
+            .reduce(
+                (sum, item) => sum + item.actual_price * item.quantity,
+                0
+            );
         const completedItems = room.items.filter(
             (item) => item.status === 'Completed'
         ).length;

@@ -1,0 +1,264 @@
+.all-expenses-view {
+  margin-top: 30px;
+}
+
+.expenses-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.expenses-header h2 {
+  margin: 0 0 5px 0;
+  font-size: 24px;
+  color: #2d3748;
+}
+
+.total-summary {
+  margin: 0;
+  color: #4a5568;
+  font-size: 14px;
+}
+
+.total-summary strong {
+  color: #667eea;
+  font-size: 18px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.expenses-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Room Section */
+.expense-room-section {
+  overflow: hidden;
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  cursor: pointer;
+  user-select: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.room-header:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.room-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toggle-icon {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+.room-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.expense-count {
+  font-size: 14px;
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.room-total {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Room Expenses Content */
+.room-expenses {
+  padding: 20px;
+  background: #f7fafc;
+}
+
+.expenses-actions {
+  margin-bottom: 15px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Expenses Table */
+.expenses-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.expenses-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.expenses-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.expenses-table tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: background-color 0.2s ease;
+}
+
+.expenses-table tbody tr:hover {
+  background-color: #f7fafc;
+}
+
+.expenses-table tbody tr.editing {
+  background-color: #ebf4ff;
+}
+
+.expenses-table td {
+  padding: 12px;
+  font-size: 14px;
+  color: #2d3748;
+}
+
+.expense-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 2px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+  font-family: inherit;
+}
+
+.expense-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.expense-input[type="number"] {
+  text-align: right;
+}
+
+select.expense-input {
+  cursor: pointer;
+  background-color: white;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}
+
+/* Status and Category Badges */
+.status-badge,
+.category-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.completed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.pending,
+.status-badge.planning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.in-progress {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.category-badge {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.category-badge.products {
+  background: #d4edff;
+  color: #004085;
+}
+
+.category-badge.materials {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.category-badge.labor {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.expenses-table tbody tr.completed {
+  background-color: #f8fff9;
+}
+
+.expenses-table tbody tr.completed:hover {
+  background-color: #e8f9ea;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .expenses-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .expenses-table {
+    font-size: 12px;
+  }
+
+  .expenses-table th,
+  .expenses-table td {
+    padding: 8px 6px;
+  }
+
+  .room-header h3 {
+    font-size: 16px;
+  }
+
+  .expense-count {
+    font-size: 12px;
+  }
+}
