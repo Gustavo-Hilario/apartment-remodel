@@ -53,7 +53,7 @@ export default function RoomsPage() {
           <Button
             variant={showAllItems ? 'secondary' : 'primary'}
             onClick={() => setShowAllItems(!showAllItems)}
-            icon="�"
+            icon="📋"
           >
             {showAllItems ? 'Hide All Items' : 'Show All Items'}
           </Button>

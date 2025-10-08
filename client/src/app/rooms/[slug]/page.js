@@ -27,7 +27,15 @@ export default function RoomEditorPage() {
       const data = await roomsAPI.getOne(roomSlug);
       if (data.success && data.roomData) {
         setRoomData(data.roomData);
-        setItems(data.roomData.items || []);
+        
+        // Map DB field names to UI field names for backward compatibility
+        const mappedItems = (data.roomData.items || []).map(item => ({
+          ...item,
+          budgetRate: item.budget_price || item.budgetRate || 0,
+          actualRate: item.actual_price || item.actualRate || 0
+        }));
+        
+        setItems(mappedItems);
         setRoomBudget(data.roomData.budget || 0);
       }
     } catch (err) {
@@ -169,10 +177,21 @@ export default function RoomEditorPage() {
   const saveRoom = async () => {
     try {
       setSaving(true);
+      
+      // Map UI field names back to DB field names
+      const itemsForDB = items.map(item => ({
+        ...item,
+        budget_price: item.budgetRate || item.budget_price || 0,
+        actual_price: item.actualRate || item.actual_price || 0,
+        // Remove UI-only fields
+        budgetRate: undefined,
+        actualRate: undefined
+      }));
+      
       const updatedRoomData = {
         ...roomData,
         budget: roomBudget,
-        items: items,
+        items: itemsForDB,
       };
       
       await roomsAPI.save(roomSlug, updatedRoomData);
@@ -208,11 +227,22 @@ export default function RoomEditorPage() {
     );
   }
 
-  const totalBudget = items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+  // Calculate Total Budget: sum of all item subtotals (uses actual_price if set, else budget_price)
+  const totalBudget = items.reduce((sum, item) => sum + calculateSubtotal(item), 0);
+  
+  // Calculate Actual Total: sum of actual prices for COMPLETED items only
   const totalActual = items
     .filter(item => item.status === 'Completed')
-    .reduce((sum, item) => sum + ((item.quantity || 0) * (item.actualRate || 0)), 0);
-  const difference = roomBudget - totalActual;
+    .reduce((sum, item) => {
+      const quantity = parseFloat(item.quantity) || 0;
+      const actualPrice = parseFloat(item.actual_price || item.actualRate) || 0;
+      const budgetPrice = parseFloat(item.budget_price || item.budgetRate) || 0;
+      // Use actual_price if set and non-zero, otherwise use budget_price
+      const price = actualPrice > 0 ? actualPrice : budgetPrice;
+      return sum + (quantity * price);
+    }, 0);
+  
+  const difference = totalBudget - totalActual;
 
   return (
     <MainLayout>
