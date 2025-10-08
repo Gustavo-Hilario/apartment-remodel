@@ -78,11 +78,16 @@ export default function BudgetPage() {
       budgetData = rooms.map(room => room.budget || 0);
       actualData = rooms.map(room => {
         const items = room.items || [];
-        return items.reduce((sum, item) => {
-          const qty = parseFloat(item.quantity) || 0;
-          const price = parseFloat(item.actualRate || item.actual_price || 0);
-          return sum + (qty * price);
-        }, 0);
+        return items
+          .filter(item => item.status === 'Completed')
+          .reduce((sum, item) => {
+            const qty = parseFloat(item.quantity) || 0;
+            const actualPrice = parseFloat(item.actual_price || item.actualRate) || 0;
+            const budgetPrice = parseFloat(item.budget_price || item.budgetRate) || 0;
+            // Use actual_price if set and non-zero, otherwise budget_price
+            const price = actualPrice > 0 ? actualPrice : budgetPrice;
+            return sum + (qty * price);
+          }, 0);
       });
     } else {
       // Show single room - group by category
@@ -314,11 +319,16 @@ export default function BudgetPage() {
                   <tbody>
                     {rooms.map((room) => {
                       const budget = room.budget || 0;
-                      const actual = (room.items || []).reduce((sum, item) => {
-                        const qty = parseFloat(item.quantity) || 0;
-                        const price = parseFloat(item.actualRate || item.actual_price || 0);
-                        return sum + (qty * price);
-                      }, 0);
+                      const actual = (room.items || [])
+                        .filter(item => item.status === 'Completed')
+                        .reduce((sum, item) => {
+                          const qty = parseFloat(item.quantity) || 0;
+                          const actualPrice = parseFloat(item.actual_price || item.actualRate) || 0;
+                          const budgetPrice = parseFloat(item.budget_price || item.budgetRate) || 0;
+                          // Use actual_price if set and non-zero, otherwise budget_price
+                          const price = actualPrice > 0 ? actualPrice : budgetPrice;
+                          return sum + (qty * price);
+                        }, 0);
                       const difference = budget - actual;
                       const percentUsed = budget > 0 ? (actual / budget) * 100 : 0;
                       

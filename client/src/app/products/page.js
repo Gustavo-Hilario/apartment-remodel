@@ -38,6 +38,7 @@ export default function ProductsPage() {
         roomsAPI.getAll()
       ]);
 
+      // Products come with budget_price and actual_price from DB - use them directly
       setProducts(Array.isArray(productsData) ? productsData : []);
       setRooms(Array.isArray(roomsData) ? roomsData : []);
     } catch (err) {
@@ -68,15 +69,8 @@ export default function ProductsPage() {
         })
       );
       
-      // Map product fields to match API expectations
-      const saveData = {
-        ...product,
-        budget_price: product.budgetRate || product.budget_price || 0,
-        actual_price: product.actualRate || product.actual_price || 0
-      };
-      
-      // Save to backend silently
-      await productsAPI.save(saveData, product);
+      // Save product data as-is (already using budget_price and actual_price)
+      await productsAPI.save(product, product);
     } catch (err) {
       console.error('Error saving product:', err);
       // Revert on error by reloading

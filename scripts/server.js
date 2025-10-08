@@ -60,9 +60,8 @@ app.get('/api/load-room/:roomName', async (req, res) => {
                 category: item.category,
                 quantity: item.quantity,
                 unit: item.unit,
-                budgetRate: item.budget_price,
-                actualRate: item.actual_price,
-                subtotal: item.subtotal,
+                budget_price: item.budget_price,
+                actual_price: item.actual_price,
                 status: item.status,
                 favorite: item.favorite || false,
                 images: item.images || [], // Return images array
@@ -124,9 +123,8 @@ app.post('/api/save-room/:roomName', async (req, res) => {
             category: item.category,
             quantity: parseFloat(item.quantity) || 1,
             unit: item.unit || 'unit',
-            budget_price: parseFloat(item.budgetRate) || 0,
-            actual_price: parseFloat(item.actualRate) || 0,
-            subtotal: parseFloat(item.subtotal) || 0,
+            budget_price: parseFloat(item.budget_price) || 0,
+            actual_price: parseFloat(item.actual_price) || 0,
             status: item.status || 'Pending',
             favorite: item.favorite || false,
             images: item.images || [], // Save images array

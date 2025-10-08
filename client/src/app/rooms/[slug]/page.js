@@ -27,15 +27,8 @@ export default function RoomEditorPage() {
       const data = await roomsAPI.getOne(roomSlug);
       if (data.success && data.roomData) {
         setRoomData(data.roomData);
-        
-        // Map DB field names to UI field names for backward compatibility
-        const mappedItems = (data.roomData.items || []).map(item => ({
-          ...item,
-          budgetRate: item.budget_price || item.budgetRate || 0,
-          actualRate: item.actual_price || item.actualRate || 0
-        }));
-        
-        setItems(mappedItems);
+        // Items already have budget_price and actual_price from DB
+        setItems(data.roomData.items || []);
         setRoomBudget(data.roomData.budget || 0);
       }
     } catch (err) {
@@ -55,8 +48,8 @@ export default function RoomEditorPage() {
   // Calculate subtotal: use actual_price if set, otherwise budget_price
   const calculateSubtotal = (item) => {
     const quantity = parseFloat(item.quantity) || 0;
-    const actualPrice = parseFloat(item.actual_price || item.actualRate) || 0;
-    const budgetPrice = parseFloat(item.budget_price || item.budgetRate) || 0;
+    const actualPrice = parseFloat(item.actual_price) || 0;
+    const budgetPrice = parseFloat(item.budget_price) || 0;
     
     // Use actual price if it's set and non-zero, otherwise use budget price
     const price = actualPrice > 0 ? actualPrice : budgetPrice;
@@ -66,14 +59,6 @@ export default function RoomEditorPage() {
   const handleItemChange = (originalIndex, field, value) => {
     const updatedItems = [...items];
     updatedItems[originalIndex][field] = value;
-
-    // Map frontend field names to database field names
-    if (field === 'budgetRate') {
-      updatedItems[originalIndex].budget_price = value;
-    } else if (field === 'actualRate') {
-      updatedItems[originalIndex].actual_price = value;
-    }
-
     setItems(updatedItems);
   };
 
@@ -85,8 +70,6 @@ export default function RoomEditorPage() {
       unit: 'unit',
       budget_price: 0,
       actual_price: 0,
-      budgetRate: 0,  // For backward compatibility with UI
-      actualRate: 0,   // For backward compatibility with UI
       status: 'Pending',
       favorite: false,
       imageUrl: '',
@@ -144,13 +127,13 @@ export default function RoomEditorPage() {
           aVal = (a.category || '').toLowerCase();
           bVal = (b.category || '').toLowerCase();
           break;
-        case 'budgetRate':
-          aVal = a.budgetRate || 0;
-          bVal = b.budgetRate || 0;
+        case 'budget_price':
+          aVal = a.budget_price || 0;
+          bVal = b.budget_price || 0;
           break;
-        case 'actualRate':
-          aVal = a.actualRate || 0;
-          bVal = b.actualRate || 0;
+        case 'actual_price':
+          aVal = a.actual_price || 0;
+          bVal = b.actual_price || 0;
           break;
         case 'subtotal':
           aVal = calculateSubtotal(a);
@@ -178,20 +161,11 @@ export default function RoomEditorPage() {
     try {
       setSaving(true);
       
-      // Map UI field names back to DB field names
-      const itemsForDB = items.map(item => ({
-        ...item,
-        budget_price: item.budgetRate || item.budget_price || 0,
-        actual_price: item.actualRate || item.actual_price || 0,
-        // Remove UI-only fields
-        budgetRate: undefined,
-        actualRate: undefined
-      }));
-      
+      // Items already use budget_price and actual_price - no mapping needed
       const updatedRoomData = {
         ...roomData,
         budget: roomBudget,
-        items: itemsForDB,
+        items: items,
       };
       
       await roomsAPI.save(roomSlug, updatedRoomData);
@@ -235,8 +209,8 @@ export default function RoomEditorPage() {
     .filter(item => item.status === 'Completed')
     .reduce((sum, item) => {
       const quantity = parseFloat(item.quantity) || 0;
-      const actualPrice = parseFloat(item.actual_price || item.actualRate) || 0;
-      const budgetPrice = parseFloat(item.budget_price || item.budgetRate) || 0;
+      const actualPrice = parseFloat(item.actual_price) || 0;
+      const budgetPrice = parseFloat(item.budget_price) || 0;
       // Use actual_price if set and non-zero, otherwise use budget_price
       const price = actualPrice > 0 ? actualPrice : budgetPrice;
       return sum + (quantity * price);
@@ -349,17 +323,17 @@ export default function RoomEditorPage() {
                   <th style={{ width: '80px' }}>Unit</th>
                   <th 
                     style={{ width: '100px', cursor: 'pointer' }}
-                    onClick={() => handleSort('budgetRate')}
+                    onClick={() => handleSort('budget_price')}
                     className="sortable"
                   >
-                    Budget Price {sortBy === 'budgetRate' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    Budget Price {sortBy === 'budget_price' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
                   <th 
                     style={{ width: '100px', cursor: 'pointer' }}
-                    onClick={() => handleSort('actualRate')}
+                    onClick={() => handleSort('actual_price')}
                     className="sortable"
                   >
-                    Actual Price {sortBy === 'actualRate' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    Actual Price {sortBy === 'actual_price' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
                   <th 
                     style={{ width: '100px', cursor: 'pointer' }}
@@ -438,8 +412,8 @@ export default function RoomEditorPage() {
                     <td>
                       <input
                         type="number"
-                        value={item.budgetRate || 0}
-                        onChange={(e) => handleItemChange(item.originalIndex, 'budgetRate', parseFloat(e.target.value) || 0)}
+                        value={item.budget_price || 0}
+                        onChange={(e) => handleItemChange(item.originalIndex, 'budget_price', parseFloat(e.target.value) || 0)}
                         min="0"
                         step="0.01"
                       />
@@ -447,8 +421,8 @@ export default function RoomEditorPage() {
                     <td>
                       <input
                         type="number"
-                        value={item.actualRate || 0}
-                        onChange={(e) => handleItemChange(item.originalIndex, 'actualRate', parseFloat(e.target.value) || 0)}
+                        value={item.actual_price || 0}
+                        onChange={(e) => handleItemChange(item.originalIndex, 'actual_price', parseFloat(e.target.value) || 0)}
                         min="0"
                         step="0.01"
                       />

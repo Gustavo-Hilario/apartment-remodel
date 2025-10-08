@@ -11,15 +11,9 @@ export default function AllItemsView({ rooms, onRefresh }) {
   const [editingItems, setEditingItems] = useState({}); // { roomSlug: { itemIndex: true } }
   const [roomsData, setRoomsData] = useState(
     rooms.reduce((acc, room) => {
-      // Map DB field names to UI field names
-      const mappedItems = (room.items || []).map(item => ({
-        ...item,
-        budgetRate: item.budget_price || item.budgetRate || 0,
-        actualRate: item.actual_price || item.actualRate || 0
-      }));
-      
+      // Items already have budget_price and actual_price from DB
       acc[room.slug] = {
-        items: mappedItems,
+        items: room.items || [],
         budget: room.budget || 0
       };
       return acc;
@@ -31,8 +25,8 @@ export default function AllItemsView({ rooms, onRefresh }) {
   // Calculate subtotal: use actual_price if set, otherwise budget_price
   const calculateSubtotal = (item) => {
     const quantity = parseFloat(item.quantity) || 0;
-    const actualPrice = parseFloat(item.actualRate) || 0;
-    const budgetPrice = parseFloat(item.budgetRate) || 0;
+    const actualPrice = parseFloat(item.actual_price) || 0;
+    const budgetPrice = parseFloat(item.budget_price) || 0;
     // Use actual price if it's set and non-zero, otherwise use budget price
     const price = actualPrice > 0 ? actualPrice : budgetPrice;
     return quantity * price;
@@ -53,14 +47,6 @@ export default function AllItemsView({ rooms, onRefresh }) {
       const newData = { ...prev };
       const updatedItems = [...newData[roomSlug].items];
       updatedItems[itemIndex][field] = value;
-      
-      // Map UI fields to DB fields
-      if (field === 'budgetRate') {
-        updatedItems[itemIndex].budget_price = value;
-      } else if (field === 'actualRate') {
-        updatedItems[itemIndex].actual_price = value;
-      }
-
       newData[roomSlug] = { ...newData[roomSlug], items: updatedItems };
       return newData;
     });
@@ -102,8 +88,6 @@ export default function AllItemsView({ rooms, onRefresh }) {
         category: 'Other',
         quantity: 1,
         unit: 'unit',
-        budgetRate: 0,
-        actualRate: 0,
         budget_price: 0,
         actual_price: 0,
         status: 'Pending',
@@ -152,20 +136,16 @@ export default function AllItemsView({ rooms, onRefresh }) {
       
       // Save each modified room
       const savePromises = Array.from(modifiedRooms).map(async (roomSlug) => {
-        // Map UI field names back to DB field names
-        const itemsForDB = roomsData[roomSlug].items.map(item => ({
-          ...item,
-          budget_price: item.budgetRate || item.budget_price || 0,
-          actual_price: item.actualRate || item.actual_price || 0,
-          // Remove UI-only fields
-          budgetRate: undefined,
-          actualRate: undefined
-        }));
+        // Items already use budget_price and actual_price - no mapping needed
+        const roomDataToSave = {
+          items: roomsData[roomSlug].items,
+          budget: roomsData[roomSlug].budget
+        };
         
         const roomData = {
           name: rooms.find(r => r.slug === roomSlug)?.name,
           budget: roomsData[roomSlug].budget,
-          items: itemsForDB,
+          items: roomsData[roomSlug].items,
         };
         
         return roomsAPI.save(roomSlug, roomData);
@@ -245,8 +225,8 @@ export default function AllItemsView({ rooms, onRefresh }) {
             .filter(item => item.status === 'Completed')
             .reduce((sum, item) => {
               const quantity = parseFloat(item.quantity) || 0;
-              const actualPrice = parseFloat(item.actualRate || item.actual_price) || 0;
-              const budgetPrice = parseFloat(item.budgetRate || item.budget_price) || 0;
+              const actualPrice = parseFloat(item.actual_price) || 0;
+              const budgetPrice = parseFloat(item.budget_price) || 0;
               const price = actualPrice > 0 ? actualPrice : budgetPrice;
               return sum + (quantity * price);
             }, 0);
@@ -423,28 +403,28 @@ function ItemsRoomSection({
                       {isEditing ? (
                         <input
                           type="number"
-                          value={item.budgetRate || item.budget_price || 0}
-                          onChange={(e) => onItemChange(index, 'budgetRate', parseFloat(e.target.value) || 0)}
+                          value={item.budget_price || 0}
+                          onChange={(e) => onItemChange(index, 'budget_price', parseFloat(e.target.value) || 0)}
                           className="expense-input"
                           min="0"
                           step="0.01"
                         />
                       ) : (
-                        formatCurrency(item.budgetRate || item.budget_price || 0)
+                        formatCurrency(item.budget_price || 0)
                       )}
                     </td>
                     <td>
                       {isEditing ? (
                         <input
                           type="number"
-                          value={item.actualRate || item.actual_price || 0}
-                          onChange={(e) => onItemChange(index, 'actualRate', parseFloat(e.target.value) || 0)}
+                          value={item.actual_price || 0}
+                          onChange={(e) => onItemChange(index, 'actual_price', parseFloat(e.target.value) || 0)}
                           className="expense-input"
                           min="0"
                           step="0.01"
                         />
                       ) : (
-                        formatCurrency(item.actualRate || item.actual_price || 0)
+                        formatCurrency(item.actual_price || 0)
                       )}
                     </td>
                     <td><strong>{formatCurrency(calculateSubtotal(item))}</strong></td>
