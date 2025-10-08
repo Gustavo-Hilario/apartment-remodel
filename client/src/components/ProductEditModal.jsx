@@ -20,6 +20,7 @@ export default function ProductEditModal({
   isOpen,
   onClose,
   product = null,
+  initialData = null,
   onSave,
   availableRooms = []
 }) {
@@ -40,15 +41,17 @@ export default function ProductEditModal({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Initialize form data when product changes
+  // Initialize form data when product or initialData changes
   useEffect(() => {
-    if (product) {
+    const dataToLoad = product || initialData;
+    
+    if (dataToLoad) {
       // Convert existing images to the new format with IDs if needed
       let formattedImages = [];
 
       // Handle new images array format
-      if (product.images && product.images.length > 0) {
-        formattedImages = product.images.map((img, index) => ({
+      if (dataToLoad.images && dataToLoad.images.length > 0) {
+        formattedImages = dataToLoad.images.map((img, index) => ({
           id: img.id || `existing-${index}`,
           name: img.name || `Image ${index + 1}`,
           data: img.data || img.url || img,
@@ -58,32 +61,33 @@ export default function ProductEditModal({
         }));
       }
       // Handle legacy imageUrl field
-      else if (product.imageUrl) {
+      else if (dataToLoad.imageUrl) {
         formattedImages = [{
           id: 'legacy-image',
-          name: product.description || 'Product Image',
-          data: product.imageUrl,
-          url: product.imageUrl,
+          name: dataToLoad.description || 'Product Image',
+          data: dataToLoad.imageUrl,
+          url: dataToLoad.imageUrl,
           showImage: true, // Legacy images are automatically primary
           size: 0
         }];
       }
 
       setFormData({
-        description: product.description || '',
-        category: product.category || 'Products',
-        quantity: product.quantity || 1,
-        unit: product.unit || 'unit',
-        budget_price: product.budgetRate || product.budget_price || 0,
-        actual_price: product.actualRate || product.actual_price || 0,
-        status: product.status || 'Planning',
-        favorite: product.favorite || product.isFavorite || false,
-        room: product.room || '',
-        notes: product.notes || '',
+        description: dataToLoad.description || '',
+        category: dataToLoad.category || 'Products',
+        quantity: dataToLoad.quantity || 1,
+        unit: dataToLoad.unit || 'unit',
+        budget_price: dataToLoad.budgetRate || dataToLoad.budget_price || 0,
+        actual_price: dataToLoad.actualRate || dataToLoad.actual_price || 0,
+        status: dataToLoad.status || 'Planning',
+        favorite: dataToLoad.favorite || dataToLoad.isFavorite || false,
+        room: dataToLoad.room || availableRooms[0]?.slug || '',
+        notes: dataToLoad.notes || '',
         images: formattedImages
       });
     } else {
-      // Reset for new product
+      // Reset for new product - use the first available room
+      const defaultRoom = availableRooms && availableRooms.length > 0 ? availableRooms[0].slug : '';
       setFormData({
         description: '',
         category: 'Products',
@@ -93,13 +97,13 @@ export default function ProductEditModal({
         actual_price: 0,
         status: 'Planning',
         favorite: false,
-        room: availableRooms[0]?.slug || '',
+        room: defaultRoom,
         notes: '',
         images: []
       });
     }
     setErrors({});
-  }, [product, availableRooms]);
+  }, [product, initialData]); // Removed availableRooms from dependencies to prevent loops
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({

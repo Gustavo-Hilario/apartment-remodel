@@ -19,6 +19,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [duplicateData, setDuplicateData] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState('all');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -84,10 +85,38 @@ export default function ProductsPage() {
     setShowModal(true);
   };
 
+  const handleDuplicate = (product) => {
+    // Create a duplicate product object without the originalIndex and uniqueId
+    const duplicateProduct = {
+      description: `${product.description} (Copy)`,
+      category: product.category,
+      quantity: product.quantity,
+      unit: product.unit,
+      budget_price: product.budget_price,
+      actual_price: product.actual_price,
+      status: product.status,
+      favorite: false, // Reset favorite status for duplicates
+      room: product.room, // Keep the same room by default, user can change
+      notes: product.notes || '',
+      images: product.images || [],
+      links: product.links || []
+    };
+    
+    // Open modal in "add new" mode with pre-filled data
+    setSelectedProduct(null); // null means "add new"
+    setShowModal(true);
+    
+    // After modal opens, we need to pass the duplicate data
+    // We'll use a separate state for this
+    setDuplicateData(duplicateProduct);
+  };
+
   const handleSave = async (productData) => {
     await productsAPI.save(productData, selectedProduct);
     // Refresh the products list
     await loadData();
+    // Clear duplicate data after save
+    setDuplicateData(null);
   };
 
   const handleDelete = async (product) => {
@@ -106,6 +135,7 @@ export default function ProductsPage() {
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedProduct(null);
+    setDuplicateData(null);
   };
 
   // Filter and sort products
@@ -308,6 +338,7 @@ export default function ProductsPage() {
                     onEdit={handleEdit}
                     onQuickSave={handleQuickSave}
                     onDelete={handleDelete}
+                    onDuplicate={handleDuplicate}
                   />
                 ))
               )}
@@ -319,6 +350,7 @@ export default function ProductsPage() {
           isOpen={showModal}
           onClose={handleCloseModal}
           product={selectedProduct}
+          initialData={duplicateData}
           onSave={handleSave}
           availableRooms={rooms}
         />

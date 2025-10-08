@@ -142,6 +142,35 @@
   flex: 1;
 }
 
+.product-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.duplicate-btn {
+  background: none;
+  border: 2px solid #e5e5e5;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  color: #666;
+}
+
+.duplicate-btn:hover {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+  transform: scale(1.1);
+  color: #667eea;
+}
+
 .product-name {
   margin: 0;
   font-size: 1.15rem;

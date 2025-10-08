@@ -99,6 +99,57 @@ export const productsAPI = {
 
     // Save/update a product
     save: async (productData, originalProduct = null) => {
+        // Check if the room has changed
+        const roomChanged = originalProduct && originalProduct.room !== productData.room;
+
+        if (roomChanged) {
+            // ROOM CHANGE: Remove from old room and add to new room
+            
+            // 1. Remove from old room
+            const oldRoomResponse = await roomsAPI.getOne(originalProduct.room);
+            const oldRoomData = oldRoomResponse.roomData;
+            
+            if (!oldRoomData || !oldRoomData.items) {
+                throw new Error('Failed to load old room data');
+            }
+            
+            const oldRoomItems = oldRoomData.items.filter((_, index) => index !== originalProduct.originalIndex);
+            await roomsAPI.save(originalProduct.room, {
+                ...oldRoomData,
+                items: oldRoomItems
+            });
+            
+            // 2. Add to new room
+            const newRoomResponse = await roomsAPI.getOne(productData.room);
+            const newRoomData = newRoomResponse.roomData;
+            
+            if (!newRoomData || !newRoomData.items) {
+                throw new Error('Failed to load new room data');
+            }
+            
+            const newRoomItems = [...newRoomData.items, {
+                description: productData.description,
+                category: productData.category,
+                quantity: productData.quantity,
+                unit: productData.unit,
+                budget_price: productData.budget_price,
+                actual_price: productData.actual_price,
+                status: productData.status,
+                favorite: productData.favorite,
+                notes: productData.notes || '',
+                imageUrl: (productData.images && productData.images.length > 0) ? '' : (productData.imageUrl || ''),
+                showImage: false,
+                links: productData.links || [],
+                images: productData.images || []
+            }];
+            
+            return await roomsAPI.save(productData.room, {
+                ...newRoomData,
+                items: newRoomItems
+            });
+        }
+        
+        // SAME ROOM: Update in place
         // Load the target room data
         const response = await roomsAPI.getOne(productData.room);
         const roomData = response.roomData;

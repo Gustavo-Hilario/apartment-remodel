@@ -12,7 +12,7 @@ import Button from '../ui/Button';
 import { formatCurrency } from '@/lib/currency';
 import './ProductCard.css';
 
-export default function ProductCard({ product, onEdit, onQuickSave, onDelete }) {
+export default function ProductCard({ product, onEdit, onQuickSave, onDelete, onDuplicate }) {
   // Handle both new images array and legacy imageUrl field for initial state
   const initialIndex = (() => {
     if (product.images && product.images.length > 0) {
@@ -156,13 +156,25 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete }) 
               <span className="product-category">{product.category}</span>
             )}
           </div>
-          <button 
-            className={`favorite-toggle ${isFavorite ? 'is-favorite' : ''}`}
-            onClick={handleToggleFavorite}
-            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-          >
-            {isFavorite ? '⭐' : '☆'}
-          </button>
+          <div className="product-header-actions">
+            <button 
+              className="duplicate-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDuplicate?.(product);
+              }}
+              title="Duplicate product"
+            >
+              📋
+            </button>
+            <button 
+              className={`favorite-toggle ${isFavorite ? 'is-favorite' : ''}`}
+              onClick={handleToggleFavorite}
+              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              {isFavorite ? '⭐' : '☆'}
+            </button>
+          </div>
         </div>
 
         <div className="product-details">
