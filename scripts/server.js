@@ -29,7 +29,7 @@ app.get('/api/rooms', async (req, res) => {
     try {
         // Fetch rooms - virtuals will automatically calculate actual_spent, progress_percent, etc.
         const rooms = await Room.find({});
-        
+
         // Return rooms with all virtual fields included (toJSON is configured to include virtuals)
         res.json({ success: true, rooms });
     } catch (error) {
@@ -135,7 +135,9 @@ app.post('/api/save-room/:roomName', async (req, res) => {
         }));
 
         // Update status based on completed items
-        const completedItems = room.items.filter(item => item.status === 'Completed').length;
+        const completedItems = room.items.filter(
+            (item) => item.status === 'Completed'
+        ).length;
         room.status =
             completedItems === room.items.length && room.items.length > 0
                 ? 'Completed'
@@ -210,28 +212,30 @@ app.get('/api/totals', async (req, res) => {
     try {
         // Get all rooms with virtuals (actual_spent, progress_percent, etc.)
         const rooms = await Room.find({});
-        
+
         // Get expenses count
         const expenses = await Expense.find({});
-        
+
         // Calculate totals from room virtuals
         let totalBudget = 0;
         let totalActualSpent = 0;
         let totalItems = 0;
         let totalCompleted = 0;
         let productsCount = 0;
-        
-        rooms.forEach(room => {
+
+        rooms.forEach((room) => {
             totalBudget += room.budget || 0;
             totalActualSpent += room.actual_spent || 0; // This is a virtual
             totalItems += room.total_items || 0; // This is a virtual
             totalCompleted += room.completed_items || 0; // This is a virtual
-            
+
             if (room.items) {
-                productsCount += room.items.filter(item => item.category === 'Products').length;
+                productsCount += room.items.filter(
+                    (item) => item.category === 'Products'
+                ).length;
             }
         });
-        
+
         // Format response to match frontend expectations
         const response = {
             totalBudget,
@@ -242,7 +246,7 @@ app.get('/api/totals', async (req, res) => {
             totalProducts: productsCount,
             expenseCount: expenses.length,
         };
-        
+
         res.json(response);
     } catch (error) {
         console.error('Error getting totals:', error);
@@ -330,17 +334,16 @@ app.post('/api/save-expenses', async (req, res) => {
 
         // Helper function to create unique key for expense
         const getExpenseKey = (exp) => {
-            const roomsKey = Array.isArray(exp.rooms) && exp.rooms.length > 0
-                ? exp.rooms.sort().join(',')
-                : 'General';
+            const roomsKey =
+                Array.isArray(exp.rooms) && exp.rooms.length > 0
+                    ? exp.rooms.sort().join(',')
+                    : 'General';
             return `${exp.description}|${exp.category}|${roomsKey}`;
         };
 
         // Get existing expenses to detect changes
         const existing = await Expense.find();
-        const existingMap = new Map(
-            existing.map((e) => [getExpenseKey(e), e])
-        );
+        const existingMap = new Map(existing.map((e) => [getExpenseKey(e), e]));
 
         // Track what to delete
         const toDelete = [];
@@ -405,21 +408,25 @@ app.post('/api/save-expenses', async (req, res) => {
 
         // Execute deletions (remove from rooms using expenseId tracking)
         for (const deletedExpense of toDelete) {
-            console.log(`\n🗑️  Deleting expense: "${deletedExpense.description}"`);
-            
+            console.log(
+                `\n🗑️  Deleting expense: "${deletedExpense.description}"`
+            );
+
             // Remove from all rooms that have items with this expenseId
             const allRooms = await Room.find();
             for (const room of allRooms) {
                 const originalLength = room.items.length;
                 room.items = room.items.filter(
-                    (item) => !item.expenseId || !item.expenseId.equals(deletedExpense._id)
+                    (item) =>
+                        !item.expenseId ||
+                        !item.expenseId.equals(deletedExpense._id)
                 );
                 if (room.items.length !== originalLength) {
                     await recalculateRoomStats(room);
                     console.log(`   ✅ Removed from ${room.name}`);
                 }
             }
-            
+
             // Delete the expense itself
             await Expense.deleteOne({ _id: deletedExpense._id });
         }
@@ -429,33 +436,35 @@ app.post('/api/save-expenses', async (req, res) => {
             const oldAmount = expense.amount;
             const oldRooms = expense.rooms || [];
             const newRooms = data.rooms || [];
-            
+
             // Update the expense
             Object.assign(expense, data);
             await expense.save();
 
             console.log(`\n✏️  Updating expense: "${data.description}"`);
-            
+
             // Determine which rooms to update based on rooms array
             let roomsToUpdate = [];
             if (newRooms.length > 0) {
                 roomsToUpdate = newRooms;
             } else if (data.room === 'All Rooms') {
                 const allRooms = await Room.find();
-                roomsToUpdate = allRooms.map(r => r.slug);
+                roomsToUpdate = allRooms.map((r) => r.slug);
             }
-            
+
             // Calculate amount per room
-            const amountPerRoom = roomsToUpdate.length > 0 
-                ? data.amount / roomsToUpdate.length 
-                : data.amount;
+            const amountPerRoom =
+                roomsToUpdate.length > 0
+                    ? data.amount / roomsToUpdate.length
+                    : data.amount;
 
             // Update items in affected rooms
             for (const roomSlug of roomsToUpdate) {
                 const room = await Room.findOne({ slug: roomSlug });
                 if (room) {
                     const item = room.items.find(
-                        (item) => item.expenseId && item.expenseId.equals(expense._id)
+                        (item) =>
+                            item.expenseId && item.expenseId.equals(expense._id)
                     );
 
                     if (item) {
@@ -465,7 +474,9 @@ app.post('/api/save-expenses', async (req, res) => {
                         item.category = data.roomCategory;
                         await recalculateRoomStats(room);
                         console.log(
-                            `   ✅ Updated in ${room.name}: S/ ${amountPerRoom.toFixed(2)}`
+                            `   ✅ Updated in ${
+                                room.name
+                            }: S/ ${amountPerRoom.toFixed(2)}`
                         );
                     }
                 }
@@ -476,7 +487,9 @@ app.post('/api/save-expenses', async (req, res) => {
         for (const data of toCreate) {
             // Create the expense first to get the ID
             const newExpense = await Expense.create(data);
-            console.log(`\n➕ Creating expense: "${data.description}" (S/ ${data.amount})`);
+            console.log(
+                `\n➕ Creating expense: "${data.description}" (S/ ${data.amount})`
+            );
 
             // Determine which rooms to add this expense to
             let roomsToAddTo = [];
@@ -484,7 +497,7 @@ app.post('/api/save-expenses', async (req, res) => {
                 roomsToAddTo = data.rooms;
             } else if (data.room === 'All Rooms') {
                 const allRooms = await Room.find();
-                roomsToAddTo = allRooms.map(r => r.slug);
+                roomsToAddTo = allRooms.map((r) => r.slug);
             }
 
             // Skip room addition if it's a General expense (no rooms)
@@ -495,14 +508,20 @@ app.post('/api/save-expenses', async (req, res) => {
 
             // Calculate amount per room (split equally)
             const amountPerRoom = data.amount / roomsToAddTo.length;
-            console.log(`   💰 Splitting across ${roomsToAddTo.length} room(s): S/ ${amountPerRoom.toFixed(2)} each`);
+            console.log(
+                `   💰 Splitting across ${
+                    roomsToAddTo.length
+                } room(s): S/ ${amountPerRoom.toFixed(2)} each`
+            );
 
             // Add expense item to each selected room
             for (const roomSlug of roomsToAddTo) {
                 const room = await Room.findOne({ slug: roomSlug });
                 if (room) {
                     const existingItem = room.items.find(
-                        (item) => item.expenseId && item.expenseId.equals(newExpense._id)
+                        (item) =>
+                            item.expenseId &&
+                            item.expenseId.equals(newExpense._id)
                     );
 
                     if (!existingItem) {
@@ -519,7 +538,9 @@ app.post('/api/save-expenses', async (req, res) => {
                         });
                         await recalculateRoomStats(room);
                         console.log(
-                            `   ✅ Added to ${room.name}: S/ ${amountPerRoom.toFixed(2)}`
+                            `   ✅ Added to ${
+                                room.name
+                            }: S/ ${amountPerRoom.toFixed(2)}`
                         );
                     }
                 }

@@ -114,31 +114,31 @@ const roomSchema = new mongoose.Schema(
 
 // Virtual property to calculate actual_spent
 // For completed items, use actual_price if set, otherwise budget_price
-roomSchema.virtual('actual_spent').get(function() {
+roomSchema.virtual('actual_spent').get(function () {
     return this.items
-        .filter(item => item.status === 'Completed')
+        .filter((item) => item.status === 'Completed')
         .reduce((sum, item) => {
             const quantity = parseFloat(item.quantity) || 0;
             const actualPrice = parseFloat(item.actual_price) || 0;
             const budgetPrice = parseFloat(item.budget_price) || 0;
             // Use actual_price if it's set and non-zero, otherwise use budget_price
             const price = actualPrice > 0 ? actualPrice : budgetPrice;
-            return sum + (quantity * price);
+            return sum + quantity * price;
         }, 0);
 });
 
 // Virtual property to calculate total_items
-roomSchema.virtual('total_items').get(function() {
+roomSchema.virtual('total_items').get(function () {
     return this.items.length;
 });
 
 // Virtual property to calculate completed_items
-roomSchema.virtual('completed_items').get(function() {
-    return this.items.filter(item => item.status === 'Completed').length;
+roomSchema.virtual('completed_items').get(function () {
+    return this.items.filter((item) => item.status === 'Completed').length;
 });
 
 // Virtual property to calculate progress_percent
-roomSchema.virtual('progress_percent').get(function() {
+roomSchema.virtual('progress_percent').get(function () {
     if (this.items.length === 0) return 0;
     return (this.completed_items / this.items.length) * 100;
 });

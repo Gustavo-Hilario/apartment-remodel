@@ -51,7 +51,11 @@ export const roomsAPI = {
 
     // Save room data
     save: async (slug, roomData) => {
-        console.log('🚀 Sending save request to server:', `/save-room/${slug}`, roomData);
+        console.log(
+            '🚀 Sending save request to server:',
+            `/save-room/${slug}`,
+            roomData
+        );
         try {
             const result = await fetchAPI(`/save-room/${slug}`, {
                 method: 'POST',
@@ -100,55 +104,64 @@ export const productsAPI = {
     // Save/update a product
     save: async (productData, originalProduct = null) => {
         // Check if the room has changed
-        const roomChanged = originalProduct && originalProduct.room !== productData.room;
+        const roomChanged =
+            originalProduct && originalProduct.room !== productData.room;
 
         if (roomChanged) {
             // ROOM CHANGE: Remove from old room and add to new room
-            
+
             // 1. Remove from old room
             const oldRoomResponse = await roomsAPI.getOne(originalProduct.room);
             const oldRoomData = oldRoomResponse.roomData;
-            
+
             if (!oldRoomData || !oldRoomData.items) {
                 throw new Error('Failed to load old room data');
             }
-            
-            const oldRoomItems = oldRoomData.items.filter((_, index) => index !== originalProduct.originalIndex);
+
+            const oldRoomItems = oldRoomData.items.filter(
+                (_, index) => index !== originalProduct.originalIndex
+            );
             await roomsAPI.save(originalProduct.room, {
                 ...oldRoomData,
-                items: oldRoomItems
+                items: oldRoomItems,
             });
-            
+
             // 2. Add to new room
             const newRoomResponse = await roomsAPI.getOne(productData.room);
             const newRoomData = newRoomResponse.roomData;
-            
+
             if (!newRoomData || !newRoomData.items) {
                 throw new Error('Failed to load new room data');
             }
-            
-            const newRoomItems = [...newRoomData.items, {
-                description: productData.description,
-                category: productData.category,
-                quantity: productData.quantity,
-                unit: productData.unit,
-                budget_price: productData.budget_price,
-                actual_price: productData.actual_price,
-                status: productData.status,
-                favorite: productData.favorite,
-                notes: productData.notes || '',
-                imageUrl: (productData.images && productData.images.length > 0) ? '' : (productData.imageUrl || ''),
-                showImage: false,
-                links: productData.links || [],
-                images: productData.images || []
-            }];
-            
+
+            const newRoomItems = [
+                ...newRoomData.items,
+                {
+                    description: productData.description,
+                    category: productData.category,
+                    quantity: productData.quantity,
+                    unit: productData.unit,
+                    budget_price: productData.budget_price,
+                    actual_price: productData.actual_price,
+                    status: productData.status,
+                    favorite: productData.favorite,
+                    notes: productData.notes || '',
+                    imageUrl:
+                        productData.images && productData.images.length > 0
+                            ? ''
+                            : productData.imageUrl || '',
+                    showImage: false,
+                    links: productData.links || [],
+                    images: productData.images || [],
+                },
+            ];
+
             return await roomsAPI.save(productData.room, {
                 ...newRoomData,
-                items: newRoomItems
+                items: newRoomItems,
             });
         }
-        
+
         // SAME ROOM: Update in place
         // Load the target room data
         const response = await roomsAPI.getOne(productData.room);
@@ -176,9 +189,12 @@ export const productsAPI = {
                     favorite: productData.favorite,
                     notes: productData.notes || '',
                     // Clear legacy imageUrl if we have images array
-                    imageUrl: (productData.images && productData.images.length > 0) ? '' : (productData.imageUrl || ''),
+                    imageUrl:
+                        productData.images && productData.images.length > 0
+                            ? ''
+                            : productData.imageUrl || '',
                     links: productData.links || [],
-                    images: productData.images || []
+                    images: productData.images || [],
                 };
             } else {
                 throw new Error('Product not found in room');
@@ -196,23 +212,28 @@ export const productsAPI = {
                 favorite: productData.favorite,
                 notes: productData.notes || '',
                 // Clear legacy imageUrl if we have images array
-                imageUrl: (productData.images && productData.images.length > 0) ? '' : (productData.imageUrl || ''),
+                imageUrl:
+                    productData.images && productData.images.length > 0
+                        ? ''
+                        : productData.imageUrl || '',
                 showImage: false,
                 links: productData.links || [],
-                images: productData.images || []
+                images: productData.images || [],
             });
         }
 
         // Save the updated room data
         const updatedRoomData = {
             ...roomData,
-            items: updatedItems
+            items: updatedItems,
         };
 
         console.log('🔄 About to save room data to server:', {
             room: productData.room,
             itemsCount: updatedItems.length,
-            updatedProduct: updatedItems.find(item => item.description === productData.description)
+            updatedProduct: updatedItems.find(
+                (item) => item.description === productData.description
+            ),
         });
 
         return await roomsAPI.save(productData.room, updatedRoomData);
@@ -229,16 +250,18 @@ export const productsAPI = {
         }
 
         // Remove the item at the specified index
-        const updatedItems = roomData.items.filter((_, index) => index !== product.originalIndex);
+        const updatedItems = roomData.items.filter(
+            (_, index) => index !== product.originalIndex
+        );
 
         // Save the updated room data
         const updatedRoomData = {
             ...roomData,
-            items: updatedItems
+            items: updatedItems,
         };
 
         return await roomsAPI.save(product.room, updatedRoomData);
-    }
+    },
 };
 
 /**

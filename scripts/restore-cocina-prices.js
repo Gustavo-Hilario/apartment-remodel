@@ -10,12 +10,12 @@ const CSV_FILE = path.join(__dirname, '../data/rooms/cocina.csv');
 
 // Simple CSV parser - skip first 2 metadata rows
 function parseCSV(csvText) {
-    const lines = csvText.split('\n').filter(line => line.trim());
+    const lines = csvText.split('\n').filter((line) => line.trim());
     // Skip first 2 lines (Room,Cocina and Budget,40000) and get the header
-    const headers = lines[2].split(',').map(h => h.trim());
-    
+    const headers = lines[2].split(',').map((h) => h.trim());
+
     // Parse data rows starting from line 4 (index 3)
-    return lines.slice(3).map(line => {
+    return lines.slice(3).map((line) => {
         const values = line.split(',');
         const obj = {};
         headers.forEach((header, index) => {
@@ -43,7 +43,7 @@ async function restoreCocinasPrices() {
 
         // Get the Cocina room from DB
         const room = await Room.findOne({ slug: 'cocina' });
-        
+
         if (!room) {
             console.error('❌ Cocina room not found in database');
             await mongoose.disconnect();
@@ -54,7 +54,7 @@ async function restoreCocinasPrices() {
 
         // Create a map of CSV items by description for easier matching
         const csvMap = {};
-        csvData.forEach(csvItem => {
+        csvData.forEach((csvItem) => {
             const desc = csvItem['Description'];
             if (desc) {
                 csvMap[desc.trim()] = csvItem;
@@ -73,7 +73,9 @@ async function restoreCocinasPrices() {
             const csvItem = csvMap[dbItem.description.trim()];
 
             if (!csvItem) {
-                console.log(`⚠️  No CSV match for item ${i + 1}: ${dbItem.description}`);
+                console.log(
+                    `⚠️  No CSV match for item ${i + 1}: ${dbItem.description}`
+                );
                 notFoundCount++;
                 continue;
             }
@@ -83,11 +85,18 @@ async function restoreCocinasPrices() {
             const csvActualPrice = parseFloat(csvItem['Actual_Price']) || 0;
 
             // Only update if prices have changed
-            if (dbItem.budget_price !== csvBudgetPrice || dbItem.actual_price !== csvActualPrice) {
+            if (
+                dbItem.budget_price !== csvBudgetPrice ||
+                dbItem.actual_price !== csvActualPrice
+            ) {
                 console.log(`🔄 Updating item ${i + 1}: ${dbItem.description}`);
-                console.log(`   Budget Price: ${dbItem.budget_price} → ${csvBudgetPrice}`);
-                console.log(`   Actual Price: ${dbItem.actual_price} → ${csvActualPrice}`);
-                
+                console.log(
+                    `   Budget Price: ${dbItem.budget_price} → ${csvBudgetPrice}`
+                );
+                console.log(
+                    `   Actual Price: ${dbItem.actual_price} → ${csvActualPrice}`
+                );
+
                 room.items[i].budget_price = csvBudgetPrice;
                 room.items[i].actual_price = csvActualPrice;
                 updatedCount++;
@@ -101,14 +110,15 @@ async function restoreCocinasPrices() {
             await room.save();
             console.log(`✅ Successfully updated ${updatedCount} items`);
         } else {
-            console.log(`\n✅ No changes needed - all prices already match CSV`);
+            console.log(
+                `\n✅ No changes needed - all prices already match CSV`
+            );
         }
 
         console.log(`📊 Summary:`);
         console.log(`   - Updated: ${updatedCount} items`);
         console.log(`   - Skipped (no change): ${skippedCount} items`);
         console.log(`   - Not found in CSV: ${notFoundCount} items`);
-
     } catch (error) {
         console.error('❌ Error:', error);
     } finally {

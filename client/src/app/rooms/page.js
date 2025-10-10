@@ -9,312 +9,370 @@ import AllItemsView from '@/components/rooms/AllItemsView';
 import Link from 'next/link';
 
 export default function RoomsPage() {
-  const [rooms, setRooms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showAllItems, setShowAllItems] = useState(false);
+    const [rooms, setRooms] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [showAllItems, setShowAllItems] = useState(false);
 
-  useEffect(() => {
-    loadRooms();
-  }, []);
+    useEffect(() => {
+        loadRooms();
+    }, []);
 
-  const loadRooms = async () => {
-    try {
-      setLoading(true);
-      const data = await roomsAPI.getAll();
-      // API now returns rooms array directly after our fix
-      setRooms(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message);
-      setRooms([]);
-    } finally {
-      setLoading(false);
+    const loadRooms = async () => {
+        try {
+            setLoading(true);
+            const data = await roomsAPI.getAll();
+            // API now returns rooms array directly after our fix
+            setRooms(Array.isArray(data) ? data : []);
+        } catch (err) {
+            setError(err.message);
+            setRooms([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <MainLayout>
+                <div style={{ padding: '60px 0', textAlign: 'center' }}>
+                    <LoadingSpinner size='large' text='Loading rooms...' />
+                </div>
+            </MainLayout>
+        );
     }
-  };
 
-  if (loading) {
     return (
-      <MainLayout>
-        <div style={{ padding: '60px 0', textAlign: 'center' }}>
-          <LoadingSpinner size="large" text="Loading rooms..." />
-        </div>
-      </MainLayout>
-    );
-  }
+        <MainLayout>
+            <div className='rooms-page'>
+                <header className='page-header'>
+                    <div>
+                        <h1>🚪 Rooms</h1>
+                        <p>Manage room budgets and items</p>
+                    </div>
+                    <Button
+                        variant={showAllItems ? 'secondary' : 'primary'}
+                        onClick={() => setShowAllItems(!showAllItems)}
+                        icon='📋'
+                    >
+                        {showAllItems ? 'Hide All Items' : 'Show All Items'}
+                    </Button>
+                </header>
 
-  return (
-    <MainLayout>
-      <div className="rooms-page">
-        <header className="page-header">
-          <div>
-            <h1>🚪 Rooms</h1>
-            <p>Manage room budgets and items</p>
-          </div>
-          <Button
-            variant={showAllItems ? 'secondary' : 'primary'}
-            onClick={() => setShowAllItems(!showAllItems)}
-            icon="📋"
-          >
-            {showAllItems ? 'Hide All Items' : 'Show All Items'}
-          </Button>
-        </header>
+                {error && (
+                    <Card>
+                        <div
+                            style={{
+                                padding: '20px',
+                                textAlign: 'center',
+                                color: '#ee0979',
+                            }}
+                        >
+                            <h3>❌ Error Loading Rooms</h3>
+                            <p>{error}</p>
+                            <Button onClick={loadRooms}>Try Again</Button>
+                        </div>
+                    </Card>
+                )}
 
-        {error && (
-          <Card>
-            <div style={{ padding: '20px', textAlign: 'center', color: '#ee0979' }}>
-              <h3>❌ Error Loading Rooms</h3>
-              <p>{error}</p>
-              <Button onClick={loadRooms}>Try Again</Button>
+                {showAllItems && !loading && !error && (
+                    <AllItemsView rooms={rooms} onRefresh={loadRooms} />
+                )}
+
+                {!showAllItems && !loading && !error && (
+                    <div className='rooms-grid'>
+                        {rooms.map((room) => {
+                            const remaining =
+                                (room.budget || 0) - (room.actual_spent || 0);
+                            const percentUsed =
+                                room.budget > 0
+                                    ? (
+                                          (room.actual_spent / room.budget) *
+                                          100
+                                      ).toFixed(1)
+                                    : 0;
+                            const progressColor =
+                                percentUsed > 100
+                                    ? '#ee0979'
+                                    : percentUsed > 80
+                                    ? '#f5576c'
+                                    : '#667eea';
+
+                            return (
+                                <Card key={room._id || room.slug} hoverable>
+                                    <div className='room-card'>
+                                        <div className='room-header'>
+                                            <h2>{room.name}</h2>
+                                            <span
+                                                className={`status-badge ${room.status?.toLowerCase()}`}
+                                            >
+                                                {room.status || 'Pending'}
+                                            </span>
+                                        </div>
+
+                                        <div className='room-stats'>
+                                            <div className='stat'>
+                                                <span className='stat-label'>
+                                                    Budget
+                                                </span>
+                                                <span className='stat-value'>
+                                                    {formatCurrency(
+                                                        room.budget || 0
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <div className='stat'>
+                                                <span className='stat-label'>
+                                                    Spent
+                                                </span>
+                                                <span className='stat-value spent'>
+                                                    {formatCurrency(
+                                                        room.actual_spent || 0
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <div className='stat'>
+                                                <span className='stat-label'>
+                                                    Remaining
+                                                </span>
+                                                <span
+                                                    className='stat-value'
+                                                    style={{
+                                                        color:
+                                                            remaining >= 0
+                                                                ? '#11998e'
+                                                                : '#ee0979',
+                                                    }}
+                                                >
+                                                    {formatCurrency(remaining)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className='progress-section'>
+                                            <div className='progress-header'>
+                                                <span>Progress</span>
+                                                <span>{percentUsed}%</span>
+                                            </div>
+                                            <div className='progress-bar'>
+                                                <div
+                                                    className='progress-fill'
+                                                    style={{
+                                                        width: `${Math.min(
+                                                            percentUsed,
+                                                            100
+                                                        )}%`,
+                                                        background:
+                                                            progressColor,
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className='progress-info'>
+                                                <span>
+                                                    {room.completed_items || 0}{' '}
+                                                    / {room.total_items || 0}{' '}
+                                                    items
+                                                </span>
+                                                <span>
+                                                    {room.progress_percent || 0}
+                                                    % complete
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className='room-actions'>
+                                            <Link href={`/rooms/${room.slug}`}>
+                                                <Button
+                                                    variant='primary'
+                                                    fullWidth
+                                                    icon='✏️'
+                                                >
+                                                    Edit Items
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </Card>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
-          </Card>
-        )}
 
-        {showAllItems && !loading && !error && (
-          <AllItemsView rooms={rooms} onRefresh={loadRooms} />
-        )}
+            <style jsx>{`
+                .rooms-page {
+                    max-width: 1400px;
+                    margin: 0 auto;
+                }
 
-        {!showAllItems && !loading && !error && (
-          <div className="rooms-grid">
-            {rooms.map((room) => {
-              const remaining = (room.budget || 0) - (room.actual_spent || 0);
-              const percentUsed = room.budget > 0 
-                ? ((room.actual_spent / room.budget) * 100).toFixed(1)
-                : 0;
-              const progressColor = percentUsed > 100 
-                ? '#ee0979' 
-                : percentUsed > 80 
-                ? '#f5576c' 
-                : '#667eea';
+                .page-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 40px;
+                    flex-wrap: wrap;
+                    gap: 20px;
+                }
 
-              return (
-                <Card key={room._id || room.slug} hoverable>
-                  <div className="room-card">
-                    <div className="room-header">
-                      <h2>{room.name}</h2>
-                      <span className={`status-badge ${room.status?.toLowerCase()}`}>
-                        {room.status || 'Pending'}
-                      </span>
-                    </div>
+                .page-header > div {
+                    text-align: left;
+                }
 
-                    <div className="room-stats">
-                      <div className="stat">
-                        <span className="stat-label">Budget</span>
-                        <span className="stat-value">{formatCurrency(room.budget || 0)}</span>
-                      </div>
-                      <div className="stat">
-                        <span className="stat-label">Spent</span>
-                        <span className="stat-value spent">{formatCurrency(room.actual_spent || 0)}</span>
-                      </div>
-                      <div className="stat">
-                        <span className="stat-label">Remaining</span>
-                        <span className="stat-value" style={{ color: remaining >= 0 ? '#11998e' : '#ee0979' }}>
-                          {formatCurrency(remaining)}
-                        </span>
-                      </div>
-                    </div>
+                .page-header h1 {
+                    font-size: 2.5rem;
+                    margin: 0 0 10px;
+                    background: linear-gradient(
+                        135deg,
+                        #667eea 0%,
+                        #764ba2 100%
+                    );
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                }
 
-                    <div className="progress-section">
-                      <div className="progress-header">
-                        <span>Progress</span>
-                        <span>{percentUsed}%</span>
-                      </div>
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill"
-                          style={{ 
-                            width: `${Math.min(percentUsed, 100)}%`,
-                            background: progressColor
-                          }}
-                        />
-                      </div>
-                      <div className="progress-info">
-                        <span>{room.completed_items || 0} / {room.total_items || 0} items</span>
-                        <span>{room.progress_percent || 0}% complete</span>
-                      </div>
-                    </div>
+                .page-header p {
+                    font-size: 1.1rem;
+                    color: #666;
+                    margin: 0;
+                }
 
-                    <div className="room-actions">
-                      <Link href={`/rooms/${room.slug}`}>
-                        <Button variant="primary" fullWidth icon="✏️">
-                          Edit Items
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                .rooms-grid {
+                    display: grid;
+                    grid-template-columns: repeat(
+                        auto-fill,
+                        minmax(350px, 1fr)
+                    );
+                    gap: 24px;
+                }
 
-      <style jsx>{`
-        .rooms-page {
-          max-width: 1400px;
-          margin: 0 auto;
-        }
+                .room-card {
+                    padding: 4px;
+                }
 
-        .page-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 40px;
-          flex-wrap: wrap;
-          gap: 20px;
-        }
+                .room-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                    padding-bottom: 15px;
+                    border-bottom: 2px solid #f0f0f0;
+                }
 
-        .page-header > div {
-          text-align: left;
-        }
+                .room-header h2 {
+                    margin: 0;
+                    font-size: 1.5rem;
+                    color: #333;
+                }
 
-        .page-header h1 {
-          font-size: 2.5rem;
-          margin: 0 0 10px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
+                .status-badge {
+                    padding: 4px 12px;
+                    border-radius: 12px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                }
 
-        .page-header p {
-          font-size: 1.1rem;
-          color: #666;
-          margin: 0;
-        }
+                .status-badge.planning {
+                    background: #e3f2fd;
+                    color: #1976d2;
+                }
 
-        .rooms-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-          gap: 24px;
-        }
+                .status-badge.pending {
+                    background: #fff3e0;
+                    color: #f57c00;
+                }
 
-        .room-card {
-          padding: 4px;
-        }
+                .status-badge.ordered {
+                    background: #f3e5f5;
+                    color: #7b1fa2;
+                }
 
-        .room-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-          padding-bottom: 15px;
-          border-bottom: 2px solid #f0f0f0;
-        }
+                .status-badge.completed {
+                    background: #e8f5e9;
+                    color: #388e3c;
+                }
 
-        .room-header h2 {
-          margin: 0;
-          font-size: 1.5rem;
-          color: #333;
-        }
+                .room-stats {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 16px;
+                    margin-bottom: 20px;
+                }
 
-        .status-badge {
-          padding: 4px 12px;
-          border-radius: 12px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          text-transform: uppercase;
-        }
+                .stat {
+                    text-align: center;
+                }
 
-        .status-badge.planning {
-          background: #e3f2fd;
-          color: #1976d2;
-        }
+                .stat-label {
+                    display: block;
+                    font-size: 0.85rem;
+                    color: #666;
+                    margin-bottom: 6px;
+                }
 
-        .status-badge.pending {
-          background: #fff3e0;
-          color: #f57c00;
-        }
+                .stat-value {
+                    display: block;
+                    font-size: 1.25rem;
+                    font-weight: bold;
+                    color: #667eea;
+                }
 
-        .status-badge.ordered {
-          background: #f3e5f5;
-          color: #7b1fa2;
-        }
+                .stat-value.spent {
+                    color: #ee0979;
+                }
 
-        .status-badge.completed {
-          background: #e8f5e9;
-          color: #388e3c;
-        }
+                .progress-section {
+                    margin-bottom: 20px;
+                }
 
-        .room-stats {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
-          margin-bottom: 20px;
-        }
+                .progress-header {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 8px;
+                    font-size: 0.9rem;
+                    color: #666;
+                }
 
-        .stat {
-          text-align: center;
-        }
+                .progress-bar {
+                    height: 10px;
+                    background: #e5e5e5;
+                    border-radius: 5px;
+                    overflow: hidden;
+                    margin-bottom: 8px;
+                }
 
-        .stat-label {
-          display: block;
-          font-size: 0.85rem;
-          color: #666;
-          margin-bottom: 6px;
-        }
+                .progress-fill {
+                    height: 100%;
+                    transition: width 0.3s ease;
+                }
 
-        .stat-value {
-          display: block;
-          font-size: 1.25rem;
-          font-weight: bold;
-          color: #667eea;
-        }
+                .progress-info {
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 0.85rem;
+                    color: #999;
+                }
 
-        .stat-value.spent {
-          color: #ee0979;
-        }
+                .room-actions {
+                    margin-top: 20px;
+                }
 
-        .progress-section {
-          margin-bottom: 20px;
-        }
+                @media (max-width: 768px) {
+                    .rooms-grid {
+                        grid-template-columns: 1fr;
+                    }
 
-        .progress-header {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 8px;
-          font-size: 0.9rem;
-          color: #666;
-        }
+                    .page-header h1 {
+                        font-size: 2rem;
+                    }
 
-        .progress-bar {
-          height: 10px;
-          background: #e5e5e5;
-          border-radius: 5px;
-          overflow: hidden;
-          margin-bottom: 8px;
-        }
-
-        .progress-fill {
-          height: 100%;
-          transition: width 0.3s ease;
-        }
-
-        .progress-info {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.85rem;
-          color: #999;
-        }
-
-        .room-actions {
-          margin-top: 20px;
-        }
-
-        @media (max-width: 768px) {
-          .rooms-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .page-header h1 {
-            font-size: 2rem;
-          }
-
-          .room-stats {
-            grid-template-columns: 1fr;
-            gap: 12px;
-          }
-        }
-      `}</style>
-    </MainLayout>
-  );
+                    .room-stats {
+                        grid-template-columns: 1fr;
+                        gap: 12px;
+                    }
+                }
+            `}</style>
+        </MainLayout>
+    );
 }
