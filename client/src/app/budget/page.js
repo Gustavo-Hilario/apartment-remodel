@@ -70,12 +70,27 @@ export default function BudgetPage() {
 
         const ctx = chartRef.current.getContext('2d');
 
-        let labels, budgetData, actualData;
+        let labels, budgetData, expectedData, actualData;
 
         if (view === 'overview') {
             // Show all rooms
             labels = rooms.map((room) => room.name);
             budgetData = rooms.map((room) => room.budget || 0);
+            
+            // Expected: sum of all item subtotals
+            expectedData = rooms.map((room) => {
+                const items = room.items || [];
+                return items.reduce((sum, item) => {
+                    const qty = parseFloat(item.quantity) || 0;
+                    const actualPrice = parseFloat(item.actual_price || item.actualRate) || 0;
+                    const budgetPrice = parseFloat(item.budget_price || item.budgetRate) || 0;
+                    // Use actual_price if set and non-zero, otherwise budget_price
+                    const price = actualPrice > 0 ? actualPrice : budgetPrice;
+                    return sum + qty * price;
+                }, 0);
+            });
+            
+            // Actual: only COMPLETED items
             actualData = rooms.map((room) => {
                 const items = room.items || [];
                 return items
@@ -112,15 +127,22 @@ export default function BudgetPage() {
                 );
 
                 if (!categoryTotals[category]) {
-                    categoryTotals[category] = { budget: 0, actual: 0 };
+                    categoryTotals[category] = { budget: 0, expected: 0, actual: 0 };
                 }
 
                 categoryTotals[category].budget += qty * budgetPrice;
-                categoryTotals[category].actual += qty * actualPrice;
+                // Expected: use actual_price if set, otherwise budget_price
+                const expectedPrice = actualPrice > 0 ? actualPrice : budgetPrice;
+                categoryTotals[category].expected += qty * expectedPrice;
+                // Actual: only count if item is completed
+                if (item.status === 'Completed') {
+                    categoryTotals[category].actual += qty * (actualPrice > 0 ? actualPrice : budgetPrice);
+                }
             });
 
             labels = Object.keys(categoryTotals);
             budgetData = labels.map((cat) => categoryTotals[cat].budget);
+            expectedData = labels.map((cat) => categoryTotals[cat].expected);
             actualData = labels.map((cat) => categoryTotals[cat].actual);
         }
 
@@ -137,10 +159,17 @@ export default function BudgetPage() {
                         borderWidth: 1,
                     },
                     {
+                        label: 'Expected',
+                        data: expectedData,
+                        backgroundColor: 'rgba(118, 75, 162, 0.6)',
+                        borderColor: 'rgba(118, 75, 162, 1)',
+                        borderWidth: 1,
+                    },
+                    {
                         label: 'Actual',
                         data: actualData,
-                        backgroundColor: 'rgba(118, 75, 162, 0.8)',
-                        borderColor: 'rgba(118, 75, 162, 1)',
+                        backgroundColor: 'rgba(238, 9, 121, 0.8)',
+                        borderColor: 'rgba(238, 9, 121, 1)',
                         borderWidth: 1,
                     },
                 ],
@@ -199,6 +228,18 @@ export default function BudgetPage() {
         );
     }
 
+    // Calculate total expected across all rooms
+    const totalExpected = rooms.reduce((sum, room) => {
+        const roomExpected = (room.items || []).reduce((itemSum, item) => {
+            const qty = parseFloat(item.quantity) || 0;
+            const actualPrice = parseFloat(item.actual_price) || 0;
+            const budgetPrice = parseFloat(item.budget_price) || 0;
+            const price = actualPrice > 0 ? actualPrice : budgetPrice;
+            return itemSum + (qty * price);
+        }, 0);
+        return sum + roomExpected;
+    }, 0);
+
     const remaining = (totals?.totalBudget || 0) - (totals?.totalExpenses || 0);
     const percentUsed =
         totals?.totalBudget > 0
@@ -231,6 +272,16 @@ export default function BudgetPage() {
                                 style={{ color: '#667eea' }}
                             >
                                 {formatCurrency(totals?.totalBudget || 0)}
+                            </div>
+                        </div>
+
+                        <div className='budget-stat'>
+                            <div className='stat-label'>Expected</div>
+                            <div
+                                className='stat-value'
+                                style={{ color: '#764ba2' }}
+                            >
+                                {formatCurrency(totalExpected)}
                             </div>
                         </div>
 
@@ -284,7 +335,7 @@ export default function BudgetPage() {
                 </Card>
 
                 {/* Chart Section */}
-                <Card title='Budget vs Actual'>
+                <Card title='Budget vs Expected vs Actual'>
                     <div
                         style={{
                             marginBottom: '20px',
@@ -370,6 +421,7 @@ export default function BudgetPage() {
                                         <tr>
                                             <th>Room</th>
                                             <th>Budget</th>
+                                            <th>Expected</th>
                                             <th>Actual</th>
                                             <th>Difference</th>
                                             <th>Status</th>
@@ -378,6 +430,18 @@ export default function BudgetPage() {
                                     <tbody>
                                         {rooms.map((room) => {
                                             const budget = room.budget || 0;
+                                            
+                                            // Calculate expected total: sum of all item subtotals
+                                            const expected = (room.items || []).reduce((sum, item) => {
+                                                const qty = parseFloat(item.quantity) || 0;
+                                                const actualPrice = parseFloat(item.actual_price || item.actualRate) || 0;
+                                                const budgetPrice = parseFloat(item.budget_price || item.budgetRate) || 0;
+                                                // Use actual_price if set and non-zero, otherwise budget_price
+                                                const price = actualPrice > 0 ? actualPrice : budgetPrice;
+                                                return sum + (qty * price);
+                                            }, 0);
+                                            
+                                            // Calculate actual total: only COMPLETED items
                                             const actual = (room.items || [])
                                                 .filter(
                                                     (item) =>
@@ -438,6 +502,9 @@ export default function BudgetPage() {
                                                     </td>
                                                     <td>
                                                         {formatCurrency(budget)}
+                                                    </td>
+                                                    <td style={{ color: '#764ba2', fontWeight: '600' }}>
+                                                        {formatCurrency(expected)}
                                                     </td>
                                                     <td>
                                                         {actual > 0

@@ -82,6 +82,16 @@ export default function RoomsPage() {
                 {!showAllItems && !loading && !error && (
                     <div className='rooms-grid'>
                         {rooms.map((room) => {
+                            // Calculate expected total: sum of all item subtotals
+                            const expectedTotal = (room.items || []).reduce((sum, item) => {
+                                const qty = parseFloat(item.quantity) || 0;
+                                const actualPrice = parseFloat(item.actual_price) || 0;
+                                const budgetPrice = parseFloat(item.budget_price) || 0;
+                                // Use actual_price if set and non-zero, otherwise budget_price
+                                const price = actualPrice > 0 ? actualPrice : budgetPrice;
+                                return sum + (qty * price);
+                            }, 0);
+
                             const remaining =
                                 (room.budget || 0) - (room.actual_spent || 0);
                             const percentUsed =
@@ -119,6 +129,14 @@ export default function RoomsPage() {
                                                     {formatCurrency(
                                                         room.budget || 0
                                                     )}
+                                                </span>
+                                            </div>
+                                            <div className='stat'>
+                                                <span className='stat-label'>
+                                                    Expected
+                                                </span>
+                                                <span className='stat-value expected'>
+                                                    {formatCurrency(expectedTotal)}
                                                 </span>
                                             </div>
                                             <div className='stat'>
@@ -295,7 +313,7 @@ export default function RoomsPage() {
 
                 .room-stats {
                     display: grid;
-                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-columns: repeat(2, 1fr);
                     gap: 16px;
                     margin-bottom: 20px;
                 }
@@ -316,6 +334,10 @@ export default function RoomsPage() {
                     font-size: 1.25rem;
                     font-weight: bold;
                     color: #667eea;
+                }
+
+                .stat-value.expected {
+                    color: #764ba2;
                 }
 
                 .stat-value.spent {
