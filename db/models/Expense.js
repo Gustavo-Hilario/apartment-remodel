@@ -33,6 +33,11 @@ const expenseSchema = new mongoose.Schema(
             type: String,
             default: '',
         },
+        status: {
+            type: String,
+            enum: ['Planning', 'Pending', 'Ordered', 'Completed'],
+            default: 'Pending',
+        },
     },
     {
         timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },

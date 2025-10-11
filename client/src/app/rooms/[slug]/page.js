@@ -812,6 +812,8 @@ export default function RoomEditorPage() {
                     border-radius: 4px;
                     font-size: 14px;
                     box-sizing: border-box;
+                    background: white;
+                    color: #333;
                 }
 
                 .items-table input[type='number'] {

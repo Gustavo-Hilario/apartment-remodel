@@ -567,6 +567,7 @@ export default function ProductsPage() {
                     border-radius: 6px;
                     font-size: 14px;
                     background: white;
+                    color: #333;
                     cursor: pointer;
                     transition: all 0.2s;
                     min-width: 180px;

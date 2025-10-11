@@ -102,6 +102,7 @@ export default function ExpensesPage() {
       date: new Date().toISOString().split('T')[0],
       rooms: [], // Array of room slugs
       roomCategory: '',
+      status: 'Pending',
     };
     setExpenses([newExpense, ...expenses]);
   };
@@ -283,14 +284,21 @@ export default function ExpensesPage() {
                   <th style={{ width: '200px' }}>
                     Rooms (Split Equally)
                   </th>
+                  <th
+                    className="sortable"
+                    onClick={() => handleSort('status')}
+                    style={{ width: '120px' }}
+                  >
+                    Status {sortBy === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  </th>
                   <th style={{ width: '60px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                      No expenses yet. Click "Add Expense" to create one.
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                      No expenses yet. Click &quot;Add Expense&quot; to create one.
                     </td>
                   </tr>
                 ) : (
@@ -377,6 +385,20 @@ export default function ExpensesPage() {
                             </div>
                           )}
                         </div>
+                      </td>
+                      <td>
+                        <select
+                          value={expense.status || 'Pending'}
+                          onChange={(e) =>
+                            handleExpenseChange(expense.originalIndex, 'status', e.target.value)
+                          }
+                          className="status-select"
+                        >
+                          <option value="Planning">Planning</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Ordered">Ordered</option>
+                          <option value="Completed">Completed</option>
+                        </select>
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <button
@@ -516,6 +538,8 @@ export default function ExpensesPage() {
           border-radius: 4px;
           font-size: 14px;
           box-sizing: border-box;
+          background: white;
+          color: #333;
         }
 
         .expenses-table input[type="number"] {
@@ -568,6 +592,7 @@ export default function ExpensesPage() {
           border: 1px solid #ddd;
           border-radius: 6px;
           font-size: 14px;
+          color: #333;
           text-align: left;
           cursor: pointer;
           display: flex;
@@ -661,6 +686,34 @@ export default function ExpensesPage() {
 
         .room-dropdown-menu::-webkit-scrollbar-thumb:hover {
           background: #999;
+        }
+
+        /* Status Select Styles */
+        .status-select {
+          width: 100%;
+          padding: 6px 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          background: white;
+          color: #333;
+          transition: all 0.2s;
+        }
+
+        .status-select:hover {
+          border-color: #667eea;
+        }
+
+        .status-select:focus {
+          outline: none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .status-select option {
+          padding: 8px;
         }
 
         @media (max-width: 768px) {
