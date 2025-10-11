@@ -279,6 +279,7 @@ app.get('/api/load-expenses', async (req, res) => {
             room: exp.room,
             rooms: exp.rooms || [], // Include rooms array for frontend
             roomCategory: exp.roomCategory,
+            status: exp.status || 'Pending',
         }));
 
         res.json({ success: true, expenses: formattedExpenses });
@@ -375,6 +376,7 @@ app.post('/api/save-expenses', async (req, res) => {
                 roomCategory: expense.roomCategory || expense.category,
                 description: expense.description,
                 amount: parseFloat(expense.amount) || 0,
+                status: expense.status || 'Pending',
             };
 
             if (existing) {
@@ -382,7 +384,8 @@ app.post('/api/save-expenses', async (req, res) => {
                 if (
                     existing.amount !== expenseData.amount ||
                     existing.date?.toISOString() !==
-                        expenseData.date.toISOString()
+                        expenseData.date.toISOString() ||
+                    existing.status !== expenseData.status
                 ) {
                     toUpdate.push({ expense: existing, data: expenseData });
                 }
@@ -472,6 +475,7 @@ app.post('/api/save-expenses', async (req, res) => {
                         item.subtotal = amountPerRoom;
                         item.description = data.description;
                         item.category = data.roomCategory;
+                        item.status = data.status; // Update status to match expense
                         await recalculateRoomStats(room);
                         console.log(
                             `   ✅ Updated in ${
@@ -534,7 +538,7 @@ app.post('/api/save-expenses', async (req, res) => {
                             budget_price: 0,
                             actual_price: amountPerRoom,
                             subtotal: amountPerRoom,
-                            status: 'Completed',
+                            status: data.status, // Use expense status instead of hardcoding
                         });
                         await recalculateRoomStats(room);
                         console.log(
