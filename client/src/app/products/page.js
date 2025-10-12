@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '@/components/layout';
 import { Card, Button, LoadingSpinner } from '@/components/ui';
 import ProductCard from '@/components/products/ProductCard';
@@ -23,14 +23,11 @@ export default function ProductsPage() {
     const [showModal, setShowModal] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState('all');
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+    const [includeMaterials, setIncludeMaterials] = useState(false);
     const [sortBy, setSortBy] = useState('favorites'); // Default: favorites first
     const [searchQuery, setSearchQuery] = useState('');
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
             setLoading(true);
             // Load both products and rooms data
@@ -39,8 +36,29 @@ export default function ProductsPage() {
                 roomsAPI.getAll(),
             ]);
 
+            let allItems = Array.isArray(productsData) ? productsData : [];
+
+            // If includeMaterials is true, also get Materials from all rooms
+            if (includeMaterials) {
+                const materials = [];
+                roomsData.forEach((room) => {
+                    room.items?.forEach((item, index) => {
+                        if (item.category === 'Materials') {
+                            materials.push({
+                                ...item,
+                                room: room.slug,
+                                roomDisplayName: room.name,
+                                originalIndex: index,
+                                uniqueId: `${room.slug}-${index}`,
+                            });
+                        }
+                    });
+                });
+                allItems = [...allItems, ...materials];
+            }
+
             // Products come with budget_price and actual_price from DB - use them directly
-            setProducts(Array.isArray(productsData) ? productsData : []);
+            setProducts(allItems);
             setRooms(Array.isArray(roomsData) ? roomsData : []);
         } catch (err) {
             console.error('Error loading data:', err);
@@ -50,7 +68,11 @@ export default function ProductsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [includeMaterials]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]); // Use loadData in dependency array
 
     const handleEdit = (product) => {
         setSelectedProduct(product);
@@ -205,13 +227,18 @@ export default function ProductsPage() {
         (p) => p.isFavorite === true || p.favorite === true
     ).length;
 
+    // Calculate materials count for the checkbox
+    const materialsCount = products.filter(
+        (p) => p.category === 'Materials'
+    ).length;
+
     return (
         <MainLayout>
             <div className='products-page'>
                 <header className='page-header'>
-                    <h1>🛍️ Products</h1>
+                    <h1>{includeMaterials ? '🛍️ Products & Materials' : '🛍️ Products'}</h1>
                     <Button icon='➕' onClick={handleAddNew}>
-                        Add Product
+                        Add {includeMaterials ? 'Product/Material' : 'Product'}
                     </Button>
                 </header>
 
@@ -219,7 +246,7 @@ export default function ProductsPage() {
                     <div style={{ padding: '60px 0', textAlign: 'center' }}>
                         <LoadingSpinner
                             size='large'
-                            text='Loading products...'
+                            text={`Loading ${includeMaterials ? 'products & materials' : 'products'}...`}
                         />
                     </div>
                 )}
@@ -233,7 +260,7 @@ export default function ProductsPage() {
                                 color: '#ee0979',
                             }}
                         >
-                            <h3>❌ Error Loading Products</h3>
+                            <h3>❌ Error Loading {includeMaterials ? 'Products & Materials' : 'Products'}</h3>
                             <p>{error}</p>
                             <Button onClick={loadData}>Try Again</Button>
                         </div>
@@ -249,7 +276,7 @@ export default function ProductsPage() {
                                 <input
                                     type='text'
                                     className='search-input'
-                                    placeholder='Search products by name, category, or room...'
+                                    placeholder={`Search ${includeMaterials ? 'products & materials' : 'products'} by name, category, or room...`}
                                     value={searchQuery}
                                     onChange={(e) =>
                                         setSearchQuery(e.target.value)
@@ -317,6 +344,24 @@ export default function ProductsPage() {
                                             <span>
                                                 ⭐ Favorites Only (
                                                 {favoriteCount})
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    {/* Include Materials Toggle */}
+                                    <div className='filter-group'>
+                                        <label className='filter-checkbox'>
+                                            <input
+                                                type='checkbox'
+                                                checked={includeMaterials}
+                                                onChange={(e) =>
+                                                    setIncludeMaterials(
+                                                        e.target.checked
+                                                    )
+                                                }
+                                            />
+                                            <span>
+                                                🧱 Include Materials ({materialsCount})
                                             </span>
                                         </label>
                                     </div>

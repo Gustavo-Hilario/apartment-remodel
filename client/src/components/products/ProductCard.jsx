@@ -153,7 +153,7 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete, on
           <div className="product-header-main">
             <h3 className="product-name">{product.description || 'Unnamed Product'}</h3>
             {product.category && (
-              <span className="product-category">{product.category}</span>
+              <span className={`product-category ${product.category.toLowerCase() === 'materials' ? 'materials' : ''}`}>{product.category}</span>
             )}
           </div>
           <div className="product-header-actions">

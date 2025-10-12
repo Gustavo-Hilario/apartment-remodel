@@ -221,6 +221,10 @@
   white-space: nowrap;
 }
 
+.product-category.materials {
+  background: linear-gradient(135deg, #ff7b7b 0%, #d63384 100%);
+}
+
 .product-details {
   display: flex;
   flex-direction: column;

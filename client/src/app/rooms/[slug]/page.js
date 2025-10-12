@@ -518,7 +518,7 @@ export default function RoomEditorPage() {
                                         </td>
                                         <td>
                                             <select
-                                                value={item.category || 'Other'}
+                                                value={item.category || 'Materials'}
                                                 onChange={(e) =>
                                                     handleItemChange(
                                                         item.originalIndex,
@@ -538,30 +538,6 @@ export default function RoomEditorPage() {
                                                 </option>
                                                 <option value='Products'>
                                                     Products
-                                                </option>
-                                                <option value='Plumbing'>
-                                                    Plumbing
-                                                </option>
-                                                <option value='Electrical'>
-                                                    Electrical
-                                                </option>
-                                                <option value='Flooring'>
-                                                    Flooring
-                                                </option>
-                                                <option value='Painting'>
-                                                    Painting
-                                                </option>
-                                                <option value='Carpentry'>
-                                                    Carpentry
-                                                </option>
-                                                <option value='Furniture'>
-                                                    Furniture
-                                                </option>
-                                                <option value='Fixtures'>
-                                                    Fixtures
-                                                </option>
-                                                <option value='Other'>
-                                                    Other
                                                 </option>
                                             </select>
                                         </td>
