@@ -24,7 +24,7 @@ export default function Card({
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={cardClass} onClick={onClick} {...props}>
+    <div className={cardClass} onClick={onClick} {...props} style={{marginBottom: '1.5rem'}}>
       {(title || headerAction) && (
         <div className="card-header">
           <div className="card-header-content">

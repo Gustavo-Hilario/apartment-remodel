@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout';
 import { Card, Button, LoadingSpinner } from '@/components/ui';
+import ImageUpload from '@/components/ImageUpload';
 import { roomsAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 
@@ -15,6 +16,7 @@ export default function RoomEditorPage() {
     const [roomData, setRoomData] = useState(null);
     const [items, setItems] = useState([]);
     const [roomBudget, setRoomBudget] = useState(0);
+    const [roomImages, setRoomImages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
@@ -30,6 +32,7 @@ export default function RoomEditorPage() {
                 // Items already have budget_price and actual_price from DB
                 setItems(data.roomData.items || []);
                 setRoomBudget(data.roomData.budget || 0);
+                setRoomImages(data.roomData.images || []);
             }
         } catch (err) {
             setError(err.message);
@@ -171,6 +174,7 @@ export default function RoomEditorPage() {
             const updatedRoomData = {
                 ...roomData,
                 budget: roomBudget,
+                images: roomImages, // Include room images
                 items: items,
             };
 
@@ -310,6 +314,55 @@ export default function RoomEditorPage() {
                         </div>
                     </Card>
                 </div>
+
+                {/* Room Gallery - Show if images exist */}
+                {roomImages.length > 0 && (
+                    <Card>
+                        <div className='gallery-header'>
+                            <h3>📸 Room Gallery ({roomImages.length} images)</h3>
+                        </div>
+                        <div className='gallery-grid'>
+                            {roomImages.map((image, index) => (
+                                <div key={image.id || index} className='gallery-item'>
+                                    <img
+                                        src={image.data || image.url}
+                                        alt={image.name || `Room image ${index + 1}`}
+                                        className='gallery-image'
+                                        onClick={() => {
+                                            // Create modal to view full size
+                                            const modal = document.createElement('div');
+                                            modal.style.cssText = `
+                                                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                                                background: rgba(0,0,0,0.9); display: flex; align-items: center; 
+                                                justify-content: center; z-index: 9999; cursor: pointer;
+                                            `;
+                                            const img = document.createElement('img');
+                                            img.src = image.data || image.url;
+                                            img.style.cssText = 'max-width: 90%; max-height: 90%; object-fit: contain;';
+                                            modal.appendChild(img);
+                                            modal.onclick = () => document.body.removeChild(modal);
+                                            document.body.appendChild(modal);
+                                        }}
+                                    />
+                                    <div className='gallery-item-info'>
+                                        <span className='gallery-item-name'>{image.name || `Image ${index + 1}`}</span>
+                                        <button
+                                            className='gallery-delete-btn'
+                                            onClick={() => {
+                                                if (confirm('Delete this image?')) {
+                                                    setRoomImages(roomImages.filter((_, i) => i !== index));
+                                                }
+                                            }}
+                                            title='Delete image'
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </Card>
+                )}
 
                 {/* Items Table */}
                 <Card>
@@ -627,6 +680,20 @@ export default function RoomEditorPage() {
                     </div>
                 </Card>
 
+                {/* Room Image Upload */}
+                <Card>
+                    <div className='upload-section'>
+                        <h3>📷 Room Images</h3>
+                        <p>Upload images for this room (progress photos, inspiration, etc.)</p>
+                        <ImageUpload
+                            images={roomImages}
+                            onImagesChange={setRoomImages}
+                            maxImages={10}
+                            maxSizeMB={5}
+                        />
+                    </div>
+                </Card>
+
                 <div className='bottom-actions'>
                     <Button
                         variant='secondary'
@@ -883,6 +950,108 @@ export default function RoomEditorPage() {
                     border-top: 2px solid #f0f0f0;
                 }
 
+                .gallery-header {
+                    padding: 20px 20px 10px;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+
+                .gallery-header h3 {
+                    margin: 0;
+                    font-size: 1.2rem;
+                    color: #333;
+                }
+
+                .gallery-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                    gap: 16px;
+                    padding: 20px;
+                }
+
+                .gallery-item {
+                    position: relative;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                    transition: transform 0.2s ease;
+                }
+
+                .gallery-item:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+                }
+
+                .gallery-image {
+                    width: 100%;
+                    height: 150px;
+                    object-fit: cover;
+                    cursor: pointer;
+                    transition: opacity 0.2s ease;
+                }
+
+                .gallery-image:hover {
+                    opacity: 0.9;
+                }
+
+                .gallery-item-info {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+                    padding: 20px 12px 8px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .gallery-item-name {
+                    color: white;
+                    font-size: 0.85rem;
+                    font-weight: 500;
+                    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+                    max-width: 70%;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                .gallery-delete-btn {
+                    background: rgba(255, 255, 255, 0.9);
+                    border: none;
+                    border-radius: 50%;
+                    width: 24px;
+                    height: 24px;
+                    cursor: pointer;
+                    font-size: 0.8rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s ease;
+                }
+
+                .gallery-delete-btn:hover {
+                    background: #ff4757;
+                    color: white;
+                    transform: scale(1.1);
+                }
+
+                .upload-section {
+                    padding: 20px;
+                }
+
+                .upload-section h3 {
+                    margin: 0 0 8px 0;
+                    font-size: 1.2rem;
+                    color: #333;
+                }
+
+                .upload-section p {
+                    margin: 0 0 20px 0;
+                    color: #666;
+                    font-size: 0.95rem;
+                }
+
                 @media (max-width: 768px) {
                     .editor-header {
                         flex-direction: column;
@@ -896,6 +1065,15 @@ export default function RoomEditorPage() {
                     .table-wrapper {
                         border-radius: 0;
                         margin: 0 -20px;
+                    }
+
+                    .gallery-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                        gap: 12px;
+                    }
+
+                    .gallery-image {
+                        height: 120px;
                     }
                 }
             `}</style>

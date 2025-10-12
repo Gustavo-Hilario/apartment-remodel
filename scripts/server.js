@@ -55,6 +55,7 @@ app.get('/api/load-room/:roomName', async (req, res) => {
         const roomData = {
             name: room.name,
             budget: room.budget,
+            images: room.images || [], // Return room images array
             items: room.items.map((item) => ({
                 description: item.description,
                 category: item.category,
@@ -118,6 +119,7 @@ app.post('/api/save-room/:roomName', async (req, res) => {
         // Update room data
         room.name = roomData.name;
         room.budget = parseFloat(roomData.budget) || 0;
+        room.images = roomData.images || []; // Save room images array
         room.items = roomData.items.map((item) => ({
             description: item.description,
             category: item.category,

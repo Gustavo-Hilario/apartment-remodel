@@ -105,6 +105,19 @@ const roomSchema = new mongoose.Schema(
             enum: ['Not Started', 'In Progress', 'Completed'],
             default: 'Not Started',
         },
+        images: {
+            type: [
+                {
+                    id: String,
+                    name: String,
+                    url: String,
+                    data: String, // Base64 data or URL
+                    isMainImage: { type: Boolean, default: false }, // Primary/thumbnail image flag
+                    uploadedAt: { type: Date, default: Date.now },
+                },
+            ],
+            default: [], // Ensure images is always an array
+        },
         items: [itemSchema],
     },
     {
