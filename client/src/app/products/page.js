@@ -24,6 +24,7 @@ export default function ProductsPage() {
     const [selectedRoom, setSelectedRoom] = useState('all');
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
     const [includeMaterials, setIncludeMaterials] = useState(false);
+    const [hideCompleted, setHideCompleted] = useState(true); // Hide completed by default
     const [sortBy, setSortBy] = useState('favorites'); // Default: favorites first
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -188,6 +189,13 @@ export default function ProductsPage() {
         if (showFavoritesOnly) {
             filtered = filtered.filter(
                 (p) => p.isFavorite === true || p.favorite === true
+            );
+        }
+
+        // Filter out completed items if hideCompleted is true
+        if (hideCompleted) {
+            filtered = filtered.filter(
+                (p) => p.status !== 'Completed'
             );
         }
 
@@ -362,6 +370,24 @@ export default function ProductsPage() {
                                             />
                                             <span>
                                                 🧱 Include Materials ({materialsCount})
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    {/* Hide Completed Toggle */}
+                                    <div className='filter-group'>
+                                        <label className='filter-checkbox'>
+                                            <input
+                                                type='checkbox'
+                                                checked={hideCompleted}
+                                                onChange={(e) =>
+                                                    setHideCompleted(
+                                                        e.target.checked
+                                                    )
+                                                }
+                                            />
+                                            <span>
+                                                ✅ Hide Completed
                                             </span>
                                         </label>
                                     </div>
