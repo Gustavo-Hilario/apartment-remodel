@@ -283,8 +283,61 @@ app.get('/api/get-all-categories', async (req, res) => {
 // Get project totals
 app.get('/api/totals', async (req, res) => {
     try {
-        // Get all rooms with virtuals (actual_spent, progress_percent, etc.)
-        const rooms = await Room.find({});
+        // Get all rooms (including _general)
+        const allRooms = await Room.find({});
+        
+        // Separate regular rooms from _general
+        const regularRooms = allRooms.filter(r => r.slug !== '_general');
+        const generalRoom = allRooms.find(r => r.slug === '_general');
+
+        // Calculate totals from regular rooms
+        let totalBudget = 0;
+        let totalActualSpent = 0;
+        let totalItems = 0;
+        let totalCompleted = 0;
+        let productsCount = 0;
+
+        regularRooms.forEach((room) => {
+            totalBudget += room.budget || 0;
+            totalActualSpent += room.actual_spent || 0; // Virtual field
+            totalItems += room.total_items || 0; // Virtual field
+            totalCompleted += room.completed_items || 0; // Virtual field
+
+            if (room.items) {
+                productsCount += room.items.filter(
+                    (item) => item.category === 'Products'
+                ).length;
+            }
+        });
+
+        // Count expenses from _general room (completed items only)
+        let expenseCount = 0;
+        if (generalRoom && generalRoom.items) {
+            expenseCount = generalRoom.items.filter(
+                (item) => item.status === 'Completed'
+            ).length;
+        }
+
+        // Format response
+        const response = {
+            totalBudget,
+            totalExpenses: totalActualSpent,
+            totalRooms: regularRooms.length, // Exclude _general from room count
+            totalItems,
+            totalCompleted,
+            totalProducts: productsCount,
+            expenseCount, // Count of completed items in _general
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error getting totals:', error);
+        res.status(500).json({
+            error: 'Failed to get totals',
+            details: error.message,
+        });
+    }
+});
 
         // Get expenses count
         const expenses = await Expense.find({});
