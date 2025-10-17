@@ -326,7 +326,7 @@ export default function ExpensesPage() {
             <div className="summary-stat">
               <div className="stat-label">Total Expenses</div>
               <div className="stat-value" style={{ color: '#ee0979' }}>
-                {formatCurrency(totalExpenses)}
+                {formatCurrency(Math.round(totalExpenses))}
               </div>
             </div>
           </Card>
@@ -415,27 +415,29 @@ export default function ExpensesPage() {
                         />
                       </td>
                       <td>
-                        <select
+                        <input
+                          type="text"
+                          list={`category-list-${expense.originalIndex}`}
                           value={expense.category || 'Other'}
                           onChange={(e) =>
                             handleExpenseChange(expense.originalIndex, 'category', e.target.value)
                           }
-                        >
+                          placeholder="Type or select category"
+                        />
+                        <datalist id={`category-list-${expense.originalIndex}`}>
                           {categories.map((cat) => (
-                            <option key={cat} value={cat}>
-                              {cat}
-                            </option>
+                            <option key={cat} value={cat} />
                           ))}
-                        </select>
+                        </datalist>
                       </td>
                       <td>
                         <input
                           type="number"
-                          value={expense.amount || 0}
+                          value={Math.round(expense.amount || 0)}
                           onChange={(e) =>
-                            handleExpenseChange(expense.originalIndex, 'amount', parseFloat(e.target.value) || 0)
+                            handleExpenseChange(expense.originalIndex, 'amount', parseInt(e.target.value) || 0)
                           }
-                          step="0.01"
+                          step="1"
                           min="0"
                         />
                       </td>
@@ -541,7 +543,7 @@ export default function ExpensesPage() {
                 <div className="allocation-info">
                   <strong>Expense:</strong> {expenses[showAllocationModal].description || 'Unnamed'}
                   <br />
-                  <strong>Total Amount:</strong> {formatCurrency(parseFloat(expenses[showAllocationModal].amount) || 0)}
+                  <strong>Total Amount:</strong> {formatCurrency(Math.round(parseFloat(expenses[showAllocationModal].amount) || 0))}
                 </div>
 
                 <div className="allocation-grid">
@@ -574,14 +576,14 @@ export default function ExpensesPage() {
                             <label>Amount</label>
                             <input
                               type="number"
-                              value={allocation.amount.toFixed(2)}
+                              value={Math.round(allocation.amount)}
                               onChange={(e) => updateRoomAllocation(
                                 showAllocationModal,
                                 allocation.room,
                                 'amount',
                                 e.target.value
                               )}
-                              step="0.01"
+                              step="1"
                               min="0"
                             />
                             <span className="input-suffix">S/</span>
@@ -605,8 +607,8 @@ export default function ExpensesPage() {
                     <span>Total Amount:</span>
                     <strong>
                       {formatCurrency(
-                        (expenses[showAllocationModal].roomAllocations || [])
-                          .reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0)
+                        Math.round((expenses[showAllocationModal].roomAllocations || [])
+                          .reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0))
                       )}
                     </strong>
                   </div>

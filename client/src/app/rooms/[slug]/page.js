@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout';
 import { Card, Button, LoadingSpinner } from '@/components/ui';
 import ImageUpload from '@/components/ImageUpload';
-import { roomsAPI } from '@/lib/api';
+import { roomsAPI, categoriesAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 
 export default function RoomEditorPage() {
@@ -15,6 +15,7 @@ export default function RoomEditorPage() {
 
     const [roomData, setRoomData] = useState(null);
     const [items, setItems] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [roomBudget, setRoomBudget] = useState(0);
     const [roomImages, setRoomImages] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -26,7 +27,11 @@ export default function RoomEditorPage() {
     const loadRoom = async () => {
         try {
             setLoading(true);
-            const data = await roomsAPI.getOne(roomSlug);
+            const [data, categoriesData] = await Promise.all([
+                roomsAPI.getOne(roomSlug),
+                categoriesAPI.getAll()
+            ]);
+
             if (data.success && data.roomData) {
                 setRoomData(data.roomData);
 
@@ -42,6 +47,24 @@ export default function RoomEditorPage() {
                 setRoomBudget(data.roomData.budget || 0);
                 setRoomImages(data.roomData.images || []);
             }
+
+            // Build categories list from API
+            const categoriesList = [];
+            if (Array.isArray(categoriesData)) {
+                categoriesData.forEach(cat => {
+                    if (cat.category && !categoriesList.includes(cat.category)) {
+                        categoriesList.push(cat.category);
+                    }
+                });
+            }
+            // Add common categories if not in DB
+            const commonCategories = ['Services', 'Labor', 'Materials', 'Products', 'Transport', 'Permits', 'Professional Fees', 'Other'];
+            commonCategories.forEach(cat => {
+                if (!categoriesList.includes(cat)) {
+                    categoriesList.push(cat);
+                }
+            });
+            setCategories(categoriesList);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -278,17 +301,17 @@ export default function RoomEditorPage() {
                             <input
                                 type='number'
                                 className='budget-input'
-                                value={roomBudget}
+                                value={Math.round(roomBudget)}
                                 onChange={(e) =>
                                     setRoomBudget(
-                                        parseFloat(e.target.value) || 0
+                                        parseInt(e.target.value) || 0
                                     )
                                 }
                                 min='0'
-                                step='0.01'
+                                step='1'
                             />
                             <span className='stat-value budget'>
-                                {formatCurrency(roomBudget)}
+                                {formatCurrency(Math.round(roomBudget))}
                             </span>
                         </div>
                     </Card>
@@ -298,7 +321,7 @@ export default function RoomEditorPage() {
                                 Expected Total (Items)
                             </span>
                             <span className='stat-value expected'>
-                                {formatCurrency(totalBudget)}
+                                {formatCurrency(Math.round(totalBudget))}
                             </span>
                         </div>
                     </Card>
@@ -306,7 +329,7 @@ export default function RoomEditorPage() {
                         <div className='summary-stat'>
                             <span className='stat-label'>Actual Total</span>
                             <span className='stat-value actual'>
-                                {formatCurrency(totalActual)}
+                                {formatCurrency(Math.round(totalActual))}
                             </span>
                         </div>
                     </Card>
@@ -320,7 +343,7 @@ export default function RoomEditorPage() {
                                         difference >= 0 ? '#11998e' : '#ee0979',
                                 }}
                             >
-                                {formatCurrency(difference)}
+                                {formatCurrency(Math.round(difference))}
                             </span>
                         </div>
                     </Card>
@@ -538,7 +561,9 @@ export default function RoomEditorPage() {
                                             />
                                         </td>
                                         <td>
-                                            <select
+                                            <input
+                                                type='text'
+                                                list={`category-list-${item.originalIndex}`}
                                                 value={item.category || 'Materials'}
                                                 onChange={(e) =>
                                                     handleItemChange(
@@ -547,20 +572,14 @@ export default function RoomEditorPage() {
                                                         e.target.value
                                                     )
                                                 }
-                                            >
-                                                <option value='Services'>
-                                                    Services
-                                                </option>
-                                                <option value='Labor'>
-                                                    Labor
-                                                </option>
-                                                <option value='Materials'>
-                                                    Materials
-                                                </option>
-                                                <option value='Products'>
-                                                    Products
-                                                </option>
-                                            </select>
+                                                placeholder='Type or select'
+                                                disabled={item._readOnly}
+                                            />
+                                            <datalist id={`category-list-${item.originalIndex}`}>
+                                                {categories.map((cat) => (
+                                                    <option key={cat} value={cat} />
+                                                ))}
+                                            </datalist>
                                         </td>
                                         <td>
                                             <input
@@ -596,40 +615,42 @@ export default function RoomEditorPage() {
                                         <td>
                                             <input
                                                 type='number'
-                                                value={item.budget_price || 0}
+                                                value={Math.round(item.budget_price || 0)}
                                                 onChange={(e) =>
                                                     handleItemChange(
                                                         item.originalIndex,
                                                         'budget_price',
-                                                        parseFloat(
+                                                        parseInt(
                                                             e.target.value
                                                         ) || 0
                                                     )
                                                 }
                                                 min='0'
-                                                step='0.01'
+                                                step='1'
+                                                disabled={item._readOnly}
                                             />
                                         </td>
                                         <td>
                                             <input
                                                 type='number'
-                                                value={item.actual_price || 0}
+                                                value={Math.round(item.actual_price || 0)}
                                                 onChange={(e) =>
                                                     handleItemChange(
                                                         item.originalIndex,
                                                         'actual_price',
-                                                        parseFloat(
+                                                        parseInt(
                                                             e.target.value
                                                         ) || 0
                                                     )
                                                 }
                                                 min='0'
-                                                step='0.01'
+                                                step='1'
+                                                disabled={item._readOnly}
                                             />
                                         </td>
                                         <td className='subtotal-cell'>
                                             {formatCurrency(
-                                                calculateSubtotal(item)
+                                                Math.round(calculateSubtotal(item))
                                             )}
                                         </td>
                                         <td>
