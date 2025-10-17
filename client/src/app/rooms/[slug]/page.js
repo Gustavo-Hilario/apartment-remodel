@@ -29,8 +29,16 @@ export default function RoomEditorPage() {
             const data = await roomsAPI.getOne(roomSlug);
             if (data.success && data.roomData) {
                 setRoomData(data.roomData);
-                // Items already have budget_price and actual_price from DB
-                setItems(data.roomData.items || []);
+
+                // Merge room items and shared items
+                const roomItems = data.roomData.items || [];
+                const sharedItems = (data.roomData.sharedItems || []).map(item => ({
+                    ...item,
+                    _isShared: true, // Mark as shared for UI display
+                    _readOnly: true  // Mark as read-only
+                }));
+
+                setItems([...roomItems, ...sharedItems]);
                 setRoomBudget(data.roomData.budget || 0);
                 setRoomImages(data.roomData.images || []);
             }
@@ -170,12 +178,15 @@ export default function RoomEditorPage() {
         try {
             setSaving(true);
 
+            // Filter out shared items - they're managed from expenses page
+            const roomOnlyItems = items.filter(item => !item._isShared);
+
             // Items already use budget_price and actual_price - no mapping needed
             const updatedRoomData = {
                 ...roomData,
                 budget: roomBudget,
                 images: roomImages, // Include room images
-                items: items,
+                items: roomOnlyItems,
             };
 
             await roomsAPI.save(roomSlug, updatedRoomData);
@@ -481,8 +492,16 @@ export default function RoomEditorPage() {
                             </thead>
                             <tbody>
                                 {sortedItems.map((item, displayIndex) => (
-                                    <tr key={item.originalIndex}>
-                                        <td>{displayIndex + 1}</td>
+                                    <tr
+                                        key={item.originalIndex}
+                                        className={item._isShared ? 'shared-item-row' : ''}
+                                    >
+                                        <td>
+                                            {displayIndex + 1}
+                                            {item._isShared && (
+                                                <span className='shared-badge' title='Shared expense from multiple rooms'>🔗</span>
+                                            )}
+                                        </td>
                                         <td className='favorite-cell'>
                                             <button
                                                 className={`favorite-btn ${
@@ -514,6 +533,8 @@ export default function RoomEditorPage() {
                                                     )
                                                 }
                                                 placeholder='Item description'
+                                                disabled={item._readOnly}
+                                                title={item._isShared ? 'Shared items are managed from the Expenses page' : ''}
                                             />
                                         </td>
                                         <td>
@@ -637,17 +658,26 @@ export default function RoomEditorPage() {
                                             </select>
                                         </td>
                                         <td>
-                                            <button
-                                                className='delete-btn'
-                                                onClick={() =>
-                                                    deleteItem(
-                                                        item.originalIndex
-                                                    )
-                                                }
-                                                title='Delete item'
-                                            >
-                                                🗑️
-                                            </button>
+                                            {item._isShared ? (
+                                                <span
+                                                    className='shared-info-icon'
+                                                    title='Shared items are managed from the Expenses page'
+                                                >
+                                                    ℹ️
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    className='delete-btn'
+                                                    onClick={() =>
+                                                        deleteItem(
+                                                            item.originalIndex
+                                                        )
+                                                    }
+                                                    title='Delete item'
+                                                >
+                                                    🗑️
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -1026,6 +1056,36 @@ export default function RoomEditorPage() {
                     margin: 0 0 20px 0;
                     color: #666;
                     font-size: 0.95rem;
+                }
+
+                /* Shared Items Styling */
+                .shared-item-row {
+                    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+                }
+
+                .shared-item-row:hover {
+                    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+                }
+
+                .shared-badge {
+                    display: inline-block;
+                    margin-left: 6px;
+                    font-size: 0.9rem;
+                    opacity: 0.7;
+                }
+
+                .shared-info-icon {
+                    font-size: 1.2rem;
+                    opacity: 0.6;
+                    cursor: help;
+                }
+
+                .shared-item-row input:disabled,
+                .shared-item-row select:disabled {
+                    background: #f5f5f5;
+                    color: #666;
+                    cursor: not-allowed;
+                    opacity: 0.8;
                 }
 
                 @media (max-width: 768px) {
