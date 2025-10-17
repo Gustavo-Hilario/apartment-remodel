@@ -118,42 +118,6 @@ app.get('/api/load-room/:roomName', async (req, res) => {
     }
 });
 
-        if (!room) {
-            return res.status(404).json({ error: 'Room not found' });
-        }
-
-        // Transform to match frontend format
-        const roomData = {
-            name: room.name,
-            budget: room.budget,
-            images: room.images || [], // Return room images array
-            items: room.items.map((item) => ({
-                description: item.description,
-                category: item.category,
-                quantity: item.quantity,
-                unit: item.unit,
-                budget_price: item.budget_price,
-                actual_price: item.actual_price,
-                status: item.status,
-                favorite: item.favorite || false,
-                images: item.images || [], // Return images array
-                imageUrl: item.imageUrl || '', // Keep legacy field
-                showImage: item.showImage || false,
-                links: item.links || [],
-                notes: item.notes || '',
-            })),
-        };
-
-        res.json({ success: true, roomData });
-    } catch (error) {
-        console.error('Error loading room data:', error);
-        res.status(500).json({
-            error: 'Failed to load room data',
-            details: error.message,
-        });
-    }
-});
-
 // Save room data
 app.post('/api/save-room/:roomName', async (req, res) => {
     try {
@@ -339,50 +303,6 @@ app.get('/api/totals', async (req, res) => {
     }
 });
 
-        // Get expenses count
-        const expenses = await Expense.find({});
-
-        // Calculate totals from room virtuals
-        let totalBudget = 0;
-        let totalActualSpent = 0;
-        let totalItems = 0;
-        let totalCompleted = 0;
-        let productsCount = 0;
-
-        rooms.forEach((room) => {
-            totalBudget += room.budget || 0;
-            totalActualSpent += room.actual_spent || 0; // This is a virtual
-            totalItems += room.total_items || 0; // This is a virtual
-            totalCompleted += room.completed_items || 0; // This is a virtual
-
-            if (room.items) {
-                productsCount += room.items.filter(
-                    (item) => item.category === 'Products'
-                ).length;
-            }
-        });
-
-        // Format response to match frontend expectations
-        const response = {
-            totalBudget,
-            totalExpenses: totalActualSpent,
-            totalRooms: rooms.length,
-            totalItems,
-            totalCompleted,
-            totalProducts: productsCount,
-            expenseCount: expenses.length,
-        };
-
-        res.json(response);
-    } catch (error) {
-        console.error('Error getting totals:', error);
-        res.status(500).json({
-            error: 'Failed to get totals',
-            details: error.message,
-        });
-    }
-});
-
 // ============================================================================
 // EXPENSE ROUTES
 // ============================================================================
@@ -438,32 +358,6 @@ app.get('/api/load-expenses', async (req, res) => {
         expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         res.json({ success: true, expenses });
-    } catch (error) {
-        console.error('Error loading expenses:', error);
-        res.status(500).json({
-            error: 'Failed to load expenses',
-            details: error.message,
-        });
-    }
-});
-
-        // Transform to match frontend format
-        const formattedExpenses = expenses.map((exp) => ({
-            description: exp.description,
-            amount: exp.amount,
-            category: exp.category,
-            date: exp.date
-                ? exp.date instanceof Date
-                    ? exp.date.toISOString().split('T')[0]
-                    : exp.date.split('T')[0]
-                : '',
-            room: exp.room,
-            rooms: exp.rooms || [], // Include rooms array for frontend
-            roomCategory: exp.roomCategory,
-            status: exp.status || 'Pending',
-        }));
-
-        res.json({ success: true, expenses: formattedExpenses });
     } catch (error) {
         console.error('Error loading expenses:', error);
         res.status(500).json({
