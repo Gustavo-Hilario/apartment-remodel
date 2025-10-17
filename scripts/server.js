@@ -313,29 +313,36 @@ app.get('/api/load-expenses', async (req, res) => {
         // Get all rooms including _general
         const rooms = await Room.find({});
         const expenses = [];
+        const processedSharedExpenses = new Set(); // Track shared expenses to avoid duplicates
         
         // Process each room
         for (const room of rooms) {
-            for (const item of room.items) {
+            for (let i = 0; i < room.items.length; i++) {
+                const item = room.items[i];
+                
                 // Only include completed items
                 if (item.status === 'Completed') {
                     // Handle shared expenses differently
                     if (item.isSharedExpense && item.roomAllocations) {
-                        // For shared expenses, create one entry per room allocation
-                        item.roomAllocations.forEach(allocation => {
+                        // Create unique key for this shared expense
+                        const sharedKey = `${room.slug}-${i}`;
+                        
+                        // Only add if not already processed
+                        if (!processedSharedExpenses.has(sharedKey)) {
+                            processedSharedExpenses.add(sharedKey);
+                            
                             expenses.push({
                                 description: item.description,
-                                amount: allocation.amount,
+                                amount: item.totalAmount,
                                 category: item.category,
-                                date: new Date().toISOString().split('T')[0], // Default to today
-                                rooms: [allocation.room],
+                                date: new Date().toISOString().split('T')[0],
+                                rooms: item.roomAllocations.map(a => a.room), // All rooms
                                 roomCategory: item.category,
                                 status: item.status,
                                 isSharedExpense: true,
-                                totalAmount: item.totalAmount,
-                                sharedWith: item.roomAllocations.filter(a => a.room !== allocation.room).map(a => a.room)
+                                roomAllocations: item.roomAllocations // Include for frontend editing
                             });
-                        });
+                        }
                     } else {
                         // Regular room-specific item
                         const itemAmount = (parseFloat(item.actual_price) || parseFloat(item.budget_price) || 0) * (parseFloat(item.quantity) || 1);
@@ -343,7 +350,7 @@ app.get('/api/load-expenses', async (req, res) => {
                             description: item.description,
                             amount: itemAmount,
                             category: item.category,
-                            date: new Date().toISOString().split('T')[0], // Default to today
+                            date: new Date().toISOString().split('T')[0],
                             rooms: room.slug === '_general' ? [] : [room.slug],
                             roomCategory: item.category,
                             status: item.status,
@@ -354,7 +361,7 @@ app.get('/api/load-expenses', async (req, res) => {
             }
         }
         
-        // Sort by date (most recent first) - for now all have same date, but structure is ready
+        // Sort by date (most recent first)
         expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         res.json({ success: true, expenses });
