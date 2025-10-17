@@ -3,6 +3,19 @@ const mongoose = require('mongoose');
 // Expense Schema
 const expenseSchema = new mongoose.Schema(
     {
+        // Reference to the product that created this expense (for completed products)
+        productRoom: {
+            type: String,
+            default: null,
+        },
+        productIndex: {
+            type: Number,
+            default: null,
+        },
+        isFromProduct: {
+            type: Boolean,
+            default: false,
+        },
         description: {
             type: String,
             required: true,

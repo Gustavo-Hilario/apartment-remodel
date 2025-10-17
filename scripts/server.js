@@ -152,6 +152,61 @@ app.post('/api/save-room/:roomName', async (req, res) => {
 
         console.log(`✅ Saved ${roomData.name} data to MongoDB with Mongoose`);
 
+        // Sync completed items to expenses
+        console.log(`\n🔄 Syncing completed items to expenses...`);
+        for (let i = 0; i < room.items.length; i++) {
+            const item = room.items[i];
+            
+            if (item.status === 'Completed') {
+                // Check if this item already has a linked expense
+                const existingExpense = await Expense.findOne({
+                    productRoom: roomName,
+                    productIndex: i,
+                    isFromProduct: true
+                });
+
+                const itemTotal = (parseFloat(item.actual_price) || parseFloat(item.budget_price) || 0) * (parseFloat(item.quantity) || 1);
+
+                if (existingExpense) {
+                    // Update existing expense
+                    existingExpense.description = item.description;
+                    existingExpense.amount = itemTotal;
+                    existingExpense.category = item.category;
+                    existingExpense.status = 'Completed';
+                    existingExpense.rooms = [roomName];
+                    await existingExpense.save();
+                    console.log(`   ✏️  Updated expense: "${item.description}" (S/ ${itemTotal.toFixed(2)})`);
+                } else {
+                    // Create new expense for this completed item
+                    const newExpense = await Expense.create({
+                        productRoom: roomName,
+                        productIndex: i,
+                        isFromProduct: true,
+                        description: item.description,
+                        amount: itemTotal,
+                        category: item.category,
+                        roomCategory: item.category,
+                        status: 'Completed',
+                        rooms: [roomName],
+                        date: new Date()
+                    });
+                    console.log(`   ➕ Created expense: "${item.description}" (S/ ${itemTotal.toFixed(2)})`);
+                }
+            } else {
+                // If item is no longer completed, remove the expense
+                const existingExpense = await Expense.findOne({
+                    productRoom: roomName,
+                    productIndex: i,
+                    isFromProduct: true
+                });
+                
+                if (existingExpense) {
+                    await Expense.deleteOne({ _id: existingExpense._id });
+                    console.log(`   🗑️  Removed expense: "${existingExpense.description}" (status changed from Completed)`);
+                }
+            }
+        }
+
         res.json({
             success: true,
             message: `${roomData.name} data saved successfully`,
@@ -417,6 +472,16 @@ app.post('/api/save-expenses', async (req, res) => {
                 `\n🗑️  Deleting expense: "${deletedExpense.description}"`
             );
 
+            // If this is a product-linked expense, update the product status back to Pending
+            if (deletedExpense.isFromProduct && deletedExpense.productRoom && deletedExpense.productIndex !== null) {
+                const room = await Room.findOne({ slug: deletedExpense.productRoom });
+                if (room && room.items[deletedExpense.productIndex]) {
+                    room.items[deletedExpense.productIndex].status = 'Pending';
+                    await room.save();
+                    console.log(`   ✅ Updated product status to Pending in ${room.name}`);
+                }
+            }
+
             // Remove from all rooms that have items with this expenseId
             const allRooms = await Room.find();
             for (const room of allRooms) {
@@ -447,6 +512,16 @@ app.post('/api/save-expenses', async (req, res) => {
             await expense.save();
 
             console.log(`\n✏️  Updating expense: "${data.description}"`);
+
+            // If this is a product-linked expense, sync status back to product
+            if (expense.isFromProduct && expense.productRoom && expense.productIndex !== null) {
+                const room = await Room.findOne({ slug: expense.productRoom });
+                if (room && room.items[expense.productIndex]) {
+                    room.items[expense.productIndex].status = data.status;
+                    await room.save();
+                    console.log(`   ✅ Updated product status to ${data.status} in ${room.name}`);
+                }
+            }
 
             // Determine which rooms to update based on rooms array
             let roomsToUpdate = [];

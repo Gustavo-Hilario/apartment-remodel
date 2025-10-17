@@ -93,8 +93,10 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete, on
 
   const isFavorite = product.isFavorite || product.favorite;
 
+  const isCompleted = product.status === 'Completed';
+
   return (
-    <Card className="product-card" hoverable>
+    <Card className={`product-card ${isCompleted ? 'completed' : ''}`} hoverable>
       {/* Image Section */}
       {(hasImages || legacyImage) && (
         <div className="product-image-section">

@@ -4,6 +4,11 @@
   height: 100%;
 }
 
+.product-card.completed {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border: 2px solid #28a745;
+}
+
 .product-image-section {
   background: #f9f9f9;
   border-bottom: 1px solid #e5e5e5;
