@@ -5,9 +5,6 @@ const path = require('path');
 const cors = require('cors');
 const { connectDB } = require('../db/mongoose-connection');
 const Room = require('../db/models/Room');
-const Expense = require('../db/models/Expense');
-const roomsRepo = require('../db/roomsRepository');
-const expensesRepo = require('../db/expensesRepository');
 
 const app = express();
 const port = 8000;
@@ -374,38 +371,6 @@ app.get('/api/load-expenses', async (req, res) => {
     }
 });
 
-// Get expenses summary
-app.get('/api/expenses-summary', async (req, res) => {
-    try {
-        const summary = await Expense.aggregate([
-            {
-                $group: {
-                    _id: '$category',
-                    total: { $sum: '$amount' },
-                    count: { $sum: 1 },
-                },
-            },
-            {
-                $project: {
-                    _id: 0,
-                    category: '$_id',
-                    total: 1,
-                    count: 1,
-                },
-            },
-            { $sort: { total: -1 } },
-        ]);
-
-        res.json({ success: true, summary });
-    } catch (error) {
-        console.error('Error getting expenses summary:', error);
-        res.status(500).json({
-            error: 'Failed to get expenses summary',
-            details: error.message,
-        });
-    }
-});
-
 // Save expenses
 app.post('/api/save-expenses', async (req, res) => {
     try {
@@ -550,7 +515,6 @@ async function startServer() {
             console.log(`   GET  /api/get-all-categories - Get all categories`);
             console.log(`   GET  /api/totals - Get project totals`);
             console.log(`   GET  /api/load-expenses - Load all expenses`);
-            console.log(`   GET  /api/expenses-summary - Get expenses summary`);
             console.log(`   POST /api/save-expenses - Save expenses`);
             console.log(`\n✨ Ready to serve!\n`);
         });
