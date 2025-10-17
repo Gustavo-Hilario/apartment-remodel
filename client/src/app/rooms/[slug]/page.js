@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout';
 import { Card, Button, LoadingSpinner } from '@/components/ui';
 import ImageUpload from '@/components/ImageUpload';
+import CategorySelector from '@/components/CategorySelector';
 import { roomsAPI, categoriesAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 
@@ -561,25 +562,18 @@ export default function RoomEditorPage() {
                                             />
                                         </td>
                                         <td>
-                                            <input
-                                                type='text'
-                                                list={`category-list-${item.originalIndex}`}
-                                                value={item.category || 'Materials'}
-                                                onChange={(e) =>
+                                            <CategorySelector
+                                                category={item.category || 'Materials'}
+                                                onCategoryChange={(newCategory) =>
                                                     handleItemChange(
                                                         item.originalIndex,
                                                         'category',
-                                                        e.target.value
+                                                        newCategory
                                                     )
                                                 }
-                                                placeholder='Type or select'
+                                                categories={categories}
                                                 disabled={item._readOnly}
                                             />
-                                            <datalist id={`category-list-${item.originalIndex}`}>
-                                                {categories.map((cat) => (
-                                                    <option key={cat} value={cat} />
-                                                ))}
-                                            </datalist>
                                         </td>
                                         <td>
                                             <input

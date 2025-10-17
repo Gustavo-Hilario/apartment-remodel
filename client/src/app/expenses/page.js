@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout';
 import { Card, Button, LoadingSpinner } from '@/components/ui';
+import CategorySelector from '@/components/CategorySelector';
 import { expensesAPI, roomsAPI, categoriesAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 
@@ -415,20 +416,13 @@ export default function ExpensesPage() {
                         />
                       </td>
                       <td>
-                        <input
-                          type="text"
-                          list={`category-list-${expense.originalIndex}`}
-                          value={expense.category || 'Other'}
-                          onChange={(e) =>
-                            handleExpenseChange(expense.originalIndex, 'category', e.target.value)
+                        <CategorySelector
+                          category={expense.category || 'Other'}
+                          onCategoryChange={(newCategory) =>
+                            handleExpenseChange(expense.originalIndex, 'category', newCategory)
                           }
-                          placeholder="Type or select category"
+                          categories={categories}
                         />
-                        <datalist id={`category-list-${expense.originalIndex}`}>
-                          {categories.map((cat) => (
-                            <option key={cat} value={cat} />
-                          ))}
-                        </datalist>
                       </td>
                       <td>
                         <input
