@@ -21,6 +21,7 @@ export default function ExpensesPage() {
   const [sortBy, setSortBy] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [openRoomDropdown, setOpenRoomDropdown] = useState(null);
+  const [showAllocationModal, setShowAllocationModal] = useState(null); // Track which expense allocation editor is open
 
   useEffect(() => {
     loadData();
@@ -143,20 +144,109 @@ export default function ExpensesPage() {
     setExpenses(updated);
   };
 
-  const getRoomDisplay = (expenseRooms) => {
+  const getRoomDisplay = (expenseRooms, roomAllocations) => {
     if (!expenseRooms || expenseRooms.length === 0) return 'General';
-    
+
     const allRoomValues = rooms.filter(r => r.value !== 'all').map(r => r.value);
     if (expenseRooms.length === allRoomValues.length) {
-      return 'All Rooms (Split Equally)';
+      return roomAllocations && roomAllocations.length > 0
+        ? 'All Rooms (Custom Split)'
+        : 'All Rooms (Split Equally)';
     }
-    
+
     if (expenseRooms.length === 1) {
       const room = rooms.find(r => r.value === expenseRooms[0]);
       return room ? room.label : expenseRooms[0];
     }
-    
-    return `${expenseRooms.length} rooms selected`;
+
+    return roomAllocations && roomAllocations.length > 0
+      ? `${expenseRooms.length} rooms (Custom Split)`
+      : `${expenseRooms.length} rooms (Split Equally)`;
+  };
+
+  const initializeRoomAllocations = (expenseIndex) => {
+    const expense = expenses[expenseIndex];
+    const amount = parseFloat(expense.amount) || 0;
+    const expenseRooms = expense.rooms || [];
+
+    if (expenseRooms.length <= 1) return;
+
+    // If already has custom allocations, keep them
+    if (expense.roomAllocations && expense.roomAllocations.length > 0) {
+      setShowAllocationModal(expenseIndex);
+      return;
+    }
+
+    // Initialize with equal split
+    const amountPerRoom = amount / expenseRooms.length;
+    const percentagePerRoom = 100 / expenseRooms.length;
+
+    const allocations = expenseRooms.map(roomSlug => ({
+      room: roomSlug,
+      amount: amountPerRoom,
+      percentage: percentagePerRoom
+    }));
+
+    const updated = [...expenses];
+    updated[expenseIndex].roomAllocations = allocations;
+    setExpenses(updated);
+    setShowAllocationModal(expenseIndex);
+  };
+
+  const updateRoomAllocation = (expenseIndex, roomSlug, field, value) => {
+    const updated = [...expenses];
+    const expense = updated[expenseIndex];
+    const totalAmount = parseFloat(expense.amount) || 0;
+
+    if (!expense.roomAllocations) {
+      initializeRoomAllocations(expenseIndex);
+      return;
+    }
+
+    const allocations = [...expense.roomAllocations];
+    const allocationIndex = allocations.findIndex(a => a.room === roomSlug);
+
+    if (allocationIndex === -1) return;
+
+    if (field === 'percentage') {
+      const percentage = parseFloat(value) || 0;
+      allocations[allocationIndex].percentage = percentage;
+      allocations[allocationIndex].amount = (totalAmount * percentage) / 100;
+    } else if (field === 'amount') {
+      const amount = parseFloat(value) || 0;
+      allocations[allocationIndex].amount = amount;
+      allocations[allocationIndex].percentage = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
+    }
+
+    expense.roomAllocations = allocations;
+    setExpenses(updated);
+  };
+
+  const resetToEqualSplit = (expenseIndex) => {
+    const updated = [...expenses];
+    const expense = updated[expenseIndex];
+    const amount = parseFloat(expense.amount) || 0;
+    const expenseRooms = expense.rooms || [];
+
+    if (expenseRooms.length <= 1) return;
+
+    const amountPerRoom = amount / expenseRooms.length;
+    const percentagePerRoom = 100 / expenseRooms.length;
+
+    expense.roomAllocations = expenseRooms.map(roomSlug => ({
+      room: roomSlug,
+      amount: amountPerRoom,
+      percentage: percentagePerRoom
+    }));
+
+    setExpenses(updated);
+  };
+
+  const clearCustomAllocations = (expenseIndex) => {
+    const updated = [...expenses];
+    updated[expenseIndex].roomAllocations = [];
+    setExpenses(updated);
+    setShowAllocationModal(null);
   };
 
   const handleSort = (field) => {
@@ -358,19 +448,19 @@ export default function ExpensesPage() {
                               openRoomDropdown === expense.originalIndex ? null : expense.originalIndex
                             )}
                           >
-                            {getRoomDisplay(expense.rooms || [])}
+                            {getRoomDisplay(expense.rooms || [], expense.roomAllocations)}
                             <span className="dropdown-arrow">▼</span>
                           </button>
-                          
+
                           {openRoomDropdown === expense.originalIndex && (
                             <div className="room-dropdown-menu">
                               {rooms.map((room) => {
                                 const isAllRooms = room.value === 'all';
                                 const allRoomValues = rooms.filter(r => r.value !== 'all').map(r => r.value);
-                                const isChecked = isAllRooms 
+                                const isChecked = isAllRooms
                                   ? (expense.rooms || []).length === allRoomValues.length
                                   : (expense.rooms || []).includes(room.value);
-                                
+
                                 return (
                                   <label key={room.value} className="room-checkbox-label">
                                     <input
@@ -382,6 +472,22 @@ export default function ExpensesPage() {
                                   </label>
                                 );
                               })}
+
+                              {(expense.rooms || []).length > 1 && (
+                                <div className="allocation-actions">
+                                  <button
+                                    type="button"
+                                    className="allocation-edit-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenRoomDropdown(null);
+                                      initializeRoomAllocations(expense.originalIndex);
+                                    }}
+                                  >
+                                    ⚙️ Customize Split
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -416,6 +522,120 @@ export default function ExpensesPage() {
             </table>
           </div>
         </Card>
+
+        {/* Allocation Editor Modal */}
+        {showAllocationModal !== null && expenses[showAllocationModal] && (
+          <div className="allocation-modal-overlay" onClick={() => setShowAllocationModal(null)}>
+            <div className="allocation-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="allocation-modal-header">
+                <h3>💰 Customize Expense Split</h3>
+                <button
+                  className="modal-close-btn"
+                  onClick={() => setShowAllocationModal(null)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="allocation-modal-body">
+                <div className="allocation-info">
+                  <strong>Expense:</strong> {expenses[showAllocationModal].description || 'Unnamed'}
+                  <br />
+                  <strong>Total Amount:</strong> {formatCurrency(parseFloat(expenses[showAllocationModal].amount) || 0)}
+                </div>
+
+                <div className="allocation-grid">
+                  {(expenses[showAllocationModal].roomAllocations || []).map((allocation) => {
+                    const room = rooms.find(r => r.value === allocation.room);
+                    return (
+                      <div key={allocation.room} className="allocation-row">
+                        <div className="allocation-room-name">
+                          {room ? room.label : allocation.room}
+                        </div>
+                        <div className="allocation-inputs">
+                          <div className="allocation-input-group">
+                            <label>Percentage</label>
+                            <input
+                              type="number"
+                              value={allocation.percentage.toFixed(2)}
+                              onChange={(e) => updateRoomAllocation(
+                                showAllocationModal,
+                                allocation.room,
+                                'percentage',
+                                e.target.value
+                              )}
+                              step="0.01"
+                              min="0"
+                              max="100"
+                            />
+                            <span className="input-suffix">%</span>
+                          </div>
+                          <div className="allocation-input-group">
+                            <label>Amount</label>
+                            <input
+                              type="number"
+                              value={allocation.amount.toFixed(2)}
+                              onChange={(e) => updateRoomAllocation(
+                                showAllocationModal,
+                                allocation.room,
+                                'amount',
+                                e.target.value
+                              )}
+                              step="0.01"
+                              min="0"
+                            />
+                            <span className="input-suffix">S/</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="allocation-summary">
+                  <div className="allocation-summary-row">
+                    <span>Total Percentage:</span>
+                    <strong>
+                      {(expenses[showAllocationModal].roomAllocations || [])
+                        .reduce((sum, a) => sum + (parseFloat(a.percentage) || 0), 0)
+                        .toFixed(2)}%
+                    </strong>
+                  </div>
+                  <div className="allocation-summary-row">
+                    <span>Total Amount:</span>
+                    <strong>
+                      {formatCurrency(
+                        (expenses[showAllocationModal].roomAllocations || [])
+                          .reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0)
+                      )}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="allocation-modal-footer">
+                <Button
+                  variant="secondary"
+                  onClick={() => resetToEqualSplit(showAllocationModal)}
+                >
+                  Reset to Equal Split
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => clearCustomAllocations(showAllocationModal)}
+                >
+                  Use Default Split
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => setShowAllocationModal(null)}
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Bottom Actions */}
         <div className="bottom-actions">
@@ -714,6 +934,214 @@ export default function ExpensesPage() {
 
         .status-select option {
           padding: 8px;
+        }
+
+        /* Allocation Button in Dropdown */
+        .allocation-actions {
+          padding: 8px 8px 4px;
+          border-top: 1px solid #e5e5e5;
+          margin-top: 8px;
+        }
+
+        .allocation-edit-btn {
+          width: 100%;
+          padding: 10px 12px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .allocation-edit-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Allocation Modal */
+        .allocation-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          backdrop-filter: blur(4px);
+        }
+
+        .allocation-modal {
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+          width: 90%;
+          max-width: 600px;
+          max-height: 90vh;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .allocation-modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px 24px;
+          border-bottom: 2px solid #f0f0f0;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+
+        .allocation-modal-header h3 {
+          margin: 0;
+          font-size: 1.3rem;
+        }
+
+        .modal-close-btn {
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          border-radius: 50%;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 1.2rem;
+          color: white;
+          transition: all 0.2s;
+        }
+
+        .modal-close-btn:hover {
+          background: rgba(255, 255, 255, 0.3);
+          transform: scale(1.1);
+        }
+
+        .allocation-modal-body {
+          padding: 24px;
+          overflow-y: auto;
+          flex: 1;
+        }
+
+        .allocation-info {
+          background: #f8f9fa;
+          padding: 16px;
+          border-radius: 8px;
+          margin-bottom: 24px;
+          line-height: 1.8;
+          color: #333;
+        }
+
+        .allocation-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .allocation-row {
+          background: white;
+          border: 2px solid #e5e5e5;
+          border-radius: 8px;
+          padding: 16px;
+          transition: all 0.2s;
+        }
+
+        .allocation-row:hover {
+          border-color: #667eea;
+          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .allocation-room-name {
+          font-weight: 600;
+          color: #667eea;
+          margin-bottom: 12px;
+          font-size: 1.05rem;
+        }
+
+        .allocation-inputs {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+
+        .allocation-input-group {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .allocation-input-group label {
+          font-size: 0.85rem;
+          color: #666;
+          margin-bottom: 6px;
+          font-weight: 500;
+        }
+
+        .allocation-input-group {
+          position: relative;
+        }
+
+        .allocation-input-group input {
+          padding: 8px 32px 8px 12px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+          transition: all 0.2s;
+        }
+
+        .allocation-input-group input:focus {
+          outline: none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .input-suffix {
+          position: absolute;
+          right: 12px;
+          bottom: 9px;
+          color: #999;
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .allocation-summary {
+          background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+          padding: 16px;
+          border-radius: 8px;
+          border: 2px solid #667eea;
+        }
+
+        .allocation-summary-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          font-size: 1.05rem;
+        }
+
+        .allocation-summary-row:first-child {
+          border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+          margin-bottom: 8px;
+        }
+
+        .allocation-summary-row strong {
+          color: #667eea;
+          font-size: 1.2rem;
+        }
+
+        .allocation-modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          padding: 20px 24px;
+          border-top: 2px solid #f0f0f0;
+          background: #f8f9fa;
         }
 
         @media (max-width: 768px) {
