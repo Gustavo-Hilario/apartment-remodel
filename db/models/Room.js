@@ -3,11 +3,6 @@ const mongoose = require('mongoose');
 // Item Schema - for items within a room
 const itemSchema = new mongoose.Schema(
     {
-        expenseId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Expense',
-            default: null,
-        },
         description: {
             type: String,
             required: true,
@@ -41,6 +36,25 @@ const itemSchema = new mongoose.Schema(
             type: String,
             enum: ['Planning', 'Pending', 'Ordered', 'Completed'],
             default: 'Pending',
+        },
+        // Shared expense fields
+        isSharedExpense: {
+            type: Boolean,
+            default: false,
+        },
+        roomAllocations: {
+            type: [
+                {
+                    room: { type: String, required: true },
+                    amount: { type: Number, required: true },
+                    percentage: { type: Number, required: true },
+                },
+            ],
+            default: [],
+        },
+        totalAmount: {
+            type: Number,
+            default: 0,
         },
         // Product fields
         favorite: {
@@ -82,7 +96,7 @@ const itemSchema = new mongoose.Schema(
         },
     },
     { _id: false }
-); // Don't create _id for subdocuments
+); // Don't create _id for subdocuments; // Don't create _id for subdocuments
 
 // Room Schema
 const roomSchema = new mongoose.Schema(
