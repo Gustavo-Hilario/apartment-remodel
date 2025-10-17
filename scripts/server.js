@@ -311,6 +311,19 @@ app.get('/api/load-expenses', async (req, res) => {
         const rooms = await Room.find({});
         const expenses = [];
 
+        // First, collect all shared expense descriptions from _general room
+        // to avoid showing duplicates from regular rooms
+        const generalRoom = rooms.find(r => r.slug === '_general');
+        const sharedExpenseDescriptions = new Set();
+
+        if (generalRoom) {
+            generalRoom.items.forEach((item) => {
+                if (item.isSharedExpense) {
+                    sharedExpenseDescriptions.add(item.description);
+                }
+            });
+        }
+
         // Process each room
         for (const room of rooms) {
             if (room.slug === '_general') {
@@ -355,8 +368,11 @@ app.get('/api/load-expenses', async (req, res) => {
                 });
             } else {
                 // Regular rooms: Add completed items that are NOT shared
+                // AND not already represented in _general as shared expenses
                 room.items.forEach((item) => {
-                    if (item.status === 'Completed' && !item.isSharedExpense) {
+                    if (item.status === 'Completed' &&
+                        !item.isSharedExpense &&
+                        !sharedExpenseDescriptions.has(item.description)) {
                         const itemAmount = (parseFloat(item.actual_price) || parseFloat(item.budget_price) || 0) * (parseFloat(item.quantity) || 1);
 
                         expenses.push({
