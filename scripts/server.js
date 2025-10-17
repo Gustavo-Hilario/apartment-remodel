@@ -307,7 +307,7 @@ app.get('/api/totals', async (req, res) => {
 // Load all expenses
 app.get('/api/load-expenses', async (req, res) => {
     try {
-        // Get ONLY the _general room (expenses are managed here)
+        // Get ONLY the _general room (single source of truth for expenses)
         const generalRoom = await Room.findOne({ slug: '_general' });
         const expenses = [];
 
@@ -317,44 +317,44 @@ app.get('/api/load-expenses', async (req, res) => {
 
         // Process all items in _general room
         generalRoom.items.forEach((item) => {
-            // Only include completed items
-            if (item.status === 'Completed') {
-                // Handle shared expenses (multi-room)
-                if (item.isSharedExpense && item.roomAllocations && item.roomAllocations.length > 0) {
-                    expenses.push({
-                        description: item.description,
-                        amount: item.totalAmount,
-                        category: item.category,
-                        date: new Date().toISOString().split('T')[0],
-                        rooms: item.roomAllocations.map(a => a.room), // All rooms
-                        roomCategory: item.category,
-                        status: item.status,
-                        isSharedExpense: true,
-                        roomAllocations: item.roomAllocations // Include for frontend editing
-                    });
-                } else {
-                    // Single-room or general expense
-                    const itemAmount = item.totalAmount || (parseFloat(item.actual_price) || parseFloat(item.budget_price) || 0) * (parseFloat(item.quantity) || 1);
+            // Note: We load ALL items from _general, not just "Completed" ones
+            // This allows managing expenses in any status from the expenses page
 
-                    // Determine rooms array
-                    let rooms = [];
-                    if (item.roomAllocations && item.roomAllocations.length > 0) {
-                        // Single room expense (has one allocation)
-                        rooms = [item.roomAllocations[0].room];
-                    }
-                    // else: general expense with no room allocations (rooms stays empty)
+            // Handle shared expenses (multi-room)
+            if (item.isSharedExpense && item.roomAllocations && item.roomAllocations.length > 0) {
+                expenses.push({
+                    description: item.description,
+                    amount: item.totalAmount,
+                    category: item.category,
+                    date: new Date().toISOString().split('T')[0],
+                    rooms: item.roomAllocations.map(a => a.room), // All rooms
+                    roomCategory: item.category,
+                    status: item.status,
+                    isSharedExpense: true,
+                    roomAllocations: item.roomAllocations // Include for frontend editing
+                });
+            } else {
+                // Single-room or general expense from _general
+                const itemAmount = item.totalAmount || (parseFloat(item.actual_price) || parseFloat(item.budget_price) || 0) * (parseFloat(item.quantity) || 1);
 
-                    expenses.push({
-                        description: item.description,
-                        amount: itemAmount,
-                        category: item.category,
-                        date: new Date().toISOString().split('T')[0],
-                        rooms: rooms,
-                        roomCategory: item.category,
-                        status: item.status,
-                        isSharedExpense: false
-                    });
+                // Determine rooms array
+                let rooms = [];
+                if (item.roomAllocations && item.roomAllocations.length > 0) {
+                    // Single room expense (has one allocation)
+                    rooms = [item.roomAllocations[0].room];
                 }
+                // else: general expense with no room allocations (rooms stays empty)
+
+                expenses.push({
+                    description: item.description,
+                    amount: itemAmount,
+                    category: item.category,
+                    date: new Date().toISOString().split('T')[0],
+                    rooms: rooms,
+                    roomCategory: item.category,
+                    status: item.status,
+                    isSharedExpense: false
+                });
             }
         });
 
