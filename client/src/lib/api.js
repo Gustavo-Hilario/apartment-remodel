@@ -51,22 +51,10 @@ export const roomsAPI = {
 
     // Save room data
     save: async (slug, roomData) => {
-        console.log(
-            '🚀 Sending save request to server:',
-            `/save-room/${slug}`,
-            roomData
-        );
-        try {
-            const result = await fetchAPI(`/save-room/${slug}`, {
-                method: 'POST',
-                body: JSON.stringify({ roomData }),
-            });
-            console.log('✅ Server save response:', result);
-            return result;
-        } catch (error) {
-            console.error('❌ Server save error:', error);
-            throw error;
-        }
+        return await fetchAPI(`/save-room/${slug}`, {
+            method: 'POST',
+            body: JSON.stringify({ roomData }),
+        });
     },
 };
 
@@ -236,14 +224,6 @@ export const productsAPI = {
             ...roomData,
             items: updatedItems,
         };
-
-        console.log('🔄 About to save room data to server:', {
-            room: productData.room,
-            itemsCount: updatedItems.length,
-            updatedProduct: updatedItems.find(
-                (item) => item.description === productData.description
-            ),
-        });
 
         return await roomsAPI.save(productData.room, updatedRoomData);
     },

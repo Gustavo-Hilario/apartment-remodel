@@ -124,9 +124,6 @@ app.post('/api/save-room/:roomName', async (req, res) => {
         const { roomName } = req.params;
         const { roomData } = req.body;
 
-        console.log(`\n📥 Saving room: ${roomName}`);
-        console.log('Sample item from roomData:', roomData.items[0]);
-
         // Validate room name
         const validRooms = [
             'cocina',
@@ -186,10 +183,7 @@ app.post('/api/save-room/:roomName', async (req, res) => {
                 : 'Not Started';
 
         // Save using Mongoose (virtuals will calculate actual_spent, progress_percent, etc.)
-        console.log('🔍 About to save room with Mongoose...');
         await room.save();
-
-        console.log(`✅ Saved ${roomData.name} data to MongoDB with Mongoose`);
 
         res.json({
             success: true,
@@ -197,17 +191,10 @@ app.post('/api/save-room/:roomName', async (req, res) => {
             roomId: room._id,
         });
     } catch (error) {
-        console.error('❌ Error saving room data:', error);
-        console.error('❌ Error name:', error.name);
-        console.error('❌ Error message:', error.message);
-        if (error.errors) {
-            console.error('❌ Validation errors:', JSON.stringify(error.errors, null, 2));
-        }
-        console.error('❌ Full error stack:', error.stack);
+        console.error('Error saving room data:', error);
         res.status(500).json({
             error: 'Failed to save room data',
             details: error.message,
-            validationErrors: error.errors,
         });
     }
 });
