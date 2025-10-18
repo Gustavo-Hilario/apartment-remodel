@@ -8,7 +8,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { fileToBase64, isImageFile, isFileTooLarge } from '@/lib/image';
+import { compressImage, isImageFile, isFileTooLarge } from '@/lib/image';
 import Button from './ui/Button';
 import './ImageUpload.css';
 
@@ -100,7 +100,7 @@ export default function ImageUpload({
       }
 
       try {
-        const base64 = await fileToBase64(file);
+        const base64 = await compressImage(file);
         newImages.push({
           id: Date.now() + Math.random(),
           name: file.name,
