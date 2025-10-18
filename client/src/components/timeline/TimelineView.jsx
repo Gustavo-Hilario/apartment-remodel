@@ -1,25 +1,16 @@
 /**
  * Timeline View Component
  *
- * Displays phases using react-chrono with custom card content
+ * Custom vertical timeline without external dependencies
  */
 
 'use client';
 
-import { Chrono } from 'react-chrono';
 import PhaseCard from './PhaseCard';
 import './TimelineView.css';
 
 export default function TimelineView({ phases, onEdit, onDelete }) {
-  // Transform phases for react-chrono
-  const chronoItems = phases
-    .sort((a, b) => a.order - b.order)
-    .map(phase => ({
-      title: formatDate(phase.startDate),
-      cardTitle: phase.title,
-      cardSubtitle: phase.description || '',
-      cardDetailedText: '', // Will use custom content
-    }));
+  const sortedPhases = [...phases].sort((a, b) => a.order - b.order);
 
   // Get status color
   const getStatusColor = (status) => {
@@ -36,43 +27,38 @@ export default function TimelineView({ phases, onEdit, onDelete }) {
   };
 
   // Format date for display
-  function formatDate(dateStr) {
-    if (!dateStr) return 'No date set';
+  function formatDate(dateStr, index) {
+    if (!dateStr) return `Phase ${index + 1}`;
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   return (
-    <div className="timeline-view">
-      <Chrono
-        items={chronoItems}
-        mode="VERTICAL"
-        theme={{
-          primary: '#667eea',
-          secondary: '#f5f5f5',
-          cardBgColor: '#ffffff',
-          titleColor: '#333',
-          titleColorActive: '#667eea',
-        }}
-        cardHeight={200}
-        scrollable={false}
-        hideControls
-        disableClickOnCircle
-        disableNavOnKey
-      >
-        {phases
-          .sort((a, b) => a.order - b.order)
-          .map((phase, index) => (
-            <div key={phase.id} className="timeline-card-content">
-              <PhaseCard
-                phase={phase}
-                onEdit={() => onEdit(phase)}
-                onDelete={() => onDelete(phase.id)}
-                statusColor={getStatusColor(phase.status)}
-              />
+    <div className="custom-timeline">
+      {sortedPhases.map((phase, index) => (
+        <div key={phase.id} className="timeline-item">
+          <div className="timeline-marker">
+            <div
+              className="timeline-dot"
+              style={{ backgroundColor: getStatusColor(phase.status) }}
+            />
+            {index < sortedPhases.length - 1 && (
+              <div className="timeline-line" />
+            )}
+          </div>
+          <div className="timeline-content">
+            <div className="timeline-date">
+              {formatDate(phase.startDate, index)}
             </div>
-          ))}
-      </Chrono>
+            <PhaseCard
+              phase={phase}
+              onEdit={() => onEdit(phase)}
+              onDelete={() => onDelete(phase.id)}
+              statusColor={getStatusColor(phase.status)}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
