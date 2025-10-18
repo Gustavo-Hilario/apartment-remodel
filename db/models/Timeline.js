@@ -60,6 +60,41 @@ const referenceSchema = new mongoose.Schema(
     { _id: false }
 );
 
+// Image Schema - for subtask and phase images
+const imageSchema = new mongoose.Schema(
+    {
+        id: {
+            type: mongoose.Schema.Types.Mixed,
+            required: true,
+        },
+        name: {
+            type: String,
+            required: true,
+        },
+        url: {
+            type: String,
+            default: '',
+        },
+        data: {
+            type: String,
+            default: '', // Base64 data
+        },
+        isMainImage: {
+            type: Boolean,
+            default: false,
+        },
+        showImage: {
+            type: Boolean,
+            default: false, // Backward compatibility
+        },
+        size: {
+            type: Number,
+            default: 0,
+        },
+    },
+    { _id: false }
+);
+
 // Subtask Schema - for breaking down phases into smaller tasks
 const subtaskSchema = new mongoose.Schema(
     {
@@ -78,6 +113,14 @@ const subtaskSchema = new mongoose.Schema(
         notes: {
             type: String,
             default: '',
+        },
+        learnings: {
+            type: [learningSchema],
+            default: [],
+        },
+        images: {
+            type: [imageSchema],
+            default: [],
         },
     },
     { _id: false }
@@ -129,6 +172,10 @@ const phaseSchema = new mongoose.Schema(
         },
         subtasks: {
             type: [subtaskSchema],
+            default: [],
+        },
+        images: {
+            type: [imageSchema],
             default: [],
         },
         // Optional: Link to related rooms

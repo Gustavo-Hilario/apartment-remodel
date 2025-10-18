@@ -34,7 +34,7 @@ export default function PhaseCard({ phase, onEdit, onDelete, statusColor }) {
   };
 
   return (
-    <div className="phase-card">
+    <div className={`phase-card ${phase.status === 'Completed' ? 'completed' : ''}`}>
       <div className="phase-card-header">
         <div className="phase-info">
           <h3 className="phase-title">{phase.title}</h3>

@@ -2,6 +2,12 @@
   padding: 20px;
   background: white;
   border-radius: 12px;
+  transition: background 0.3s ease;
+}
+
+.phase-card.completed {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border: 2px solid #b1dfbb;
 }
 
 .phase-card-header {
