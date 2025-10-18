@@ -5,6 +5,7 @@ const path = require('path');
 const cors = require('cors');
 const { connectDB } = require('../db/mongoose-connection');
 const Room = require('../db/models/Room');
+const Timeline = require('../db/models/Timeline');
 
 const app = express();
 const port = 8000;
@@ -526,6 +527,158 @@ app.post('/api/save-expenses', async (req, res) => {
 });
 
 // ============================================================================
+// TIMELINE ROUTES
+// ============================================================================
+
+// Get timeline data
+app.get('/api/timeline', async (req, res) => {
+    try {
+        let timeline = await Timeline.findOne({});
+
+        // If no timeline exists, create an empty one
+        if (!timeline) {
+            timeline = new Timeline({ phases: [] });
+            await timeline.save();
+        }
+
+        res.json({ success: true, timeline });
+    } catch (error) {
+        console.error('Error loading timeline:', error);
+        res.status(500).json({
+            error: 'Failed to load timeline',
+            details: error.message,
+        });
+    }
+});
+
+// Save entire timeline
+app.post('/api/timeline', async (req, res) => {
+    try {
+        const { timeline: timelineData } = req.body;
+
+        let timeline = await Timeline.findOne({});
+
+        if (!timeline) {
+            timeline = new Timeline();
+        }
+
+        // Update timeline data
+        timeline.phases = timelineData.phases || [];
+
+        await timeline.save();
+
+        res.json({
+            success: true,
+            message: 'Timeline saved successfully',
+            timeline,
+        });
+    } catch (error) {
+        console.error('Error saving timeline:', error);
+        res.status(500).json({
+            error: 'Failed to save timeline',
+            details: error.message,
+        });
+    }
+});
+
+// Add a new phase
+app.post('/api/timeline/phase', async (req, res) => {
+    try {
+        const { phase } = req.body;
+
+        let timeline = await Timeline.findOne({});
+
+        if (!timeline) {
+            timeline = new Timeline({ phases: [] });
+        }
+
+        // Add new phase
+        timeline.phases.push(phase);
+
+        await timeline.save();
+
+        res.json({
+            success: true,
+            message: 'Phase added successfully',
+            timeline,
+        });
+    } catch (error) {
+        console.error('Error adding phase:', error);
+        res.status(500).json({
+            error: 'Failed to add phase',
+            details: error.message,
+        });
+    }
+});
+
+// Update a specific phase
+app.put('/api/timeline/phase/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { phase: updatedPhase } = req.body;
+
+        const timeline = await Timeline.findOne({});
+
+        if (!timeline) {
+            return res.status(404).json({ error: 'Timeline not found' });
+        }
+
+        // Find and update the phase
+        const phaseIndex = timeline.phases.findIndex(p => p.id === id);
+
+        if (phaseIndex === -1) {
+            return res.status(404).json({ error: 'Phase not found' });
+        }
+
+        timeline.phases[phaseIndex] = updatedPhase;
+
+        await timeline.save();
+
+        res.json({
+            success: true,
+            message: 'Phase updated successfully',
+            timeline,
+        });
+    } catch (error) {
+        console.error('Error updating phase:', error);
+        res.status(500).json({
+            error: 'Failed to update phase',
+            details: error.message,
+        });
+    }
+});
+
+// Delete a phase
+app.delete('/api/timeline/phase/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const timeline = await Timeline.findOne({});
+
+        if (!timeline) {
+            return res.status(404).json({ error: 'Timeline not found' });
+        }
+
+        // Remove the phase
+        timeline.phases = timeline.phases.filter(p => p.id !== id);
+
+        await timeline.save();
+
+        res.json({
+            success: true,
+            message: 'Phase deleted successfully',
+            timeline,
+        });
+    } catch (error) {
+        console.error('Error deleting phase:', error);
+        res.status(500).json({
+            error: 'Failed to delete phase',
+            details: error.message,
+        });
+    }
+});
+
+// ============================================================================
 // SERVER START
 // ============================================================================
 
@@ -549,6 +702,11 @@ async function startServer() {
             console.log(`   GET  /api/totals - Get project totals`);
             console.log(`   GET  /api/load-expenses - Load all expenses`);
             console.log(`   POST /api/save-expenses - Save expenses`);
+            console.log(`   GET  /api/timeline - Get timeline data`);
+            console.log(`   POST /api/timeline - Save timeline`);
+            console.log(`   POST /api/timeline/phase - Add phase`);
+            console.log(`   PUT  /api/timeline/phase/:id - Update phase`);
+            console.log(`   DELETE /api/timeline/phase/:id - Delete phase`);
             console.log(`\n✨ Ready to serve!\n`);
         });
     } catch (error) {

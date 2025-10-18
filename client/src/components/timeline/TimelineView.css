@@ -1,0 +1,33 @@
+.timeline-view {
+  margin-top: 30px;
+}
+
+.timeline-card-content {
+  padding: 0;
+}
+
+/* Override react-chrono default styles */
+.timeline-view .timeline-vertical-container {
+  width: 100%;
+}
+
+.timeline-view .timeline-item-title {
+  color: #667eea !important;
+  font-weight: 600;
+}
+
+.timeline-view .timeline-card-content {
+  padding: 0 !important;
+}
+
+.timeline-view .card-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .timeline-view {
+    margin-top: 20px;
+  }
+}

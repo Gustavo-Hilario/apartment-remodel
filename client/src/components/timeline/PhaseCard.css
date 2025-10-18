@@ -1,0 +1,158 @@
+.phase-card {
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+}
+
+.phase-card-header {
+  margin-bottom: 16px;
+}
+
+.phase-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.phase-title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+}
+
+.phase-status {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+}
+
+.phase-description {
+  margin: 0 0 16px 0;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* Dates */
+.phase-dates {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.date-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.date-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.date-value {
+  font-size: 0.95rem;
+  color: #333;
+  font-weight: 500;
+}
+
+/* Subtasks */
+.phase-subtasks {
+  margin-bottom: 16px;
+}
+
+.subtasks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.subtasks-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.subtasks-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.subtasks-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e5e5e5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.subtasks-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+/* Meta */
+.phase-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e5e5;
+}
+
+.meta-item {
+  font-size: 0.85rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Actions */
+.phase-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e5e5;
+}
+
+.phase-actions button {
+  flex: 1;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .phase-card {
+    padding: 16px;
+  }
+
+  .phase-title {
+    font-size: 1.1rem;
+  }
+
+  .phase-dates {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .phase-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

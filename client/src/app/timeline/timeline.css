@@ -1,0 +1,149 @@
+.timeline-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  gap: 20px;
+}
+
+.timeline-header-content {
+  flex: 1;
+}
+
+.timeline-title {
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 10px 0;
+}
+
+.timeline-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Progress Card */
+.timeline-progress-card {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.progress-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.progress-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: #e5e5e5;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.3s ease;
+}
+
+.progress-stats {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Loading & Error States */
+.timeline-loading,
+.timeline-error {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.timeline-error h3 {
+  color: #ee0979;
+  margin-bottom: 10px;
+}
+
+.timeline-error p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* Empty State */
+.timeline-empty {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.timeline-empty h3 {
+  font-size: 1.5rem;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.timeline-empty p {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .timeline-page {
+    padding: 16px;
+  }
+
+  .timeline-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .timeline-title {
+    font-size: 2rem;
+  }
+
+  .timeline-subtitle {
+    font-size: 1rem;
+  }
+
+  .timeline-progress-card {
+    padding: 20px;
+  }
+
+  .progress-value {
+    font-size: 1.3rem;
+  }
+}

@@ -15,6 +15,7 @@ export default function Navigation() {
 
   const navItems = [
     { href: '/', label: 'Home', icon: '🏠' },
+    { href: '/timeline', label: 'Timeline', icon: '📅' },
     { href: '/products', label: 'Products', icon: '🛍️' },
     { href: '/budget', label: 'Budget', icon: '💰' },
     { href: '/rooms', label: 'Rooms', icon: '🚪' },
