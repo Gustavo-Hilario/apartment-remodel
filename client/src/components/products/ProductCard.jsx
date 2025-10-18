@@ -13,32 +13,46 @@ import { formatCurrency } from '@/lib/currency';
 import './ProductCard.css';
 
 export default function ProductCard({ product, onEdit, onQuickSave, onDelete, onDuplicate }) {
+  // Determine which images to display based on selected product option
+  const getDisplayImages = () => {
+    // If a product option is selected, use its images instead
+    if (product.selectedOptionId && product.productOptions && product.productOptions.length > 0) {
+      const selectedOption = product.productOptions.find(opt => opt.id === product.selectedOptionId);
+      if (selectedOption && selectedOption.images && selectedOption.images.length > 0) {
+        return selectedOption.images;
+      }
+    }
+
+    // Otherwise, fall back to product's main images
+    if (product.images && product.images.length > 0) {
+      return product.images;
+    } else if (product.imageUrl) {
+      // Convert legacy imageUrl to new format for display
+      return [{
+        id: 'legacy',
+        name: product.description || 'Product Image',
+        url: product.imageUrl,
+        data: product.imageUrl,
+        isMainImage: true,
+        showImage: true // Backward compatibility
+      }];
+    }
+
+    return [];
+  };
+
+  const displayImages = getDisplayImages();
+
   // Handle both new images array and legacy imageUrl field for initial state
   const initialIndex = (() => {
-    if (product.images && product.images.length > 0) {
-      const mainImageIndex = product.images.findIndex(img => img.isMainImage || img.showImage);
+    if (displayImages.length > 0) {
+      const mainImageIndex = displayImages.findIndex(img => img.isMainImage || img.showImage);
       return mainImageIndex >= 0 ? mainImageIndex : 0;
     }
     return 0; // For legacy images, always start with index 0
   })();
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(initialIndex);
-
-  // Handle both new images array and legacy imageUrl field
-  let displayImages = [];
-  if (product.images && product.images.length > 0) {
-    displayImages = product.images;
-  } else if (product.imageUrl) {
-    // Convert legacy imageUrl to new format for display
-    displayImages = [{
-      id: 'legacy',
-      name: product.description || 'Product Image',
-      url: product.imageUrl,
-      data: product.imageUrl,
-      isMainImage: true,
-      showImage: true // Backward compatibility
-    }];
-  }
 
   const currentImage = displayImages[selectedImageIndex];
   const hasImages = displayImages.length > 0;
@@ -180,11 +194,19 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete, on
         </div>
 
         <div className="product-details">
+          {/* Show selected option if available */}
+          {product.selectedOptionId && product.selectedProductName && (
+            <div className="product-detail-row selected-option">
+              <span className="detail-label">Selected Option:</span>
+              <span className="detail-value option-badge">{product.selectedProductName}</span>
+            </div>
+          )}
+
           <div className="product-detail-row">
             <span className="detail-label">Room:</span>
             <span className="detail-value">{product.roomDisplayName || product.room || 'N/A'}</span>
           </div>
-          
+
           <div className="product-detail-row">
             <span className="detail-label">Quantity:</span>
             <span className="detail-value">{quantity} {product.unit || 'units'}</span>

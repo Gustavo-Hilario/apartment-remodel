@@ -252,6 +252,14 @@
   margin-top: 4px;
 }
 
+.product-detail-row.selected-option {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  padding: 8px 12px;
+  margin: -8px -12px 4px -12px;
+  border-radius: 6px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
 .detail-label {
   color: #666;
   font-weight: 500;
@@ -260,6 +268,16 @@
 .detail-value {
   color: #333;
   font-weight: 600;
+}
+
+.detail-value.option-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .detail-value.total {
