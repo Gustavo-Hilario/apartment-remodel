@@ -286,7 +286,13 @@ export default function ExpensesPage() {
     }));
   };
 
-  const totalExpenses = expenses.reduce(
+  // Total Spent: Only completed items
+  const totalSpent = expenses
+    .filter(exp => exp.status === 'Completed')
+    .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+
+  // Expected Total: All items regardless of status
+  const totalExpected = expenses.reduce(
     (sum, exp) => sum + (parseFloat(exp.amount) || 0),
     0
   );
@@ -325,15 +331,23 @@ export default function ExpensesPage() {
         <div className="expense-summary">
           <Card>
             <div className="summary-stat">
-              <div className="stat-label">Total Expenses</div>
+              <div className="stat-label">Total Spent (Completed)</div>
               <div className="stat-value" style={{ color: '#ee0979' }}>
-                {formatCurrency(Math.round(totalExpenses))}
+                {formatCurrency(Math.round(totalSpent))}
               </div>
             </div>
           </Card>
           <Card>
             <div className="summary-stat">
-              <div className="stat-label">Number of Expenses</div>
+              <div className="stat-label">Expected Total (All Items)</div>
+              <div className="stat-value" style={{ color: '#764ba2' }}>
+                {formatCurrency(Math.round(totalExpected))}
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="summary-stat">
+              <div className="stat-label">Number of Items</div>
               <div className="stat-value" style={{ color: '#667eea' }}>
                 {expenses.length}
               </div>
