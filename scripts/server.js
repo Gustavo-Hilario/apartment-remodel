@@ -100,7 +100,10 @@ app.get('/api/load-room/:roomName', async (req, res) => {
                 showImage: item.showImage || false,
                 links: item.links || [],
                 notes: item.notes || '',
-                isSharedExpense: item.isSharedExpense || false
+                isSharedExpense: item.isSharedExpense || false,
+                productOptions: item.productOptions || [],
+                selectedOptionId: item.selectedOptionId || '',
+                selectedProductName: item.selectedProductName || '',
             })),
             sharedItems // Add shared items separately
         };
@@ -166,6 +169,9 @@ app.post('/api/save-room/:roomName', async (req, res) => {
             showImage: item.showImage || false,
             links: item.links || [],
             notes: item.notes || '',
+            productOptions: item.productOptions || [],
+            selectedOptionId: item.selectedOptionId || '',
+            selectedProductName: item.selectedProductName || '',
         }));
 
         // Update status based on completed items
