@@ -7,9 +7,8 @@
 'use client';
 
 import { useState } from 'react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import Button from '../ui/Button';
+import DatePicker from '../ui/DatePicker';
 import ImageUpload from '../ImageUpload';
 import './PhaseEditModal.css';
 
@@ -235,13 +234,7 @@ export default function PhaseEditModal({ phase, onSave, onClose }) {
                     <DatePicker
                       selected={formData.startDate}
                       onChange={(date) => setFormData(prev => ({ ...prev, startDate: date }))}
-                      dateFormat="MMM d, yyyy"
                       placeholderText="Select start date"
-                      showYearDropdown
-                      showMonthDropdown
-                      dropdownMode="select"
-                      className="date-picker-input"
-                      isClearable
                     />
                   </div>
 
@@ -250,13 +243,7 @@ export default function PhaseEditModal({ phase, onSave, onClose }) {
                     <DatePicker
                       selected={formData.endDate}
                       onChange={(date) => setFormData(prev => ({ ...prev, endDate: date }))}
-                      dateFormat="MMM d, yyyy"
                       placeholderText="Select end date"
-                      showYearDropdown
-                      showMonthDropdown
-                      dropdownMode="select"
-                      className="date-picker-input"
-                      isClearable
                       minDate={formData.startDate}
                     />
                   </div>
