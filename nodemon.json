@@ -1,5 +1,5 @@
 {
-    "watch": ["scripts/server.js", "charts/**/*.html", "*.html"],
+    "watch": ["scripts/server.js", "db/**/*.js", "charts/**/*.html", "*.html"],
     "ignore": ["data/**/*", "node_modules/**/*", "reports/**/*"],
     "ext": "js,html,json",
     "delay": "1000",
