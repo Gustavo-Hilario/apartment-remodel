@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import ImageUpload from './ImageUpload';
+import ProductOptionsManager from './ProductOptionsManager';
 import './ProductEditModal.css';
 
 const CATEGORIES = ['Products', 'Materials', 'Services'];
@@ -35,7 +36,10 @@ export default function ProductEditModal({
     favorite: false,
     room: '',
     notes: '',
-    images: []
+    images: [],
+    productOptions: [],
+    selectedOptionId: '',
+    selectedProductName: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -83,7 +87,10 @@ export default function ProductEditModal({
         favorite: dataToLoad.favorite || dataToLoad.isFavorite || false,
         room: dataToLoad.room || availableRooms[0]?.slug || '',
         notes: dataToLoad.notes || '',
-        images: formattedImages
+        images: formattedImages,
+        productOptions: dataToLoad.productOptions || [],
+        selectedOptionId: dataToLoad.selectedOptionId || '',
+        selectedProductName: dataToLoad.selectedProductName || ''
       });
     } else {
       // Reset for new product - use the first available room
@@ -99,7 +106,10 @@ export default function ProductEditModal({
         favorite: false,
         room: defaultRoom,
         notes: '',
-        images: []
+        images: [],
+        productOptions: [],
+        selectedOptionId: '',
+        selectedProductName: ''
       });
     }
     setErrors({});
@@ -350,6 +360,13 @@ export default function ProductEditModal({
             onImagesChange={handleImagesChange}
             maxImages={5}
             maxSizeMB={2}
+          />
+        </div>
+
+        <div className="form-section product-options-section">
+          <ProductOptionsManager
+            item={formData}
+            onChange={(updatedItem) => setFormData(updatedItem)}
           />
         </div>
 

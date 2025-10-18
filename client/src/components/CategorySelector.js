@@ -150,7 +150,7 @@ export default function CategorySelector({
             font-size: 14px;
             box-sizing: border-box;
             background: white;
-            color: #000;
+            color: #333;
           }
 
           .category-input.editing {
@@ -250,7 +250,7 @@ export default function CategorySelector({
           border-radius: 4px;
           font-size: 14px;
           background: white;
-          color: #000;
+          color: #333;
           text-align: left;
           cursor: pointer;
           transition: all 0.2s;

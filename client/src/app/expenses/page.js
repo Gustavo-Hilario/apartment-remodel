@@ -13,22 +13,6 @@ import CategorySelector from '@/components/CategorySelector';
 import { expensesAPI, roomsAPI, categoriesAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 
-// Category color mapping
-const getCategoryColor = (category) => {
-  const colors = {
-    'Services': '#e3f2fd',
-    'Labor': '#fff3e0',
-    'Materials': '#f3e5f5',
-    'Products': '#e8f5e9',
-    'Transport': '#fce4ec',
-    'Permits': '#fff9c4',
-    'Professional Fees': '#e0f2f1',
-    'Other': '#f5f5f5',
-  };
-
-  return colors[category] || '#f5f5f5';
-};
-
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -39,9 +23,6 @@ export default function ExpensesPage() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [openRoomDropdown, setOpenRoomDropdown] = useState(null);
   const [showAllocationModal, setShowAllocationModal] = useState(null); // Track which expense allocation editor is open
-  const [itemsPerPage, setItemsPerPage] = useState(50);
-  const [typeFilter, setTypeFilter] = useState('both'); // 'expense', 'income', or 'both'
-  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     loadData();
@@ -279,16 +260,7 @@ export default function ExpensesPage() {
   };
 
   const getSortedExpenses = () => {
-    // Filter by type
-    let filtered = [...expenses];
-    if (typeFilter === 'expense') {
-      filtered = filtered.filter(exp => (parseFloat(exp.amount) || 0) >= 0);
-    } else if (typeFilter === 'income') {
-      filtered = filtered.filter(exp => (parseFloat(exp.amount) || 0) < 0);
-    }
-
-    // Sort
-    const sorted = filtered.sort((a, b) => {
+    const sorted = [...expenses].sort((a, b) => {
       let aVal = a[sortBy];
       let bVal = b[sortBy];
 
@@ -337,12 +309,6 @@ export default function ExpensesPage() {
 
   const sortedExpenses = getSortedExpenses();
 
-  // Pagination
-  const totalPages = Math.ceil(sortedExpenses.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedExpenses = sortedExpenses.slice(startIndex, endIndex);
-
   return (
     <MainLayout>
       <div className="expenses-page">
@@ -389,50 +355,6 @@ export default function ExpensesPage() {
           </Card>
         </div>
 
-        {/* Filters */}
-        <Card>
-          <div className="filters-section">
-            <div className="filter-group">
-              <label>Type:</label>
-              <select
-                value={typeFilter}
-                onChange={(e) => {
-                  setTypeFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="filter-select"
-              >
-                <option value="both">Both</option>
-                <option value="expense">Expenses Only</option>
-                <option value="income">Income Only</option>
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label>Items per page:</label>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(parseInt(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="filter-select"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="500">500</option>
-                <option value="1000">1000</option>
-              </select>
-            </div>
-
-            <div className="filter-info">
-              Showing {startIndex + 1}-{Math.min(endIndex, sortedExpenses.length)} of {sortedExpenses.length} items
-            </div>
-          </div>
-        </Card>
-
         {/* Expenses Table */}
         <Card>
           <div className="table-wrapper">
@@ -478,16 +400,14 @@ export default function ExpensesPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedExpenses.length === 0 ? (
+                {sortedExpenses.length === 0 ? (
                   <tr>
                     <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                      {sortedExpenses.length === 0
-                        ? 'No expenses yet. Click "Add Expense" to create one.'
-                        : 'No items match the current filter.'}
+                      No expenses yet. Click &quot;Add Expense&quot; to create one.
                     </td>
                   </tr>
                 ) : (
-                  paginatedExpenses.map((expense) => (
+                  sortedExpenses.map((expense) => (
                     <tr key={expense.originalIndex}>
                       <td style={{ textAlign: 'center' }}>💵</td>
                       <td>
@@ -509,7 +429,7 @@ export default function ExpensesPage() {
                           placeholder="Expense description"
                         />
                       </td>
-                      <td style={{ backgroundColor: getCategoryColor(expense.category || 'Other') }}>
+                      <td>
                         <CategorySelector
                           category={expense.category || 'Other'}
                           onCategoryChange={(newCategory) =>
@@ -611,31 +531,6 @@ export default function ExpensesPage() {
               </tbody>
             </table>
           </div>
-
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="pagination-controls">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="pagination-btn"
-              >
-                ← Previous
-              </button>
-
-              <div className="pagination-info">
-                Page {currentPage} of {totalPages}
-              </div>
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="pagination-btn"
-              >
-                Next →
-              </button>
-            </div>
-          )}
         </Card>
 
         {/* Allocation Editor Modal */}
@@ -874,7 +769,7 @@ export default function ExpensesPage() {
           font-size: 14px;
           box-sizing: border-box;
           background: white;
-          color: #000;
+          color: #333;
         }
 
         .expenses-table input[type="number"] {
@@ -1257,93 +1152,6 @@ export default function ExpensesPage() {
           padding: 20px 24px;
           border-top: 2px solid #f0f0f0;
           background: #f8f9fa;
-        }
-
-        /* Filters Section */
-        .filters-section {
-          display: flex;
-          align-items: center;
-          gap: 24px;
-          padding: 16px 20px;
-          flex-wrap: wrap;
-        }
-
-        .filter-group {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .filter-group label {
-          font-weight: 500;
-          color: #333;
-          font-size: 14px;
-        }
-
-        .filter-select {
-          padding: 6px 12px;
-          border: 1px solid #ddd;
-          border-radius: 6px;
-          font-size: 14px;
-          color: #000;
-          background: white;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .filter-select:hover {
-          border-color: #667eea;
-        }
-
-        .filter-select:focus {
-          outline: none;
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .filter-info {
-          margin-left: auto;
-          font-size: 14px;
-          color: #666;
-          font-weight: 500;
-        }
-
-        /* Pagination Controls */
-        .pagination-controls {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 20px;
-          padding: 20px;
-          border-top: 1px solid #e5e5e5;
-        }
-
-        .pagination-btn {
-          padding: 8px 16px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .pagination-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .pagination-btn:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-
-        .pagination-info {
-          font-size: 14px;
-          font-weight: 500;
-          color: #333;
         }
 
         @media (max-width: 768px) {
