@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import ProductOptionCard from './ProductOptionCard';
+import ImageUpload from './ImageUpload';
 import {
   createNewOption,
   selectProductOption,
@@ -15,7 +16,6 @@ export default function ProductOptionsManager({ item, onChange, disabled = false
   const [activeTab, setActiveTab] = useState('list'); // 'list' or 'edit'
   const [editingOption, setEditingOption] = useState(null);
   const [formData, setFormData] = useState(createNewOption());
-  const [uploadingImages, setUploadingImages] = useState(false);
 
   const productOptions = item.productOptions || [];
   const optionCount = getOptionCount(item);
@@ -76,54 +76,8 @@ export default function ProductOptionsManager({ item, onChange, disabled = false
     setEditingOption(null);
   };
 
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
-    setUploadingImages(true);
-
-    try {
-      const newImages = await Promise.all(
-        files.map((file) => {
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-              resolve({
-                id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                name: file.name,
-                data: event.target.result,
-                isMainImage: formData.images.length === 0, // First image is main
-                uploadedAt: new Date(),
-              });
-            };
-            reader.readAsDataURL(file);
-          });
-        })
-      );
-
-      setFormData((prev) => ({
-        ...prev,
-        images: [...prev.images, ...newImages],
-      }));
-    } catch (error) {
-      console.error('Error uploading images:', error);
-      alert('Failed to upload images');
-    } finally {
-      setUploadingImages(false);
-    }
-  };
-
-  const handleRemoveImage = (imageId) => {
-    const updatedImages = formData.images.filter((img) => img.id !== imageId);
-    setFormData((prev) => ({ ...prev, images: updatedImages }));
-  };
-
-  const handleSetMainImage = (imageId) => {
-    const updatedImages = formData.images.map((img) => ({
-      ...img,
-      isMainImage: img.id === imageId,
-    }));
-    setFormData((prev) => ({ ...prev, images: updatedImages }));
+  const handleImagesChange = (images) => {
+    setFormData((prev) => ({ ...prev, images }));
   };
 
   return (
@@ -240,40 +194,12 @@ export default function ProductOptionsManager({ item, onChange, disabled = false
 
             <div className="form-group">
               <label>Images</label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageUpload}
-                disabled={uploadingImages}
+              <ImageUpload
+                images={formData.images}
+                onImagesChange={handleImagesChange}
+                maxImages={5}
+                maxSizeMB={2}
               />
-              {uploadingImages && <p className="uploading">Uploading images...</p>}
-
-              {formData.images.length > 0 && (
-                <div className="image-gallery">
-                  {formData.images.map((img) => (
-                    <div key={img.id} className="image-item">
-                      <img src={img.data || img.url} alt={img.name} />
-                      <div className="image-actions">
-                        <button
-                          type="button"
-                          onClick={() => handleSetMainImage(img.id)}
-                          className={img.isMainImage ? 'active' : ''}
-                        >
-                          {img.isMainImage ? '★ Main' : '☆ Set Main'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(img.id)}
-                          className="btn-remove"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="form-actions">
@@ -413,58 +339,6 @@ export default function ProductOptionsManager({ item, onChange, disabled = false
           outline: none;
           border-color: #667eea;
           box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .uploading {
-          font-size: 14px;
-          color: #667eea;
-          margin-top: 8px;
-        }
-
-        .image-gallery {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-          gap: 12px;
-          margin-top: 12px;
-        }
-
-        .image-item {
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          overflow: hidden;
-        }
-
-        .image-item img {
-          width: 100%;
-          height: 150px;
-          object-fit: cover;
-        }
-
-        .image-actions {
-          padding: 8px;
-          background: #f9fafb;
-          display: flex;
-          gap: 4px;
-        }
-
-        .image-actions button {
-          flex: 1;
-          padding: 4px 8px;
-          font-size: 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 4px;
-          background: white;
-          cursor: pointer;
-        }
-
-        .image-actions button.active {
-          background: #667eea;
-          color: white;
-          border-color: #667eea;
-        }
-
-        .image-actions .btn-remove {
-          color: #ef4444;
         }
 
         .form-actions {

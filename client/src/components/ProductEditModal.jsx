@@ -353,6 +353,13 @@ export default function ProductEditModal({
           </div>
         </div>
 
+        <div className="form-section product-options-section">
+          <ProductOptionsManager
+            item={formData}
+            onChange={(updatedItem) => setFormData(updatedItem)}
+          />
+        </div>
+
         <div className="form-section">
           <label className="section-label">Product Images</label>
           <ImageUpload
@@ -360,13 +367,6 @@ export default function ProductEditModal({
             onImagesChange={handleImagesChange}
             maxImages={5}
             maxSizeMB={2}
-          />
-        </div>
-
-        <div className="form-section product-options-section">
-          <ProductOptionsManager
-            item={formData}
-            onChange={(updatedItem) => setFormData(updatedItem)}
           />
         </div>
 
