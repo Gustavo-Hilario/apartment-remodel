@@ -6,6 +6,7 @@ import { MainLayout } from '@/components/layout';
 import { Card, Button, LoadingSpinner } from '@/components/ui';
 import ImageUpload from '@/components/ImageUpload';
 import CategorySelector from '@/components/CategorySelector';
+import ProductOptionsManager from '@/components/ProductOptionsManager';
 import { roomsAPI, categoriesAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 
@@ -24,6 +25,7 @@ export default function RoomEditorPage() {
     const [error, setError] = useState(null);
     const [sortBy, setSortBy] = useState('original');
     const [sortDirection, setSortDirection] = useState('asc');
+    const [editingOptionsIndex, setEditingOptionsIndex] = useState(null);
 
     const loadRoom = async () => {
         try {
@@ -511,7 +513,7 @@ export default function RoomEditorPage() {
                                                 ? '↑'
                                                 : '↓')}
                                     </th>
-                                    <th style={{ width: '80px' }}>Actions</th>
+                                    <th style={{ width: '120px' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -673,26 +675,42 @@ export default function RoomEditorPage() {
                                             </select>
                                         </td>
                                         <td>
-                                            {item._isShared ? (
-                                                <span
-                                                    className='shared-info-icon'
-                                                    title='Shared items are managed from the Expenses page'
-                                                >
-                                                    ℹ️
-                                                </span>
-                                            ) : (
-                                                <button
-                                                    className='delete-btn'
-                                                    onClick={() =>
-                                                        deleteItem(
-                                                            item.originalIndex
-                                                        )
-                                                    }
-                                                    title='Delete item'
-                                                >
-                                                    🗑️
-                                                </button>
-                                            )}
+                                            <div className='actions-cell'>
+                                                {!item._isShared && (
+                                                    <>
+                                                        <button
+                                                            className='options-btn'
+                                                            onClick={() =>
+                                                                setEditingOptionsIndex(
+                                                                    item.originalIndex
+                                                                )
+                                                            }
+                                                            title='Manage product options'
+                                                        >
+                                                            📦
+                                                        </button>
+                                                        <button
+                                                            className='delete-btn'
+                                                            onClick={() =>
+                                                                deleteItem(
+                                                                    item.originalIndex
+                                                                )
+                                                            }
+                                                            title='Delete item'
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {item._isShared && (
+                                                    <span
+                                                        className='shared-info-icon'
+                                                        title='Shared items are managed from the Expenses page'
+                                                    >
+                                                        ℹ️
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -714,6 +732,43 @@ export default function RoomEditorPage() {
                         />
                     </div>
                 </Card>
+
+                {/* Product Options Modal */}
+                {editingOptionsIndex !== null && (
+                    <div className='modal-overlay' onClick={() => setEditingOptionsIndex(null)}>
+                        <div className='modal-content' onClick={(e) => e.stopPropagation()}>
+                            <div className='modal-header'>
+                                <h2>
+                                    📦 Product Options: {items[editingOptionsIndex]?.description || 'Item'}
+                                </h2>
+                                <button
+                                    className='modal-close'
+                                    onClick={() => setEditingOptionsIndex(null)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div className='modal-body'>
+                                <ProductOptionsManager
+                                    item={items[editingOptionsIndex]}
+                                    onChange={(updatedItem) => {
+                                        const updatedItems = [...items];
+                                        updatedItems[editingOptionsIndex] = updatedItem;
+                                        setItems(updatedItems);
+                                    }}
+                                />
+                            </div>
+                            <div className='modal-footer'>
+                                <Button
+                                    variant='primary'
+                                    onClick={() => setEditingOptionsIndex(null)}
+                                >
+                                    Done
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className='bottom-actions'>
                     <Button
@@ -1101,6 +1156,103 @@ export default function RoomEditorPage() {
                     color: #666;
                     cursor: not-allowed;
                     opacity: 0.8;
+                }
+
+                /* Actions Cell */
+                .actions-cell {
+                    display: flex;
+                    gap: 8px;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .options-btn {
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    font-size: 1.2rem;
+                    padding: 4px;
+                    opacity: 0.6;
+                    transition: opacity 0.2s;
+                }
+
+                .options-btn:hover {
+                    opacity: 1;
+                }
+
+                /* Modal Styles */
+                .modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.6);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    padding: 20px;
+                }
+
+                .modal-content {
+                    background: white;
+                    border-radius: 12px;
+                    max-width: 900px;
+                    width: 100%;
+                    max-height: 90vh;
+                    display: flex;
+                    flex-direction: column;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                }
+
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20px 24px;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+
+                .modal-header h2 {
+                    margin: 0;
+                    font-size: 1.5rem;
+                    color: #333;
+                }
+
+                .modal-close {
+                    background: none;
+                    border: none;
+                    font-size: 1.8rem;
+                    cursor: pointer;
+                    color: #666;
+                    padding: 0;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 6px;
+                    transition: all 0.2s;
+                }
+
+                .modal-close:hover {
+                    background: #f3f4f6;
+                    color: #333;
+                }
+
+                .modal-body {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 24px;
+                }
+
+                .modal-footer {
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 12px;
+                    padding: 20px 24px;
+                    border-top: 1px solid #e5e7eb;
                 }
 
                 @media (max-width: 768px) {

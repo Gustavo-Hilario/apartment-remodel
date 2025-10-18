@@ -94,9 +94,44 @@ const itemSchema = new mongoose.Schema(
             type: String,
             default: '',
         },
+        // Product Options - for tracking multiple product variants
+        productOptions: {
+            type: [
+                {
+                    id: { type: String, required: true },
+                    name: { type: String, required: true },
+                    price: { type: Number, required: true },
+                    url: { type: String, default: '' },
+                    description: { type: String, default: '' },
+                    images: {
+                        type: [
+                            {
+                                id: String,
+                                name: String,
+                                url: String,
+                                data: String,
+                                isMainImage: { type: Boolean, default: false },
+                                uploadedAt: { type: Date, default: Date.now },
+                            },
+                        ],
+                        default: [],
+                    },
+                    notes: { type: String, default: '' },
+                },
+            ],
+            default: [],
+        },
+        selectedOptionId: {
+            type: String,
+            default: '',
+        },
+        selectedProductName: {
+            type: String,
+            default: '',
+        },
     },
     { _id: false }
-); // Don't create _id for subdocuments; // Don't create _id for subdocuments
+); // Don't create _id for subdocuments
 
 // Room Schema
 const roomSchema = new mongoose.Schema(
