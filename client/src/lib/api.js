@@ -153,6 +153,9 @@ export const productsAPI = {
                     showImage: false,
                     links: productData.links || [],
                     images: productData.images || [],
+                    productOptions: productData.productOptions || [],
+                    selectedOptionId: productData.selectedOptionId || '',
+                    selectedProductName: productData.selectedProductName || '',
                 },
             ];
 
@@ -195,6 +198,9 @@ export const productsAPI = {
                             : productData.imageUrl || '',
                     links: productData.links || [],
                     images: productData.images || [],
+                    productOptions: productData.productOptions || [],
+                    selectedOptionId: productData.selectedOptionId || '',
+                    selectedProductName: productData.selectedProductName || '',
                 };
             } else {
                 throw new Error('Product not found in room');
@@ -219,6 +225,9 @@ export const productsAPI = {
                 showImage: false,
                 links: productData.links || [],
                 images: productData.images || [],
+                productOptions: productData.productOptions || [],
+                selectedOptionId: productData.selectedOptionId || '',
+                selectedProductName: productData.selectedProductName || '',
             });
         }
 
