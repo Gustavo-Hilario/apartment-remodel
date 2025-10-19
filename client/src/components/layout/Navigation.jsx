@@ -6,12 +6,19 @@
 
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import './Navigation.css';
 
 export default function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('authTimestamp');
+    router.push('/login');
+  };
 
   const navItems = [
     { href: '/', label: 'Home', icon: '🏠' },
@@ -49,6 +56,9 @@ export default function Navigation() {
         <div className="nav-actions">
           <button className="btn-secondary" onClick={() => window.location.reload()}>
             🔄 Refresh
+          </button>
+          <button className="btn-logout" onClick={handleLogout} title="Logout">
+            🚪 Logout
           </button>
         </div>
       </div>
