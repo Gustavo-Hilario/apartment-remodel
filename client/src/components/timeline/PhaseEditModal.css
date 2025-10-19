@@ -224,6 +224,25 @@
   background: white;
   border-radius: 6px;
   border: 1px solid #e5e5e5;
+  transition: all 0.2s ease;
+  cursor: grab;
+}
+
+.subtask-item-wrapper:active {
+  cursor: grabbing;
+}
+
+.subtask-item-wrapper.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+  cursor: grabbing;
+}
+
+.subtask-item-wrapper.drag-over {
+  border: 2px dashed #667eea;
+  background: rgba(102, 126, 234, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
 }
 
 .item-row {
@@ -233,6 +252,25 @@
   padding: 12px;
   background: white;
   border-radius: 6px;
+  gap: 8px;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #999;
+  font-size: 1rem;
+  padding: 0 4px;
+  user-select: none;
+  transition: color 0.2s;
+  line-height: 1;
+}
+
+.drag-handle:hover {
+  color: #667eea;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 
 .checkbox-label {

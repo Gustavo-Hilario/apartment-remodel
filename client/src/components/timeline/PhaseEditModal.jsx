@@ -34,6 +34,8 @@ export default function PhaseEditModal({ phase, onSave, onClose }) {
   const [newLearning, setNewLearning] = useState({ content: '', category: 'note' });
   const [expandedSubtask, setExpandedSubtask] = useState(null);
   const [subtaskLearnings, setSubtaskLearnings] = useState({});
+  const [draggedSubtask, setDraggedSubtask] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -134,6 +136,63 @@ export default function PhaseEditModal({ phase, onSave, onClose }) {
         st.id === subtaskId ? { ...st, images } : st
       )
     }));
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e, index) => {
+    setDraggedSubtask(index);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add a small delay to allow the drag image to be set
+    setTimeout(() => {
+      e.target.classList.add('dragging');
+    }, 0);
+  };
+
+  const handleDragEnd = (e) => {
+    e.target.classList.remove('dragging');
+    setDraggedSubtask(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    if (draggedSubtask !== null && draggedSubtask !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+
+    if (draggedSubtask === null || draggedSubtask === dropIndex) {
+      setDragOverIndex(null);
+      return;
+    }
+
+    setFormData(prev => {
+      const newSubtasks = [...prev.subtasks];
+      const draggedItem = newSubtasks[draggedSubtask];
+
+      // Remove from old position
+      newSubtasks.splice(draggedSubtask, 1);
+
+      // Insert at new position
+      newSubtasks.splice(dropIndex, 0, draggedItem);
+
+      return {
+        ...prev,
+        subtasks: newSubtasks
+      };
+    });
+
+    setDraggedSubtask(null);
+    setDragOverIndex(null);
   };
 
   // Learnings
@@ -301,13 +360,26 @@ export default function PhaseEditModal({ phase, onSave, onClose }) {
                   </div>
 
                   <div className="items-list">
-                    {formData.subtasks.map(subtask => {
+                    {formData.subtasks.map((subtask, index) => {
                       const isExpanded = expandedSubtask === subtask.id;
                       const subtaskLearning = subtaskLearnings[subtask.id] || { content: '', category: 'note' };
+                      const isDragOver = dragOverIndex === index && draggedSubtask !== index;
 
                       return (
-                        <div key={subtask.id} className="subtask-item-wrapper">
+                        <div
+                          key={subtask.id}
+                          className={`subtask-item-wrapper ${isDragOver ? 'drag-over' : ''}`}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, index)}
+                          onDragEnd={handleDragEnd}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, index)}
+                        >
                           <div className="item-row">
+                            <div className="drag-handle" title="Drag to reorder">
+                              ⋮⋮
+                            </div>
                             <label className="checkbox-label">
                               <input
                                 type="checkbox"
