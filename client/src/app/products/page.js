@@ -8,10 +8,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '@/components/layout';
-import { Card, Button, LoadingSpinner } from '@/components/ui';
+import { Card, Button, LoadingSpinner, ConfirmDialog } from '@/components/ui';
 import ProductCard from '@/components/products/ProductCard';
 import ProductEditModal from '@/components/ProductEditModal';
 import { productsAPI, roomsAPI } from '@/lib/api';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function ProductsPage() {
     const [products, setProducts] = useState([]);
@@ -27,6 +28,9 @@ export default function ProductsPage() {
     const [hideCompleted, setHideCompleted] = useState(true); // Hide completed by default
     const [sortBy, setSortBy] = useState('favorites'); // Default: favorites first
     const [searchQuery, setSearchQuery] = useState('');
+    const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const toast = useToast();
 
     const loadData = useCallback(async () => {
         try {
@@ -99,11 +103,12 @@ export default function ProductsPage() {
 
             // Save product data as-is (already using budget_price and actual_price)
             await productsAPI.save(product, product);
+            toast.success('Product updated successfully');
         } catch (err) {
             console.error('Error saving product:', err);
             // Revert on error by reloading
             await loadData();
-            alert('Failed to save product. Please try again.');
+            toast.error('Failed to save product. Please try again.');
         }
     };
 
@@ -146,16 +151,25 @@ export default function ProductsPage() {
         setDuplicateData(null);
     };
 
-    const handleDelete = async (product) => {
-        if (confirm(`Delete ${product.description}?`)) {
-            try {
-                await productsAPI.delete(product);
-                // Refresh the products list
-                await loadData();
-            } catch (err) {
-                console.error('Error deleting product:', err);
-                alert('Failed to delete product. Please try again.');
-            }
+    const handleDelete = (product) => {
+        setDeleteConfirm(product);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+
+        setIsDeleting(true);
+        try {
+            await productsAPI.delete(deleteConfirm);
+            toast.success(`${deleteConfirm.description} deleted successfully`);
+            // Refresh the products list
+            await loadData();
+        } catch (err) {
+            console.error('Error deleting product:', err);
+            toast.error('Failed to delete product. Please try again.');
+        } finally {
+            setIsDeleting(false);
+            setDeleteConfirm(null);
         }
     };
 
@@ -515,6 +529,18 @@ export default function ProductsPage() {
                     initialData={duplicateData}
                     onSave={handleSave}
                     availableRooms={rooms}
+                />
+
+                <ConfirmDialog
+                    isOpen={!!deleteConfirm}
+                    onClose={() => setDeleteConfirm(null)}
+                    onConfirm={confirmDelete}
+                    title="Delete Product"
+                    message={`Are you sure you want to delete "${deleteConfirm?.description}"? This action cannot be undone.`}
+                    confirmText="Delete"
+                    confirmIcon="🗑️"
+                    variant="danger"
+                    loading={isDeleting}
                 />
             </div>
 
