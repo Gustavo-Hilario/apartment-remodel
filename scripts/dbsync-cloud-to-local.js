@@ -1,13 +1,13 @@
 /**
- * Sync Cloud Database to Local Development
+ * Database Sync: Cloud to Local Development
  *
  * Copies all data from the cloud database (apartment_remodel) to
  * local development database (apartment_remodel_dev).
  *
  * This is useful when you want to work with production data locally.
  *
- * Usage: node scripts/sync-cloud-to-local.js
- * Or: npm run sync:cloud-to-local
+ * Usage: node scripts/dbsync-cloud-to-local.js
+ * Or: npm run dbsync:cloud-to-local
  */
 
 const mongoose = require('mongoose');
@@ -17,11 +17,11 @@ const readline = require('readline');
 
 const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
 });
 
 function question(query) {
-    return new Promise(resolve => rl.question(query, resolve));
+    return new Promise((resolve) => rl.question(query, resolve));
 }
 
 // Load cloud database URL from .env
@@ -55,10 +55,14 @@ async function syncCloudToLocal() {
         console.log(`☁️  Cloud Database: ${cloudDBName}`);
         console.log(`🏠 Local Database: ${localDBName}`);
         console.log('═'.repeat(60));
-        console.log('\n⚠️  This will OVERWRITE all data in your local development database!');
+        console.log(
+            '\n⚠️  This will OVERWRITE all data in your local development database!'
+        );
         console.log('   Make sure local MongoDB is running.\n');
 
-        const answer = await question('Type "SYNC" to confirm, or anything else to cancel: ');
+        const answer = await question(
+            'Type "SYNC" to confirm, or anything else to cancel: '
+        );
 
         if (answer.trim().toUpperCase() !== 'SYNC') {
             console.log('\n❌ Sync cancelled.\n');
@@ -78,7 +82,7 @@ async function syncCloudToLocal() {
 
         // Get all collections from cloud
         const collections = await cloudDB.listCollections().toArray();
-        const collectionNames = collections.map(c => c.name);
+        const collectionNames = collections.map((c) => c.name);
 
         if (collectionNames.length === 0) {
             console.log('⚠️  Cloud database is empty. Nothing to sync.');
@@ -89,14 +93,19 @@ async function syncCloudToLocal() {
         }
 
         console.log(`📋 Found ${collectionNames.length} collections in cloud:`);
-        collectionNames.forEach(name => console.log(`   - ${name}`));
+        collectionNames.forEach((name) => console.log(`   - ${name}`));
         console.log('\n🔄 Starting sync...\n');
 
         // Drop all existing collections in local database
-        const existingLocalCollections = await localDB.listCollections().toArray();
+        const existingLocalCollections = await localDB
+            .listCollections()
+            .toArray();
         for (const col of existingLocalCollections) {
             console.log(`🗑️  Dropping local collection: ${col.name}`);
-            await localDB.collection(col.name).drop().catch(() => {});
+            await localDB
+                .collection(col.name)
+                .drop()
+                .catch(() => {});
         }
 
         console.log('');
@@ -114,21 +123,24 @@ async function syncCloudToLocal() {
                 // Insert into local
                 await localCollection.insertMany(documents);
                 totalDocuments += documents.length;
-                console.log(`✅ Copied ${documents.length} documents from ${collectionName}`);
+                console.log(
+                    `✅ Copied ${documents.length} documents from ${collectionName}`
+                );
             } else {
                 console.log(`⏭️  Skipped empty collection: ${collectionName}`);
             }
 
             // Copy indexes
             const indexes = await cloudCollection.indexes();
-            if (indexes.length > 1) { // More than just _id index
+            if (indexes.length > 1) {
+                // More than just _id index
                 for (const index of indexes) {
                     if (index.name !== '_id_') {
                         try {
-                            await localCollection.createIndex(
-                                index.key,
-                                { name: index.name, ...index }
-                            );
+                            await localCollection.createIndex(index.key, {
+                                name: index.name,
+                                ...index,
+                            });
                         } catch (err) {
                             // Index might already exist, ignore
                         }
@@ -146,7 +158,6 @@ async function syncCloudToLocal() {
         await localConnection.close();
         rl.close();
         process.exit(0);
-
     } catch (error) {
         console.error('\n❌ Sync failed:', error.message);
 
