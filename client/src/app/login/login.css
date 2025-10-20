@@ -63,6 +63,15 @@
   margin-bottom: 8px;
 }
 
+.form-group input {
+  color: #333 !important;
+  background: white !important;
+}
+
+.form-group input::placeholder {
+  color: #999 !important;
+}
+
 .error-message {
   background: #fee;
   color: #c33;

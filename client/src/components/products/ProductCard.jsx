@@ -10,6 +10,7 @@ import { useState } from 'react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import { formatCurrency } from '@/lib/currency';
+import AdminOnly from '../auth/AdminOnly';
 import './ProductCard.css';
 
 export default function ProductCard({ product, onEdit, onQuickSave, onDelete, onDuplicate }) {
@@ -141,20 +142,22 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete, on
                   <img src={img.url || img.data || img} alt={`Thumbnail ${index + 1}`} />
                   <div className="thumbnail-overlay">
                     {(img.isMainImage || img.showImage) && <span className="thumbnail-heart primary">⭐</span>}
-                    <span
-                      className={`set-primary-btn ${(img.isMainImage || img.showImage) ? 'is-primary' : ''}`}
-                      onClick={(e) => handleSetPrimary(index, e)}
-                      title={(img.isMainImage || img.showImage) ? 'Primary image' : 'Set as primary'}
-                      role="button"
-                      tabIndex={0}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          handleSetPrimary(index, e);
-                        }
-                      }}
-                    >
-                      ❤️
-                    </span>
+                    <AdminOnly>
+                      <span
+                        className={`set-primary-btn ${(img.isMainImage || img.showImage) ? 'is-primary' : ''}`}
+                        onClick={(e) => handleSetPrimary(index, e)}
+                        title={(img.isMainImage || img.showImage) ? 'Primary image' : 'Set as primary'}
+                        role="button"
+                        tabIndex={0}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            handleSetPrimary(index, e);
+                          }
+                        }}
+                      >
+                        ❤️
+                      </span>
+                    </AdminOnly>
                   </div>
                 </button>
               ))}
@@ -173,16 +176,18 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete, on
             )}
           </div>
           <div className="product-header-actions">
-            <button 
-              className="duplicate-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDuplicate?.(product);
-              }}
-              title="Duplicate product"
-            >
-              📋
-            </button>
+            <AdminOnly>
+              <button 
+                className="duplicate-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate?.(product);
+                }}
+                title="Duplicate product"
+              >
+                📋
+              </button>
+            </AdminOnly>
             <button 
               className={`favorite-toggle ${isFavorite ? 'is-favorite' : ''}`}
               onClick={handleToggleFavorite}
@@ -237,24 +242,26 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete, on
         )}
 
         {/* Actions */}
-        <div className="product-actions">
-          <Button 
-            variant="secondary" 
-            size="small"
-            icon="✏️"
-            onClick={() => onEdit?.(product)}
-          >
-            Edit
-          </Button>
-          <Button 
-            variant="danger" 
-            size="small"
-            icon="🗑️"
-            onClick={() => onDelete?.(product)}
-          >
-            Delete
-          </Button>
-        </div>
+        <AdminOnly>
+          <div className="product-actions">
+            <Button 
+              variant="secondary" 
+              size="small"
+              icon="✏️"
+              onClick={() => onEdit?.(product)}
+            >
+              Edit
+            </Button>
+            <Button 
+              variant="danger" 
+              size="small"
+              icon="🗑️"
+              onClick={() => onDelete?.(product)}
+            >
+              Delete
+            </Button>
+          </div>
+        </AdminOnly>
       </div>
     </Card>
   );

@@ -5,26 +5,41 @@
  * running on http://localhost:8000
  */
 
+import { getSession } from 'next-auth/react';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 /**
- * Generic fetch wrapper with error handling
+ * Generic fetch wrapper with error handling and authentication
  */
 async function fetchAPI(endpoint, options = {}) {
     const url = `${API_BASE}${endpoint}`;
 
     try {
+        // Get current session for authentication
+        const session = await getSession();
+
+        // Prepare headers with authentication
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers,
+        };
+
+        // Add user ID to headers if authenticated
+        if (session?.user?.id) {
+            headers['x-user-id'] = session.user.id;
+        }
+
         const response = await fetch(url, {
             ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers,
-            },
+            headers,
         });
 
         if (!response.ok) {
+            // Try to get error message from response
+            const errorData = await response.json().catch(() => ({}));
             throw new Error(
-                `API Error: ${response.status} ${response.statusText}`
+                errorData.message || errorData.error || `API Error: ${response.status} ${response.statusText}`
             );
         }
 

@@ -7,6 +7,7 @@
 'use client';
 
 import Button from '../ui/Button';
+import AdminOnly from '../auth/AdminOnly';
 import './PhaseCard.css';
 
 export default function PhaseCard({ phase, onEdit, onDelete, statusColor }) {
@@ -93,24 +94,26 @@ export default function PhaseCard({ phase, onEdit, onDelete, statusColor }) {
         )}
       </div>
 
-      <div className="phase-actions">
-        <Button
-          variant="secondary"
-          size="small"
-          icon="✏️"
-          onClick={onEdit}
-        >
-          Edit
-        </Button>
-        <Button
-          variant="danger"
-          size="small"
-          icon="🗑️"
-          onClick={onDelete}
-        >
-          Delete
-        </Button>
-      </div>
+      <AdminOnly>
+        <div className="phase-actions">
+          <Button
+            variant="secondary"
+            size="small"
+            icon="✏️"
+            onClick={onEdit}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="danger"
+            size="small"
+            icon="🗑️"
+            onClick={onDelete}
+          >
+            Delete
+          </Button>
+        </div>
+      </AdminOnly>
     </div>
   );
 }

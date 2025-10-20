@@ -2,14 +2,27 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { Card, Button, Input } from '@/components/ui';
+import Link from 'next/link';
 import './login.css';
 
 export default function Login() {
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,17 +30,18 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Check against environment variable password
-      const correctPassword = process.env.NEXT_PUBLIC_APP_PASSWORD || 'family2025';
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
 
-      if (password === correctPassword) {
-        // Store auth token in localStorage
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('authTimestamp', Date.now().toString());
-        router.push('/');
+      if (result?.error) {
+        setError(result.error);
       } else {
-        setError('Incorrect password. Please try again.');
-        setPassword('');
+        // Redirect to home page
+        router.push('/');
+        router.refresh();
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -46,14 +60,28 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="password">Enter Family Password</label>
+            <label htmlFor="email">Email Address</label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Enter your email"
+              autoFocus
+              disabled={loading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
             <Input
               id="password"
+              name="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              autoFocus
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Enter your password"
               disabled={loading}
             />
           </div>
@@ -68,14 +96,19 @@ export default function Login() {
             type="submit"
             variant="primary"
             fullWidth
-            disabled={!password || loading}
+            disabled={!formData.email || !formData.password || loading}
           >
             {loading ? 'Logging in...' : 'Login'}
           </Button>
         </form>
 
         <div className="login-footer">
-          <p>Contact the administrator if you need access</p>
+          <p>
+            Don't have an account?{' '}
+            <Link href="/signup" style={{ color: '#667eea', fontWeight: 600 }}>
+              Sign up here
+            </Link>
+          </p>
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import CategorySelector from '@/components/CategorySelector';
 import ProductOptionsManager from '@/components/ProductOptionsManager';
 import { roomsAPI, categoriesAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
+import AdminOnly from '@/components/auth/AdminOnly';
 
 export default function RoomEditorPage() {
     const params = useParams();
@@ -284,16 +285,18 @@ export default function RoomEditorPage() {
                         </Button>
                         <h1>✏️ {roomData.name}</h1>
                     </div>
-                    <div className='header-actions'>
-                        <Button
-                            variant='success'
-                            onClick={saveRoom}
-                            disabled={saving}
-                            icon='💾'
-                        >
-                            {saving ? 'Saving...' : 'Save Changes'}
-                        </Button>
-                    </div>
+                    <AdminOnly>
+                        <div className='header-actions'>
+                            <Button
+                                variant='success'
+                                onClick={saveRoom}
+                                disabled={saving}
+                                icon='💾'
+                            >
+                                {saving ? 'Saving...' : 'Save Changes'}
+                            </Button>
+                        </div>
+                    </AdminOnly>
                 </header>
 
                 {/* Budget Summary Cards */}
@@ -383,17 +386,19 @@ export default function RoomEditorPage() {
                                     />
                                     <div className='gallery-item-info'>
                                         <span className='gallery-item-name'>{image.name || `Image ${index + 1}`}</span>
-                                        <button
-                                            className='gallery-delete-btn'
-                                            onClick={() => {
-                                                if (confirm('Delete this image?')) {
-                                                    setRoomImages(roomImages.filter((_, i) => i !== index));
-                                                }
-                                            }}
-                                            title='Delete image'
-                                        >
-                                            🗑️
-                                        </button>
+                                        <AdminOnly>
+                                            <button
+                                                className='gallery-delete-btn'
+                                                onClick={() => {
+                                                    if (confirm('Delete this image?')) {
+                                                        setRoomImages(roomImages.filter((_, i) => i !== index));
+                                                    }
+                                                }}
+                                                title='Delete image'
+                                            >
+                                                🗑️
+                                            </button>
+                                        </AdminOnly>
                                     </div>
                                 </div>
                             ))}
@@ -405,13 +410,15 @@ export default function RoomEditorPage() {
                 <Card>
                     <div className='table-header'>
                         <h2>Room Items</h2>
-                        <Button
-                            variant='primary'
-                            onClick={addNewItem}
-                            icon='➕'
-                        >
-                            Add Item
-                        </Button>
+                        <AdminOnly>
+                            <Button
+                                variant='primary'
+                                onClick={addNewItem}
+                                icon='➕'
+                            >
+                                Add Item
+                            </Button>
+                        </AdminOnly>
                     </div>
 
                     <div className='table-wrapper'>
@@ -676,32 +683,34 @@ export default function RoomEditorPage() {
                                         </td>
                                         <td>
                                             <div className='actions-cell'>
-                                                {!item._isShared && (
-                                                    <>
-                                                        <button
-                                                            className='options-btn'
-                                                            onClick={() =>
-                                                                setEditingOptionsIndex(
-                                                                    item.originalIndex
-                                                                )
-                                                            }
-                                                            title='Manage product options'
-                                                        >
-                                                            📦
-                                                        </button>
-                                                        <button
-                                                            className='delete-btn'
-                                                            onClick={() =>
-                                                                deleteItem(
-                                                                    item.originalIndex
-                                                                )
-                                                            }
-                                                            title='Delete item'
-                                                        >
-                                                            🗑️
-                                                        </button>
-                                                    </>
-                                                )}
+                                                <AdminOnly>
+                                                    {!item._isShared && (
+                                                        <>
+                                                            <button
+                                                                className='options-btn'
+                                                                onClick={() =>
+                                                                    setEditingOptionsIndex(
+                                                                        item.originalIndex
+                                                                    )
+                                                                }
+                                                                title='Manage product options'
+                                                            >
+                                                                📦
+                                                            </button>
+                                                            <button
+                                                                className='delete-btn'
+                                                                onClick={() =>
+                                                                    deleteItem(
+                                                                        item.originalIndex
+                                                                    )
+                                                                }
+                                                                title='Delete item'
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </AdminOnly>
                                                 {item._isShared && (
                                                     <span
                                                         className='shared-info-icon'
@@ -720,18 +729,20 @@ export default function RoomEditorPage() {
                 </Card>
 
                 {/* Room Image Upload */}
-                <Card>
-                    <div className='upload-section'>
-                        <h3>📷 Room Images</h3>
-                        <p>Upload images for this room (progress photos, inspiration, etc.)</p>
-                        <ImageUpload
-                            images={roomImages}
-                            onImagesChange={setRoomImages}
-                            maxImages={10}
-                            maxSizeMB={5}
-                        />
-                    </div>
-                </Card>
+                <AdminOnly>
+                    <Card>
+                        <div className='upload-section'>
+                            <h3>📷 Room Images</h3>
+                            <p>Upload images for this room (progress photos, inspiration, etc.)</p>
+                            <ImageUpload
+                                images={roomImages}
+                                onImagesChange={setRoomImages}
+                                maxImages={10}
+                                maxSizeMB={5}
+                            />
+                        </div>
+                    </Card>
+                </AdminOnly>
 
                 {/* Product Options Modal */}
                 {editingOptionsIndex !== null && (
@@ -777,15 +788,17 @@ export default function RoomEditorPage() {
                     >
                         Cancel
                     </Button>
-                    <Button
-                        variant='success'
-                        onClick={saveRoom}
-                        disabled={saving}
-                        icon='💾'
-                        size='large'
-                    >
-                        {saving ? 'Saving...' : 'Save Changes'}
-                    </Button>
+                    <AdminOnly>
+                        <Button
+                            variant='success'
+                            onClick={saveRoom}
+                            disabled={saving}
+                            icon='💾'
+                            size='large'
+                        >
+                            {saving ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                    </AdminOnly>
                 </div>
             </div>
 

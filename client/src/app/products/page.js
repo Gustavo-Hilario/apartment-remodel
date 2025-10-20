@@ -13,6 +13,7 @@ import ProductCard from '@/components/products/ProductCard';
 import ProductEditModal from '@/components/ProductEditModal';
 import { productsAPI, roomsAPI } from '@/lib/api';
 import { useToast } from '@/contexts/ToastContext';
+import AdminOnly from '@/components/auth/AdminOnly';
 
 export default function ProductsPage() {
     const [products, setProducts] = useState([]);
@@ -259,9 +260,11 @@ export default function ProductsPage() {
             <div className='products-page'>
                 <header className='page-header'>
                     <h1>{includeMaterials ? '🛍️ Products & Materials' : '🛍️ Products'}</h1>
-                    <Button icon='➕' onClick={handleAddNew}>
-                        Add {includeMaterials ? 'Product/Material' : 'Product'}
-                    </Button>
+                    <AdminOnly>
+                        <Button icon='➕' onClick={handleAddNew}>
+                            Add {includeMaterials ? 'Product/Material' : 'Product'}
+                        </Button>
+                    </AdminOnly>
                 </header>
 
                 {loading && (
@@ -481,14 +484,16 @@ export default function ProductsPage() {
                                                 : 'Try adjusting your filters to see more products'}
                                         </p>
                                         {products.length === 0 ? (
-                                            <Button
-                                                icon='➕'
-                                                onClick={() =>
-                                                    setShowModal(true)
-                                                }
-                                            >
-                                                Add Your First Product
-                                            </Button>
+                                            <AdminOnly>
+                                                <Button
+                                                    icon='➕'
+                                                    onClick={() =>
+                                                        setShowModal(true)
+                                                    }
+                                                >
+                                                    Add Your First Product
+                                                </Button>
+                                            </AdminOnly>
                                         ) : (
                                             <Button
                                                 onClick={() => {

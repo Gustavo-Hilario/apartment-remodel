@@ -12,6 +12,7 @@ import { Card, Button, LoadingSpinner } from '@/components/ui';
 import CategorySelector from '@/components/CategorySelector';
 import { expensesAPI, roomsAPI, categoriesAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
+import AdminOnly from '@/components/auth/AdminOnly';
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState([]);
@@ -317,14 +318,16 @@ export default function ExpensesPage() {
             <h1>💰 Main Project Costs</h1>
             <p className="subtitle">Manual expenses and completed items</p>
           </div>
-          <div className="header-actions">
-            <Button onClick={addExpense} icon="➕">
-              Add Expense
-            </Button>
-            <Button onClick={handleSave} disabled={saving} icon="💾">
-              {saving ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
+          <AdminOnly>
+            <div className="header-actions">
+              <Button onClick={addExpense} icon="➕">
+                Add Expense
+              </Button>
+              <Button onClick={handleSave} disabled={saving} icon="💾">
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </AdminOnly>
         </header>
 
         {/* Summary Cards */}
@@ -517,13 +520,15 @@ export default function ExpensesPage() {
                         </select>
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <button
-                          className="delete-btn"
-                          onClick={() => deleteExpense(expense.originalIndex)}
-                          title="Delete expense"
-                        >
-                          🗑️
-                        </button>
+                        <AdminOnly>
+                          <button
+                            className="delete-btn"
+                            onClick={() => deleteExpense(expense.originalIndex)}
+                            title="Delete expense"
+                          >
+                            🗑️
+                          </button>
+                        </AdminOnly>
                       </td>
                     </tr>
                   ))
@@ -648,11 +653,13 @@ export default function ExpensesPage() {
         )}
 
         {/* Bottom Actions */}
-        <div className="bottom-actions">
-          <Button onClick={handleSave} disabled={saving} icon="💾" variant="primary">
-            {saving ? 'Saving...' : 'Save All Changes'}
-          </Button>
-        </div>
+        <AdminOnly>
+          <div className="bottom-actions">
+            <Button onClick={handleSave} disabled={saving} icon="💾" variant="primary">
+              {saving ? 'Saving...' : 'Save All Changes'}
+            </Button>
+          </div>
+        </AdminOnly>
       </div>
 
       <style jsx>{`

@@ -6,6 +6,9 @@ const cors = require('cors');
 const { connectDB } = require('../db/mongoose-connection');
 const Room = require('../db/models/Room');
 const Timeline = require('../db/models/Timeline');
+const User = require('../db/models/User');
+const bcrypt = require('bcryptjs');
+const { requireAuth, requireAdmin, optionalAuth } = require('../middleware/auth');
 
 const app = express();
 const port = process.env.PORT || 8000;
@@ -21,6 +24,150 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' })); // Increased limit for base64 images
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, '..')));
+
+// ============================================================================
+// AUTH ROUTES
+// ============================================================================
+
+// Get user by email (for NextAuth)
+app.post('/api/auth/user-by-email', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        // Find user and include password for verification
+        const user = await User.findOne({ email }).select('+password');
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        console.log('User found:', email, 'Has password:', !!user.password);
+
+        // Return user as plain object to preserve password field
+        const userObj = {
+            _id: user._id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            isActive: user.isActive,
+            password: user.password, // Include password for NextAuth verification
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+        };
+
+        res.json({ success: true, user: userObj });
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({
+            error: 'Failed to fetch user',
+            details: error.message,
+        });
+    }
+});
+
+// Update last login
+app.post('/api/auth/update-last-login', async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        await User.findByIdAndUpdate(userId, { lastLogin: new Date() });
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating last login:', error);
+        res.status(500).json({
+            error: 'Failed to update last login',
+            details: error.message,
+        });
+    }
+});
+
+// Register new user
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { email, password, name } = req.body;
+
+        // Validate inputs
+        if (!email || !password || !name) {
+            return res.status(400).json({
+                error: 'Email, password, and name are required',
+            });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({
+                error: 'Password must be at least 8 characters',
+            });
+        }
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+
+        if (existingUser) {
+            return res.status(400).json({
+                error: 'A user with this email already exists',
+            });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Create new user (default role: user)
+        const newUser = new User({
+            email,
+            password: hashedPassword,
+            name,
+            role: 'user',
+            isActive: true,
+        });
+
+        await newUser.save();
+
+        // Return user without password
+        const userResponse = newUser.toJSON();
+
+        res.status(201).json({
+            success: true,
+            message: 'User registered successfully',
+            user: userResponse,
+        });
+    } catch (error) {
+        console.error('Error registering user:', error);
+
+        if (error.code === 11000) {
+            return res.status(400).json({
+                error: 'A user with this email already exists',
+            });
+        }
+
+        res.status(500).json({
+            error: 'Failed to register user',
+            details: error.message,
+        });
+    }
+});
+
+// Get all users (admin only)
+app.get('/api/auth/users', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const users = await User.find({}).sort({ createdAt: -1 });
+        res.json({ success: true, users });
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({
+            error: 'Failed to fetch users',
+            details: error.message,
+        });
+    }
+});
 
 // ============================================================================
 // ROOM ROUTES
@@ -125,8 +272,8 @@ app.get('/api/load-room/:roomName', async (req, res) => {
     }
 });
 
-// Save room data
-app.post('/api/save-room/:roomName', async (req, res) => {
+// Save room data (requires admin)
+app.post('/api/save-room/:roomName', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { roomName } = req.params;
         const { roomData } = req.body;
@@ -411,8 +558,8 @@ app.get('/api/load-expenses', async (req, res) => {
     }
 });
 
-// Save expenses
-app.post('/api/save-expenses', async (req, res) => {
+// Save expenses (requires admin)
+app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { expenses } = req.body;
 
@@ -557,8 +704,8 @@ app.get('/api/timeline', async (req, res) => {
     }
 });
 
-// Save entire timeline
-app.post('/api/timeline', async (req, res) => {
+// Save entire timeline (requires admin)
+app.post('/api/timeline', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { timeline: timelineData } = req.body;
 
@@ -587,8 +734,8 @@ app.post('/api/timeline', async (req, res) => {
     }
 });
 
-// Add a new phase
-app.post('/api/timeline/phase', async (req, res) => {
+// Add a new phase (requires admin)
+app.post('/api/timeline/phase', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { phase } = req.body;
 
@@ -617,8 +764,8 @@ app.post('/api/timeline/phase', async (req, res) => {
     }
 });
 
-// Update a specific phase
-app.put('/api/timeline/phase/:id', async (req, res) => {
+// Update a specific phase (requires admin)
+app.put('/api/timeline/phase/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const { phase: updatedPhase } = req.body;
@@ -654,8 +801,8 @@ app.put('/api/timeline/phase/:id', async (req, res) => {
     }
 });
 
-// Delete a phase
-app.delete('/api/timeline/phase/:id', async (req, res) => {
+// Delete a phase (requires admin)
+app.delete('/api/timeline/phase/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
 

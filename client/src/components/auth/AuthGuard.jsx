@@ -1,52 +1,37 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { LoadingSpinner } from '@/components/ui';
 
 /**
  * AuthGuard Component
- * Protects routes by checking authentication status
+ * Protects routes by checking NextAuth session
  * Redirects to /login if not authenticated
  */
 export default function AuthGuard({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
 
+  const publicPaths = ['/login', '/signup'];
+  const isPublicPath = publicPaths.includes(pathname);
+
   useEffect(() => {
-    const checkAuth = () => {
-      // Skip auth check for login page
-      if (pathname === '/login') {
-        setIsAuthenticated(true);
-        setIsLoading(false);
-        return;
-      }
+    if (status === 'loading') return; // Still loading session
 
-      const authStatus = localStorage.getItem('isAuthenticated');
-      const authTimestamp = localStorage.getItem('authTimestamp');
+    if (!session && !isPublicPath) {
+      // Not authenticated and trying to access protected route
+      router.push('/login');
+    } else if (session && isPublicPath) {
+      // Authenticated but on login/signup page, redirect to home
+      router.push('/');
+    }
+  }, [session, status, pathname, router, isPublicPath]);
 
-      // Check if authenticated and not expired (7 days)
-      const isValid = authStatus === 'true' && authTimestamp &&
-        (Date.now() - parseInt(authTimestamp)) < 7 * 24 * 60 * 60 * 1000;
-
-      if (isValid) {
-        setIsAuthenticated(true);
-      } else {
-        // Clear expired auth
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('authTimestamp');
-        router.push('/login');
-      }
-
-      setIsLoading(false);
-    };
-
-    checkAuth();
-  }, [pathname, router]);
-
-  if (isLoading) {
+  // Show loading spinner while checking authentication
+  if (status === 'loading') {
     return (
       <div style={{
         display: 'flex',
@@ -63,7 +48,8 @@ export default function AuthGuard({ children }) {
     );
   }
 
-  if (!isAuthenticated && pathname !== '/login') {
+  // Don't render protected content if not authenticated
+  if (!session && !isPublicPath) {
     return null;
   }
 

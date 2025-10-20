@@ -6,18 +6,17 @@
 
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import './Navigation.css';
 
 export default function Navigation() {
   const pathname = usePathname();
-  const router = useRouter();
+  const { data: session } = useSession();
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('authTimestamp');
-    router.push('/login');
+  const handleLogout = async () => {
+    await signOut({ redirect: true, callbackUrl: '/login' });
   };
 
   const navItems = [
@@ -54,6 +53,14 @@ export default function Navigation() {
         </ul>
 
         <div className="nav-actions">
+          {session && (
+            <div className="user-info" title={`${session.user.name} (${session.user.role})`}>
+              <span className="user-name">{session.user.name}</span>
+              {session.user.role === 'admin' && (
+                <span className="role-badge">Admin</span>
+              )}
+            </div>
+          )}
           <button className="btn-secondary" onClick={() => window.location.reload()}>
             🔄 Refresh
           </button>

@@ -11,6 +11,7 @@ import { MainLayout } from '@/components/layout';
 import { Button, LoadingSpinner } from '@/components/ui';
 import TimelineView from '@/components/timeline/TimelineView';
 import PhaseEditModal from '@/components/timeline/PhaseEditModal';
+import AdminOnly from '@/components/auth/AdminOnly';
 import './timeline.css';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -142,13 +143,15 @@ export default function TimelinePage() {
               Track your apartment remodel progress through each phase
             </p>
           </div>
-          <Button
-            variant="primary"
-            icon="+"
-            onClick={handleAddPhase}
-          >
-            Add Phase
-          </Button>
+          <AdminOnly>
+            <Button
+              variant="primary"
+              icon="+"
+              onClick={handleAddPhase}
+            >
+              Add Phase
+            </Button>
+          </AdminOnly>
         </header>
 
         {!loading && timeline && timeline.phases.length > 0 && (
@@ -190,9 +193,11 @@ export default function TimelinePage() {
                 <div className="empty-icon">📅</div>
                 <h3>No Phases Yet</h3>
                 <p>Get started by adding your first remodel phase</p>
-                <Button variant="primary" icon="+" onClick={handleAddPhase}>
-                  Add First Phase
-                </Button>
+                <AdminOnly>
+                  <Button variant="primary" icon="+" onClick={handleAddPhase}>
+                    Add First Phase
+                  </Button>
+                </AdminOnly>
               </div>
             ) : (
               <TimelineView
