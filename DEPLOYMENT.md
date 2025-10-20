@@ -8,7 +8,7 @@ This guide walks you through deploying your Apartment Remodel application online
 - **Frontend**: Next.js 15.5.4 (deployed on Vercel)
 - **Backend**: Express 5.1.0 (deployed on Render)
 - **Database**: MongoDB (hosted on MongoDB Atlas)
-- **Authentication**: Simple password protection
+- **Authentication**: NextAuth.js with role-based access control (Admin/Family/Guest)
 
 **Estimated Time**: 1-2 hours for complete setup
 
@@ -140,6 +140,7 @@ Click "Advanced" and add these environment variables:
 | `PORT` | `8000` |
 | `MONGO_URL` | Your MongoDB Atlas connection string from Step 2.4 |
 | `CLIENT_URL` | `https://your-app.vercel.app` (we'll update this after Vercel deployment) |
+| `JWT_SECRET` | Generate a secure random string (e.g., use `openssl rand -base64 32`) |
 
 Click "Create Web Service"
 
@@ -182,7 +183,10 @@ Click "Environment Variables" and add:
 | Name | Value |
 |------|-------|
 | `NEXT_PUBLIC_API_URL` | `https://apartment-remodel-api.onrender.com/api` (your Render URL from Phase 3) |
-| `NEXT_PUBLIC_APP_PASSWORD` | Choose a strong password for family access (e.g., `FamilyRemodel2025!`) |
+| `NEXTAUTH_URL` | `https://your-app.vercel.app` (your Vercel URL - we'll update after first deploy) |
+| `NEXTAUTH_SECRET` | Generate a secure random string (e.g., use `openssl rand -base64 32`) |
+
+**Note:** After your first deployment, you'll need to update `NEXTAUTH_URL` with your actual Vercel URL.
 
 ### 4.5 Deploy
 
@@ -202,33 +206,92 @@ Go back to Render:
 
 ---
 
-## Phase 5: Testing & Verification
+## Phase 5: Create Admin User
 
-### 5.1 Test Your Deployment
+### 5.1 Access MongoDB Atlas
+
+1. Go to your MongoDB Atlas dashboard
+2. Click "Database" in the left sidebar
+3. Click "Browse Collections" on your cluster
+4. Select your database (e.g., `apartment_remodel`)
+5. Find or create the `users` collection
+
+### 5.2 Create First Admin User
+
+Click "Insert Document" and add this document (replace with your details):
+
+```json
+{
+  "name": "Your Name",
+  "email": "youremail@example.com",
+  "password": "$2b$10$YourHashedPasswordHere",
+  "role": "admin",
+  "createdAt": {"$date": "2025-01-15T00:00:00.000Z"}
+}
+```
+
+**To generate a hashed password:**
+
+Option 1 - Use Node.js locally:
+```bash
+node -e "const bcrypt = require('bcryptjs'); console.log(bcrypt.hashSync('YourPassword123!', 10));"
+```
+
+Option 2 - Use an online bcrypt generator (use reputable sites only):
+- Generate a bcrypt hash with 10 salt rounds
+- Copy the hash to the password field
+
+**Important:** Save your login credentials securely!
+
+---
+
+## Phase 6: Testing & Verification
+
+### 6.1 Test Your Deployment
 
 1. Visit your Vercel URL: `https://your-app.vercel.app`
 2. You should see the login page
-3. Enter the password you set in `NEXT_PUBLIC_APP_PASSWORD`
+3. Click "Sign In" and enter your admin credentials
 4. After login, verify:
    - Homepage loads with data
    - Products page works
    - Timeline page works
    - Budget and expense tracking works
+   - User management page is accessible (Admin only)
 
-### 5.2 Test Authentication
+### 6.2 Test Authentication & Authorization
 
-1. Logout (click logout button in navigation)
-2. Try accessing the app directly - should redirect to login
-3. Login again with the family password
+1. **Admin Access:**
+   - Login with your admin account
+   - Verify you can access all pages including user management
+   - Create a family member account and a guest account
 
-### 5.3 Common Issues & Fixes
+2. **Role-Based Access:**
+   - Logout and login as family member
+   - Verify you can edit but not access user management
+   - Logout and login as guest
+   - Verify you can only view (read-only access)
+
+3. **Session Management:**
+   - Logout (click logout button in navigation)
+   - Try accessing protected pages - should redirect to login
+   - Login again and verify session persists
+
+### 6.3 Common Issues & Fixes
 
 **Issue**: "Failed to load data" on homepage
 - **Fix**: Check that Render backend URL is correct in Vercel environment variables
 - **Fix**: Wait 30 seconds if backend was sleeping (free tier limitation)
 
-**Issue**: Login doesn't work
-- **Fix**: Verify `NEXT_PUBLIC_APP_PASSWORD` is set correctly in Vercel
+**Issue**: NextAuth login doesn't work
+- **Fix**: Verify `NEXTAUTH_URL` matches your Vercel URL exactly (with https://)
+- **Fix**: Ensure `NEXTAUTH_SECRET` is set in Vercel environment variables
+- **Fix**: Check browser console for specific NextAuth errors
+
+**Issue**: "Invalid credentials" when logging in
+- **Fix**: Verify admin user exists in MongoDB users collection
+- **Fix**: Ensure password was hashed correctly with bcrypt
+- **Fix**: Check email address matches exactly (case-sensitive)
 
 **Issue**: CORS errors
 - **Fix**: Ensure `CLIENT_URL` in Render matches your Vercel URL exactly (with https://)
@@ -237,11 +300,26 @@ Go back to Render:
 - **Fix**: Verify MongoDB connection string in Render environment variables
 - **Fix**: Check MongoDB Atlas Network Access allows 0.0.0.0/0
 
+**Issue**: "Unauthorized" or role-based access not working
+- **Fix**: Verify user role in MongoDB is exactly "admin", "family", or "guest" (lowercase)
+- **Fix**: Clear browser cookies and login again
+
 ---
 
-## Phase 6: Share with Family
+## Phase 7: Share with Family
 
-### 6.1 Create Family Access Guide
+### 7.1 Create User Accounts
+
+As an admin, create accounts for your family members:
+
+1. Login to your deployed app
+2. Navigate to "User Management" (Admin only)
+3. Click "Add User"
+4. Create accounts with appropriate roles:
+   - **Family**: Can view and edit all data
+   - **Guest**: Read-only access
+
+### 7.2 Create Family Access Guide
 
 Share this information with your family:
 
@@ -249,7 +327,13 @@ Share this information with your family:
 🏗️ Apartment Remodel Tracker
 
 Website: https://your-app.vercel.app
-Password: [Your family password]
+
+Login Instructions:
+1. Click "Sign In" on the homepage
+2. Use the email and password provided by the admin
+3. (Optional) Check "Remember me" for convenience
+
+Your Access Level: [Admin/Family/Guest]
 
 Features:
 - Track renovation budget and expenses
@@ -260,7 +344,7 @@ Features:
 Note: The app may take 30 seconds to load if it hasn't been used recently (free tier).
 ```
 
-### 6.2 Optional: Custom Domain
+### 7.3 Optional: Custom Domain
 
 If you want a custom domain (costs ~$10-15/year):
 
@@ -337,7 +421,10 @@ If you encounter issues:
 - [ ] Vercel frontend deployed with environment variables
 - [ ] Frontend tested and working
 - [ ] Backend CORS updated with Vercel URL
-- [ ] Authentication tested (login/logout)
+- [ ] Admin user created in MongoDB
+- [ ] NextAuth authentication tested (login/logout)
+- [ ] Role-based access verified (Admin/Family/Guest)
+- [ ] Family member accounts created
 - [ ] All features verified in production
 - [ ] Family access credentials shared
 

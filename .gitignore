@@ -58,3 +58,30 @@ AGENTS-BASE.md
 .codex
 .serena
 AI-GOALS.md
+# Common Development Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.log
+*.tmp
+*.temp
+*~
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Git-related temporary files
+.git-rewrite-backup
+*.orig
+*.rej
+.gitconfig.local
+COMMIT_EDITMSG
+MERGE_MSG
+SQUASH_MSG
+.git/COMMIT_EDITMSG
+
