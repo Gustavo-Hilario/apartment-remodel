@@ -7,14 +7,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { MainLayout } from '@/components/layout';
-import { Card, Button, LoadingSpinner } from '@/components/ui';
+import { Card, Button, LoadingSpinner, DatePicker } from '@/components/ui';
 import CategorySelector from '@/components/CategorySelector';
 import { expensesAPI, roomsAPI, categoriesAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 import AdminOnly from '@/components/auth/AdminOnly';
 
 export default function ExpensesPage() {
+  const { data: session } = useSession();
   const [expenses, setExpenses] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -24,6 +26,12 @@ export default function ExpensesPage() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [openRoomDropdown, setOpenRoomDropdown] = useState(null);
   const [showAllocationModal, setShowAllocationModal] = useState(null); // Track which expense allocation editor is open
+  
+  // Filter states
+  const [filterDateRange, setFilterDateRange] = useState({ start: null, end: null });
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterRoom, setFilterRoom] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
     loadData();
@@ -260,8 +268,41 @@ export default function ExpensesPage() {
     }
   };
 
-  const getSortedExpenses = () => {
-    const sorted = [...expenses].sort((a, b) => {
+  const getFilteredAndSortedExpenses = () => {
+    // First filter
+    let filtered = [...expenses];
+    
+    // Date range filter
+    if (filterDateRange.start || filterDateRange.end) {
+      filtered = filtered.filter(exp => {
+        if (!exp.date) return false;
+        const expDate = new Date(exp.date);
+        if (filterDateRange.start && expDate < filterDateRange.start) return false;
+        if (filterDateRange.end && expDate > filterDateRange.end) return false;
+        return true;
+      });
+    }
+    
+    // Category filter
+    if (filterCategory !== 'all') {
+      filtered = filtered.filter(exp => exp.category === filterCategory);
+    }
+    
+    // Room filter
+    if (filterRoom !== 'all') {
+      filtered = filtered.filter(exp => {
+        if (!exp.rooms || exp.rooms.length === 0) return filterRoom === 'general';
+        return exp.rooms.includes(filterRoom);
+      });
+    }
+    
+    // Status filter
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(exp => exp.status === filterStatus);
+    }
+    
+    // Then sort
+    const sorted = [...filtered].sort((a, b) => {
       let aVal = a[sortBy];
       let bVal = b[sortBy];
 
@@ -286,6 +327,13 @@ export default function ExpensesPage() {
       originalIndex: expenses.indexOf(expense),
     }));
   };
+  
+  const clearFilters = () => {
+    setFilterDateRange({ start: null, end: null });
+    setFilterCategory('all');
+    setFilterRoom('all');
+    setFilterStatus('all');
+  };
 
   // Total Spent: Only completed items
   const totalSpent = expenses
@@ -308,7 +356,7 @@ export default function ExpensesPage() {
     );
   }
 
-  const sortedExpenses = getSortedExpenses();
+  const sortedExpenses = getFilteredAndSortedExpenses();
 
   return (
     <MainLayout>
@@ -358,6 +406,92 @@ export default function ExpensesPage() {
           </Card>
         </div>
 
+        {/* Filters Section */}
+        <Card>
+          <div className="filters-section">
+            <h3 className="filters-title">🔍 Filters</h3>
+            <div className="filters-grid">
+              <div className="filter-group">
+                <label>Date Range</label>
+                <div className="date-range-inputs">
+                  <DatePicker
+                    selected={filterDateRange.start}
+                    onChange={(date) => setFilterDateRange({ ...filterDateRange, start: date })}
+                    placeholderText="Start date"
+                    isClearable
+                    maxDate={filterDateRange.end || new Date()}
+                  />
+                  <span className="date-separator">→</span>
+                  <DatePicker
+                    selected={filterDateRange.end}
+                    onChange={(date) => setFilterDateRange({ ...filterDateRange, end: date })}
+                    placeholderText="End date"
+                    isClearable
+                    minDate={filterDateRange.start}
+                    maxDate={new Date()}
+                  />
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <label>Category</label>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label>Room</label>
+                <select
+                  value={filterRoom}
+                  onChange={(e) => setFilterRoom(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Rooms</option>
+                  <option value="general">General (No Room)</option>
+                  {rooms.filter(r => r.value !== 'all').map(room => (
+                    <option key={room.value} value={room.value}>{room.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label>Status</label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="Planning">Planning</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Ordered">Ordered</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+            </div>
+            
+            {(filterDateRange.start || filterDateRange.end || filterCategory !== 'all' || 
+              filterRoom !== 'all' || filterStatus !== 'all') && (
+              <div className="filter-actions">
+                <Button variant="secondary" onClick={clearFilters} icon="✕">
+                  Clear Filters
+                </Button>
+                <span className="filter-results-count">
+                  Showing {sortedExpenses.length} of {expenses.length} items
+                </span>
+              </div>
+            )}
+          </div>
+        </Card>
+
         {/* Expenses Table */}
         <Card>
           <div className="table-wrapper">
@@ -399,7 +533,9 @@ export default function ExpensesPage() {
                   >
                     Status {sortBy === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
-                  <th style={{ width: '60px' }}>Actions</th>
+                  {session?.user?.role === 'admin' && (
+                    <th style={{ width: '60px' }}>Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -411,7 +547,10 @@ export default function ExpensesPage() {
                   </tr>
                 ) : (
                   sortedExpenses.map((expense) => (
-                    <tr key={expense.originalIndex}>
+                    <tr 
+                      key={expense.originalIndex}
+                      className={expense.status === 'Completed' ? 'completed-row' : ''}
+                    >
                       <td style={{ textAlign: 'center' }}>💵</td>
                       <td>
                         <input
@@ -519,8 +658,8 @@ export default function ExpensesPage() {
                           <option value="Completed">Completed</option>
                         </select>
                       </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <AdminOnly>
+                      {session?.user?.role === 'admin' && (
+                        <td style={{ textAlign: 'center' }}>
                           <button
                             className="delete-btn"
                             onClick={() => deleteExpense(expense.originalIndex)}
@@ -528,8 +667,8 @@ export default function ExpensesPage() {
                           >
                             🗑️
                           </button>
-                        </AdminOnly>
-                      </td>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
@@ -765,6 +904,14 @@ export default function ExpensesPage() {
 
         .expenses-table tbody tr:hover {
           background-color: #f8f9fa;
+        }
+
+        .expenses-table tbody tr.completed-row {
+          background-color: #d4edda;
+        }
+
+        .expenses-table tbody tr.completed-row:hover {
+          background-color: #c3e6cb;
         }
 
         .expenses-table input,
@@ -1161,6 +1308,104 @@ export default function ExpensesPage() {
           background: #f8f9fa;
         }
 
+        /* Filters Section Styles */
+        .filters-section {
+          padding: 20px;
+        }
+
+        .filters-title {
+          margin: 0 0 20px 0;
+          font-size: 1.2rem;
+          color: #667eea;
+          font-weight: 600;
+        }
+
+        .filters-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 20px;
+          margin-bottom: 16px;
+        }
+
+        .filter-group {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .filter-group label {
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: #555;
+          margin-bottom: 8px;
+        }
+
+        .filter-select {
+          padding: 10px 12px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+          background: white;
+          color: #333;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .filter-select:hover {
+          border-color: #667eea;
+        }
+
+        .filter-select:focus {
+          outline: none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .date-range-inputs {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .date-range-inputs :global(.date-picker-input) {
+          flex: 1;
+          padding: 10px 12px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+          transition: all 0.2s;
+        }
+
+        .date-range-inputs :global(.date-picker-input):hover {
+          border-color: #667eea;
+        }
+
+        .date-range-inputs :global(.date-picker-input):focus {
+          outline: none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .date-separator {
+          color: #667eea;
+          font-weight: bold;
+          font-size: 1.2rem;
+        }
+
+        .filter-actions {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 16px;
+          border-top: 1px solid #e5e5e5;
+          margin-top: 8px;
+        }
+
+        .filter-results-count {
+          color: #666;
+          font-size: 0.9rem;
+          font-weight: 500;
+        }
+
         @media (max-width: 768px) {
           .editor-header {
             flex-direction: column;
@@ -1174,6 +1419,25 @@ export default function ExpensesPage() {
 
           .expense-summary {
             grid-template-columns: 1fr;
+          }
+
+          .filters-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .date-range-inputs {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .date-separator {
+            transform: rotate(90deg);
+          }
+
+          .filter-actions {
+            flex-direction: column;
+            gap: 12px;
+            align-items: stretch;
           }
         }
       `}</style>

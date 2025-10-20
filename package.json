@@ -9,11 +9,16 @@
         "server": "npm run dev",
         "dev:all": "concurrently \"npm run server\" \"npm run client\" --names \"API,NEXT\" --prefix-colors \"cyan,magenta\"",
         "build:client": "cd client && npm run build",
-        "start:prod": "concurrently \"npm start\" \"cd client && npm start\" --names \"API,NEXT\""
+        "start:prod": "concurrently \"npm start\" \"cd client && npm start\" --names \"API,NEXT\"",
+        "backup": "node scripts/backup-database.js",
+        "restore": "node scripts/restore-from-backup.js",
+        "copy:local-to-dev": "node scripts/copy-local-to-dev.js",
+        "sync:cloud-to-local": "node scripts/sync-cloud-to-local.js"
     },
     "dependencies": {
         "bcryptjs": "^3.0.2",
         "cors": "^2.8.5",
+        "dotenv": "^16.6.1",
         "express": "^5.1.0",
         "mongodb": "^6.20.0",
         "mongoose": "^8.19.0"

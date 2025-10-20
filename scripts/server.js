@@ -490,7 +490,7 @@ app.get('/api/load-expenses', async (req, res) => {
                             description: item.description,
                             amount: item.totalAmount,
                             category: item.category,
-                            date: new Date().toISOString().split('T')[0],
+                            date: item.date || new Date().toISOString().split('T')[0],
                             rooms: item.roomAllocations.map(a => a.room), // All rooms
                             roomCategory: item.category,
                             status: item.status,
@@ -513,7 +513,7 @@ app.get('/api/load-expenses', async (req, res) => {
                             description: item.description,
                             amount: itemAmount,
                             category: item.category,
-                            date: new Date().toISOString().split('T')[0],
+                            date: item.date || new Date().toISOString().split('T')[0],
                             rooms: roomsList,
                             roomCategory: item.category,
                             status: item.status,
@@ -534,7 +534,7 @@ app.get('/api/load-expenses', async (req, res) => {
                             description: item.description,
                             amount: itemAmount,
                             category: item.category,
-                            date: new Date().toISOString().split('T')[0],
+                            date: item.date || new Date().toISOString().split('T')[0],
                             rooms: [room.slug], // This item belongs to this specific room
                             roomCategory: item.category,
                             status: item.status,
@@ -586,6 +586,7 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
             const amount = parseFloat(expense.amount) || 0;
             const category = expense.category || 'Other';
             const status = expense.status || 'Completed';
+            const date = expense.date || new Date().toISOString().split('T')[0];
 
             // Case 1: No rooms (general expense)
             if (rooms.length === 0) {
@@ -598,6 +599,7 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
                     actual_price: amount,
                     subtotal: amount,
                     status,
+                    date,
                     isSharedExpense: false,
                     roomAllocations: [],
                     totalAmount: amount
@@ -615,6 +617,7 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
                     actual_price: amount,
                     subtotal: amount,
                     status,
+                    date,
                     isSharedExpense: false,
                     roomAllocations: [{ room: rooms[0], amount, percentage: 100 }],
                     totalAmount: amount
@@ -650,6 +653,7 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
                     actual_price: 0, // Shared expenses use roomAllocations instead
                     subtotal: 0,
                     status,
+                    date,
                     isSharedExpense: true,
                     roomAllocations,
                     totalAmount: amount

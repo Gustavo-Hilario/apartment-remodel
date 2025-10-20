@@ -11,3 +11,4 @@ export { default as Input } from './Input';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as Toast, ToastContainer } from './Toast';
 export { default as ConfirmDialog } from './ConfirmDialog';
+export { default as DatePicker } from './DatePicker';
