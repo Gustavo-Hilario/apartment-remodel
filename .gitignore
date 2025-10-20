@@ -50,3 +50,11 @@ Thumbs.db
 # Generated reports
 reports/*.xlsx
 reports/*.pdf
+
+# AI Configuration Hub
+.claude
+CLAUDE-BASE.md
+AGENTS-BASE.md
+.codex
+.serena
+AI-GOALS.md
