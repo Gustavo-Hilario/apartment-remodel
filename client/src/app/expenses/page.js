@@ -11,6 +11,7 @@ import { useSession } from 'next-auth/react';
 import { MainLayout } from '@/components/layout';
 import { Card, Button, LoadingSpinner, DatePicker } from '@/components/ui';
 import CategorySelector from '@/components/CategorySelector';
+import ProductOptionsManager from '@/components/ProductOptionsManager';
 import { expensesAPI, roomsAPI, categoriesAPI } from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 import AdminOnly from '@/components/auth/AdminOnly';
@@ -26,7 +27,8 @@ export default function ExpensesPage() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [openRoomDropdown, setOpenRoomDropdown] = useState(null);
   const [showAllocationModal, setShowAllocationModal] = useState(null); // Track which expense allocation editor is open
-  
+  const [editingOptionsId, setEditingOptionsId] = useState(null); // Track which expense product options are being edited
+
   // Filter states
   const [filterDateRange, setFilterDateRange] = useState({ start: null, end: null });
   const [filterCategory, setFilterCategory] = useState('all');
@@ -36,6 +38,17 @@ export default function ExpensesPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Calculate subtotal: use actual_price if set, otherwise budget_price
+  const calculateSubtotal = (expense) => {
+    const quantity = parseFloat(expense.quantity) || 0;
+    const actualPrice = parseFloat(expense.actual_price) || 0;
+    const budgetPrice = parseFloat(expense.budget_price) || 0;
+
+    // Use actual price if it's set and non-zero, otherwise use budget price
+    const price = actualPrice > 0 ? actualPrice : budgetPrice;
+    return quantity * price;
+  };
 
   const loadData = async () => {
     try {
@@ -113,16 +126,25 @@ export default function ExpensesPage() {
       _id: tempId,
       source: 'expenses',
       description: '',
-      amount: 0,
       category: 'Other',
+
+      // Quantity and pricing (like room items)
+      quantity: 1,
+      unit: 'unit',
+      budget_price: 0,
+      actual_price: 0,
+
+      // Dates
       date: new Date().toISOString().split('T')[0],
+      createdDate: new Date().toISOString().split('T')[0],
+      completedDate: null,
+
+      // Room assignment
       status: 'Pending',
       rooms: [],
       roomAllocations: [],
-      notes: '',
-      createdDate: new Date().toISOString().split('T')[0],
-      completedDate: null,
-      isSharedExpense: false
+      isSharedExpense: false,
+      notes: ''
     };
 
     // Clear filters so new expense is visible
@@ -338,7 +360,11 @@ export default function ExpensesPage() {
       let aVal = a[sortBy];
       let bVal = b[sortBy];
 
-      if (sortBy === 'amount') {
+      if (sortBy === 'subtotal') {
+        // Calculate subtotals for sorting
+        aVal = calculateSubtotal(a);
+        bVal = calculateSubtotal(b);
+      } else if (sortBy === 'amount') {
         aVal = parseFloat(aVal) || 0;
         bVal = parseFloat(bVal) || 0;
       } else if (sortBy === 'date') {
@@ -364,14 +390,14 @@ export default function ExpensesPage() {
     setFilterStatus('Completed'); // Reset to default Completed filter
   };
 
-  // Total Spent: Only completed items
+  // Total Spent: Only completed items (using subtotal)
   const totalSpent = expenses
     .filter(exp => exp.status === 'Completed')
-    .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+    .reduce((sum, exp) => sum + calculateSubtotal(exp), 0);
 
-  // Expected Total: All items regardless of status
+  // Expected Total: All items regardless of status (using subtotal)
   const totalExpected = expenses.reduce(
-    (sum, exp) => sum + (parseFloat(exp.amount) || 0),
+    (sum, exp) => sum + calculateSubtotal(exp),
     0
   );
 
@@ -546,11 +572,16 @@ export default function ExpensesPage() {
                   >
                     Category {sortBy === 'category' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
+                  <th style={{ width: '80px' }}>Qty</th>
+                  <th style={{ width: '80px' }}>Unit</th>
+                  <th style={{ width: '100px' }}>Budget Price</th>
+                  <th style={{ width: '100px' }}>Actual Price</th>
                   <th
                     className="sortable"
-                    onClick={() => handleSort('amount')}
+                    onClick={() => handleSort('subtotal')}
+                    style={{ width: '100px' }}
                   >
-                    Amount {sortBy === 'amount' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    Subtotal {sortBy === 'subtotal' && (sortDirection === 'asc' ? '↑' : '↓')}
                   </th>
                   <th style={{ width: '200px' }}>
                     Rooms (Split Equally)
@@ -619,13 +650,48 @@ export default function ExpensesPage() {
                       <td>
                         <input
                           type="number"
-                          value={parseFloat(expense.amount || 0).toFixed(2)}
+                          value={expense.quantity || 0}
                           onChange={(e) =>
-                            handleExpenseChange(expense._id, 'amount', parseFloat(e.target.value) || 0)
+                            handleExpenseChange(expense._id, 'quantity', parseFloat(e.target.value) || 0)
                           }
-                          step="0.01"
                           min="0"
+                          step="0.01"
                         />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={expense.unit || 'unit'}
+                          onChange={(e) =>
+                            handleExpenseChange(expense._id, 'unit', e.target.value)
+                          }
+                          placeholder="unit"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          value={parseFloat(expense.budget_price || 0).toFixed(2)}
+                          onChange={(e) =>
+                            handleExpenseChange(expense._id, 'budget_price', parseFloat(e.target.value) || 0)
+                          }
+                          min="0"
+                          step="0.01"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          value={parseFloat(expense.actual_price || 0).toFixed(2)}
+                          onChange={(e) =>
+                            handleExpenseChange(expense._id, 'actual_price', parseFloat(e.target.value) || 0)
+                          }
+                          min="0"
+                          step="0.01"
+                        />
+                      </td>
+                      <td className="subtotal-cell">
+                        {formatCurrency(Math.round(calculateSubtotal(expense)))}
                       </td>
                       <td className="room-dropdown-cell">
                         <div className="room-dropdown-wrapper">
@@ -695,14 +761,23 @@ export default function ExpensesPage() {
                         </select>
                       </td>
                       {session?.user?.role === 'admin' && (
-                        <td style={{ textAlign: 'center' }}>
-                          <button
-                            className="delete-btn"
-                            onClick={() => deleteExpense(expense._id)}
-                            title="Delete expense"
-                          >
-                            🗑️
-                          </button>
+                        <td>
+                          <div className="actions-cell">
+                            <button
+                              className="options-btn"
+                              onClick={() => setEditingOptionsId(expense._id)}
+                              title="Manage product options"
+                            >
+                              📦
+                            </button>
+                            <button
+                              className="delete-btn"
+                              onClick={() => deleteExpense(expense._id)}
+                              title="Delete expense"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -826,6 +901,45 @@ export default function ExpensesPage() {
             </div>
           </div>
         )}
+
+        {/* Product Options Modal */}
+        {editingOptionsId !== null && (() => {
+          const expense = expenses.find(exp => exp._id === editingOptionsId);
+          return expense ? (
+            <div className="modal-overlay" onClick={() => setEditingOptionsId(null)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2>📦 Product Options: {expense.description || 'Expense'}</h2>
+                  <button
+                    className="modal-close"
+                    onClick={() => setEditingOptionsId(null)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <ProductOptionsManager
+                    item={expense}
+                    onChange={(updatedExpense) => {
+                      const updated = expenses.map(exp =>
+                        exp._id === editingOptionsId ? updatedExpense : exp
+                      );
+                      setExpenses(updated);
+                    }}
+                  />
+                </div>
+                <div className="modal-footer">
+                  <Button
+                    variant="primary"
+                    onClick={() => setEditingOptionsId(null)}
+                  >
+                    Done
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null;
+        })()}
 
         {/* Bottom Actions */}
         <AdminOnly>
@@ -1006,6 +1120,34 @@ export default function ExpensesPage() {
         }
 
         .delete-btn:hover {
+          opacity: 1;
+        }
+
+        .subtotal-cell {
+          font-weight: bold;
+          color: #667eea;
+          text-align: right;
+        }
+
+        /* Actions Cell */
+        .actions-cell {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .options-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 1.2rem;
+          padding: 4px;
+          opacity: 0.6;
+          transition: opacity 0.2s;
+        }
+
+        .options-btn:hover {
           opacity: 1;
         }
 
