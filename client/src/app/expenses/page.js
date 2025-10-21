@@ -556,12 +556,15 @@ export default function ExpensesPage() {
                     >
                       <td style={{ textAlign: 'center' }}>💵</td>
                       <td>
-                        <input
-                          type="date"
-                          value={expense.date || ''}
-                          onChange={(e) =>
-                            handleExpenseChange(expense.originalIndex, 'date', e.target.value)
-                          }
+                        <DatePicker
+                          selected={expense.date ? new Date(expense.date) : null}
+                          onChange={(date) => {
+                            const dateString = date ? date.toISOString().split('T')[0] : '';
+                            handleExpenseChange(expense.originalIndex, 'date', dateString);
+                          }}
+                          placeholderText="Select date"
+                          isClearable
+                          maxDate={new Date()}
                         />
                       </td>
                       <td>
@@ -935,6 +938,28 @@ export default function ExpensesPage() {
 
         .expenses-table input:focus,
         .expenses-table select:focus {
+          outline: none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        /* DatePicker in table cells */
+        .expenses-table :global(.date-picker-input) {
+          width: 100%;
+          padding: 6px 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          font-size: 14px;
+          box-sizing: border-box;
+          background: white;
+          color: #333;
+        }
+
+        .expenses-table :global(.date-picker-input):hover {
+          border-color: #667eea;
+        }
+
+        .expenses-table :global(.date-picker-input):focus {
           outline: none;
           border-color: #667eea;
           box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
