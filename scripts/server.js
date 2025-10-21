@@ -15,8 +15,31 @@ const app = express();
 const port = process.env.PORT || 8000;
 
 // CORS configuration
+// Support multiple origins: production, preview deployments, and local development
+const allowedOrigins = [
+    'http://localhost:3000',
+    'https://apartment-remodel.vercel.app',
+    process.env.CLIENT_URL, // From environment variable
+].filter(Boolean); // Remove undefined values
+
 const corsOptions = {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl, Postman)
+        if (!origin) {
+            return callback(null, true);
+        }
+
+        // Check if origin matches allowed origins or is a Vercel preview deployment
+        const isAllowed = allowedOrigins.includes(origin) ||
+                         origin.endsWith('.vercel.app');
+
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
     optionsSuccessStatus: 200
 };
 
@@ -539,11 +562,20 @@ app.get('/api/load-expenses', async (req, res) => {
 
                 // Expense data
                 description: expense.description,
-                amount: expense.amount,
                 category: expense.category,
+
+                // Quantity and pricing (same structure as room items)
+                quantity: parseFloat(expense.quantity) || 1,
+                unit: expense.unit || 'unit',
+                budget_price: parseFloat(expense.budget_price) || 0,
+                actual_price: parseFloat(expense.actual_price) || 0,
+
+                // Dates
                 date: getItemDate(expense),
                 createdDate: expense.createdDate ? new Date(expense.createdDate).toISOString().split('T')[0] : null,
                 completedDate: expense.completedDate ? new Date(expense.completedDate).toISOString().split('T')[0] : null,
+
+                // Room assignment
                 rooms: expense.rooms || [],
                 status: expense.status,
                 isSharedExpense: expense.isSharedExpense || false,
@@ -557,9 +589,6 @@ app.get('/api/load-expenses', async (req, res) => {
         for (const room of rooms) {
             room.items.forEach((item) => {
                 // Show ALL items from ALL rooms (not just completed)
-                const itemAmount = item.totalAmount ||
-                                  (parseFloat(item.actual_price) || parseFloat(item.budget_price) || 0) *
-                                  (parseFloat(item.quantity) || 1);
 
                 // Determine rooms array
                 let roomsList = [];
@@ -579,11 +608,20 @@ app.get('/api/load-expenses', async (req, res) => {
 
                     // Expense data
                     description: item.description,
-                    amount: itemAmount,
                     category: item.category,
+
+                    // Room items have quantity, unit, and unit prices
+                    quantity: parseFloat(item.quantity) || 1,
+                    unit: item.unit || 'unit',
+                    budget_price: parseFloat(item.budget_price) || 0,
+                    actual_price: parseFloat(item.actual_price) || 0,
+
+                    // Dates
                     date: getItemDate(item),
                     createdDate: item.createdDate ? new Date(item.createdDate).toISOString().split('T')[0] : null,
                     completedDate: item.completedDate ? new Date(item.completedDate).toISOString().split('T')[0] : null,
+
+                    // Room assignment
                     rooms: roomsList,
                     status: item.status,
                     isSharedExpense: item.isSharedExpense || false,
@@ -739,7 +777,7 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
         const roomUpdates = new Map(); // roomSlug -> { room, updates[] }
 
         for (const expense of expenses) {
-            const { _id, source, roomSlug, description, amount, category, status, date, createdDate, completedDate, rooms, roomAllocations, notes } = expense;
+            const { _id, source, roomSlug, description, category, status, date, createdDate, completedDate, rooms, roomAllocations, notes, quantity, unit, budget_price, actual_price } = expense;
 
             // Validate ID
             if (!_id) {
@@ -758,7 +796,6 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
                 const expenseData = {
                     _id,
                     description,
-                    amount,
                     category,
                     status,
                     date,
@@ -766,7 +803,12 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
                     completedDate,
                     rooms: rooms || [],
                     roomAllocations: roomAllocations || [],
-                    notes: notes || ''
+                    notes: notes || '',
+                    // New fields for quantity and unit prices
+                    quantity: parseFloat(quantity) || 1,
+                    unit: unit || 'unit',
+                    budget_price: parseFloat(budget_price) || 0,
+                    actual_price: parseFloat(actual_price) || 0
                 };
 
                 // Check if this is a temp ID (needs to be created)
@@ -796,14 +838,18 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
                 roomUpdates.get(roomSlug).updates.push({
                     _id,
                     description,
-                    amount,
                     category,
                     status,
                     date,
                     createdDate,
                     completedDate,
                     rooms: rooms || [],
-                    roomAllocations: roomAllocations || []
+                    roomAllocations: roomAllocations || [],
+                    // New fields for quantity and unit prices
+                    quantity: parseFloat(quantity) || 1,
+                    unit: unit || 'unit',
+                    budget_price: parseFloat(budget_price) || 0,
+                    actual_price: parseFloat(actual_price) || 0
                 });
             }
         }
