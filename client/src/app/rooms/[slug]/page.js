@@ -618,36 +618,36 @@ export default function RoomEditorPage() {
                                         <td>
                                             <input
                                                 type='number'
-                                                value={Math.round(item.budget_price || 0)}
+                                                value={parseFloat(item.budget_price || 0).toFixed(2)}
                                                 onChange={(e) =>
                                                     handleItemChange(
                                                         item.originalIndex,
                                                         'budget_price',
-                                                        parseInt(
+                                                        parseFloat(
                                                             e.target.value
                                                         ) || 0
                                                     )
                                                 }
                                                 min='0'
-                                                step='1'
+                                                step='0.01'
                                                 disabled={item._readOnly}
                                             />
                                         </td>
                                         <td>
                                             <input
                                                 type='number'
-                                                value={Math.round(item.actual_price || 0)}
+                                                value={parseFloat(item.actual_price || 0).toFixed(2)}
                                                 onChange={(e) =>
                                                     handleItemChange(
                                                         item.originalIndex,
                                                         'actual_price',
-                                                        parseInt(
+                                                        parseFloat(
                                                             e.target.value
                                                         ) || 0
                                                     )
                                                 }
                                                 min='0'
-                                                step='1'
+                                                step='0.01'
                                                 disabled={item._readOnly}
                                             />
                                         </td>

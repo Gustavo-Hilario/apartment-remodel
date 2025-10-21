@@ -619,11 +619,11 @@ export default function ExpensesPage() {
                       <td>
                         <input
                           type="number"
-                          value={Math.round(expense.amount || 0)}
+                          value={parseFloat(expense.amount || 0).toFixed(2)}
                           onChange={(e) =>
-                            handleExpenseChange(expense._id, 'amount', parseInt(e.target.value) || 0)
+                            handleExpenseChange(expense._id, 'amount', parseFloat(e.target.value) || 0)
                           }
-                          step="1"
+                          step="0.01"
                           min="0"
                         />
                       </td>
