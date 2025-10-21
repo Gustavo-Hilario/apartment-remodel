@@ -663,7 +663,7 @@ app.post('/api/create-expense', requireAuth, requireAdmin, async (req, res) => {
 });
 
 // Save expenses (requires admin)
-// Routes to correct collection based on source field
+// Routes to correct collection based on source field and handles deletions
 app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { expenses } = req.body;
@@ -674,7 +674,66 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
 
         console.log(`\n💾 Saving ${expenses.length} expenses...`);
 
-        // Separate expenses by source collection
+        // Step 1: Detect deletions by comparing with DB
+        // Get all current expenses from DB
+        const dbExpenses = await Expense.find({});
+        const dbRooms = await Room.find({});
+
+        // Track incoming expense IDs
+        const incomingIds = new Set(expenses.map(e => e._id).filter(Boolean));
+
+        // Find deleted expenses from expenses collection
+        const deletedExpenseIds = [];
+        for (const dbExpense of dbExpenses) {
+            if (!incomingIds.has(dbExpense._id.toString())) {
+                deletedExpenseIds.push(dbExpense._id);
+            }
+        }
+
+        // Find deleted items from rooms
+        const deletedRoomItems = []; // { roomSlug, itemId }
+        for (const room of dbRooms) {
+            for (const item of room.items) {
+                const itemIdStr = item._id.toString();
+                if (!incomingIds.has(itemIdStr)) {
+                    deletedRoomItems.push({ roomSlug: room.slug, itemId: item._id });
+                }
+            }
+        }
+
+        // Step 2: Delete expenses/items that are no longer in the frontend
+        let totalDeleted = 0;
+
+        // Delete from expenses collection
+        if (deletedExpenseIds.length > 0) {
+            console.log(`\n🗑️  Deleting ${deletedExpenseIds.length} expenses from expenses collection...`);
+            for (const expenseId of deletedExpenseIds) {
+                const expense = await Expense.findByIdAndDelete(expenseId);
+                if (expense) {
+                    console.log(`   ✅ Deleted: ${expense.description.substring(0, 40)}...`);
+                    totalDeleted++;
+                }
+            }
+        }
+
+        // Delete from rooms
+        if (deletedRoomItems.length > 0) {
+            console.log(`\n🗑️  Deleting ${deletedRoomItems.length} items from rooms...`);
+            for (const { roomSlug, itemId } of deletedRoomItems) {
+                const room = await Room.findOne({ slug: roomSlug });
+                if (room) {
+                    const item = room.items.id(itemId);
+                    if (item) {
+                        console.log(`   ✅ Deleted: ${item.description.substring(0, 40)}... from ${roomSlug}`);
+                        item.remove(); // Mongoose subdocument remove
+                        await room.save();
+                        totalDeleted++;
+                    }
+                }
+            }
+        }
+
+        // Step 3: Separate expenses by source collection for updates
         const expenseCollectionUpdates = [];
         const roomUpdates = new Map(); // roomSlug -> { room, updates[] }
 
@@ -851,13 +910,14 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
             console.log(`   💾 Saved ${roomSlug}`);
         }
 
-        console.log(`\n✨ Successfully updated ${totalUpdated} expenses\n`);
+        console.log(`\n✨ Successfully updated ${totalUpdated} expenses and deleted ${totalDeleted} expenses\n`);
 
         res.json({
             success: true,
             message: 'Expenses saved successfully',
             stats: {
-                total: totalUpdated
+                updated: totalUpdated,
+                deleted: totalDeleted
             }
         });
     } catch (error) {
