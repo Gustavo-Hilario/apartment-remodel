@@ -17,7 +17,7 @@ import { useSession } from 'next-auth/react';
 export default function AdminOnly({ children }) {
   const { data: session, status } = useSession();
 
-  // Don't render anything while loading
+  // Do not render anything while loading
   if (status === 'loading') {
     return null;
   }

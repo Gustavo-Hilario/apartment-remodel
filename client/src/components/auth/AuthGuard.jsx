@@ -48,7 +48,7 @@ export default function AuthGuard({ children }) {
     );
   }
 
-  // Don't render protected content if not authenticated
+  // Do not render protected content if not authenticated
   if (!session && !isPublicPath) {
     return null;
   }

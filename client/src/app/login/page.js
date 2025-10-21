@@ -104,7 +104,7 @@ export default function Login() {
 
         <div className="login-footer">
           <p>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/signup" style={{ color: '#667eea', fontWeight: 600 }}>
               Sign up here
             </Link>
