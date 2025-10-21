@@ -545,10 +545,26 @@ app.get('/api/load-expenses', async (req, res) => {
             }
         }
 
-        // Sort by date (most recent first)
-        expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Deduplicate expenses based on description, amount, category, date, and rooms
+        // This prevents the same expense from appearing multiple times
+        const uniqueExpenses = [];
+        const seen = new Set();
 
-        res.json({ success: true, expenses });
+        for (const expense of expenses) {
+            // Create a unique key for this expense
+            const roomsKey = (expense.rooms || []).sort().join(',');
+            const key = `${expense.description}|${expense.amount}|${expense.category}|${expense.date}|${roomsKey}`;
+
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueExpenses.push(expense);
+            }
+        }
+
+        // Sort by date (most recent first)
+        uniqueExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        res.json({ success: true, expenses: uniqueExpenses });
     } catch (error) {
         console.error('Error loading expenses:', error);
         res.status(500).json({

@@ -269,9 +269,15 @@ export default function ExpensesPage() {
   };
 
   const getFilteredAndSortedExpenses = () => {
-    // First filter
-    let filtered = [...expenses];
-    
+    // First, add original index to each expense before filtering
+    const expensesWithIndex = expenses.map((expense, index) => ({
+      ...expense,
+      originalIndex: index,
+    }));
+
+    // Then filter
+    let filtered = [...expensesWithIndex];
+
     // Date range filter
     if (filterDateRange.start || filterDateRange.end) {
       filtered = filtered.filter(exp => {
@@ -282,12 +288,12 @@ export default function ExpensesPage() {
         return true;
       });
     }
-    
+
     // Category filter
     if (filterCategory !== 'all') {
       filtered = filtered.filter(exp => exp.category === filterCategory);
     }
-    
+
     // Room filter
     if (filterRoom !== 'all') {
       filtered = filtered.filter(exp => {
@@ -295,12 +301,12 @@ export default function ExpensesPage() {
         return exp.rooms.includes(filterRoom);
       });
     }
-    
+
     // Status filter
     if (filterStatus !== 'all') {
       filtered = filtered.filter(exp => exp.status === filterStatus);
     }
-    
+
     // Then sort
     const sorted = [...filtered].sort((a, b) => {
       let aVal = a[sortBy];
@@ -322,10 +328,7 @@ export default function ExpensesPage() {
       return 0;
     });
 
-    return sorted.map((expense, index) => ({
-      ...expense,
-      originalIndex: expenses.indexOf(expense),
-    }));
+    return sorted;
   };
   
   const clearFilters = () => {
