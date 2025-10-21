@@ -10,6 +10,7 @@ import '../login/login.css';
 export default function Signup() {
   const [formData, setFormData] = useState({
     name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -32,8 +33,20 @@ export default function Signup() {
     setLoading(true);
 
     // Validation
-    if (!formData.name || !formData.email || !formData.password) {
+    if (!formData.name || !formData.username || !formData.email || !formData.password) {
       setError('All fields are required');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.username.length < 3) {
+      setError('Username must be at least 3 characters');
+      setLoading(false);
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(formData.username)) {
+      setError('Username can only contain letters, numbers, dashes, and underscores');
       setLoading(false);
       return;
     }
@@ -57,6 +70,7 @@ export default function Signup() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
+          username: formData.username,
           email: formData.email,
           password: formData.password,
         }),
@@ -70,7 +84,7 @@ export default function Signup() {
 
       // Auto-login after successful registration
       const signInResult = await signIn('credentials', {
-        email: formData.email,
+        identifier: formData.email, // Can use email or username
         password: formData.password,
         redirect: false,
       });
@@ -108,6 +122,19 @@ export default function Signup() {
               onChange={handleChange}
               placeholder="Enter your full name"
               autoFocus
+              disabled={loading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="username">Username</label>
+            <Input
+              id="username"
+              name="username"
+              type="text"
+              value={formData.username}
+              onChange={handleChange}
+              placeholder="Choose a username"
               disabled={loading}
             />
           </div>

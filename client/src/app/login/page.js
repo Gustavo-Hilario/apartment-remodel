@@ -9,7 +9,7 @@ import './login.css';
 
 export default function Login() {
   const [formData, setFormData] = useState({
-    email: '',
+    identifier: '', // Can be email or username
     password: '',
   });
   const [error, setError] = useState('');
@@ -31,7 +31,7 @@ export default function Login() {
 
     try {
       const result = await signIn('credentials', {
-        email: formData.email,
+        identifier: formData.identifier,
         password: formData.password,
         redirect: false,
       });
@@ -60,14 +60,14 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="identifier">Email or Username</label>
             <Input
-              id="email"
-              name="email"
-              type="email"
-              value={formData.email}
+              id="identifier"
+              name="identifier"
+              type="text"
+              value={formData.identifier}
               onChange={handleChange}
-              placeholder="Enter your email"
+              placeholder="Enter your email or username"
               autoFocus
               disabled={loading}
             />
@@ -96,7 +96,7 @@ export default function Login() {
             type="submit"
             variant="primary"
             fullWidth
-            disabled={!formData.email || !formData.password || loading}
+            disabled={!formData.identifier || !formData.password || loading}
           >
             {loading ? 'Logging in...' : 'Login'}
           </Button>

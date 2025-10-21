@@ -29,28 +29,34 @@ app.use(express.static(path.join(__dirname, '..')));
 // AUTH ROUTES
 // ============================================================================
 
-// Get user by email (for NextAuth)
+// Get user by email or username (for NextAuth)
 app.post('/api/auth/user-by-email', async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email, identifier } = req.body;
+        const lookupValue = identifier || email; // Support both old 'email' and new 'identifier'
 
-        if (!email) {
-            return res.status(400).json({ error: 'Email is required' });
+        if (!lookupValue) {
+            return res.status(400).json({ error: 'Email or username is required' });
         }
 
-        // Find user and include password for verification
-        const user = await User.findOne({ email }).select('+password');
+        // Try to find user by email first, then by username
+        let user = await User.findOne({ email: lookupValue.toLowerCase() }).select('+password');
+
+        if (!user) {
+            user = await User.findOne({ username: lookupValue.toLowerCase() }).select('+password');
+        }
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        console.log('User found:', email, 'Has password:', !!user.password);
+        console.log('User found:', lookupValue, 'Has password:', !!user.password);
 
         // Return user as plain object to preserve password field
         const userObj = {
             _id: user._id,
             email: user.email,
+            username: user.username,
             name: user.name,
             role: user.role,
             isActive: user.isActive,
@@ -93,12 +99,12 @@ app.post('/api/auth/update-last-login', async (req, res) => {
 // Register new user
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { email, password, name } = req.body;
+        const { email, password, name, username } = req.body;
 
         // Validate inputs
-        if (!email || !password || !name) {
+        if (!email || !password || !name || !username) {
             return res.status(400).json({
-                error: 'Email, password, and name are required',
+                error: 'Email, password, name, and username are required',
             });
         }
 
@@ -108,12 +114,25 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ email });
+        if (username.length < 3) {
+            return res.status(400).json({
+                error: 'Username must be at least 3 characters',
+            });
+        }
 
-        if (existingUser) {
+        // Check if email or username already exists
+        const existingEmail = await User.findOne({ email });
+        const existingUsername = await User.findOne({ username: username.toLowerCase() });
+
+        if (existingEmail) {
             return res.status(400).json({
                 error: 'A user with this email already exists',
+            });
+        }
+
+        if (existingUsername) {
+            return res.status(400).json({
+                error: 'A user with this username already exists',
             });
         }
 
@@ -123,6 +142,7 @@ app.post('/api/auth/register', async (req, res) => {
         // Create new user (default role: user)
         const newUser = new User({
             email,
+            username: username.toLowerCase(),
             password: hashedPassword,
             name,
             role: 'user',
@@ -510,110 +530,136 @@ app.get('/api/load-expenses', async (req, res) => {
         const rooms = await Room.find({});
         const expenses = [];
 
-        // First, collect all shared expense descriptions from _general room
-        // to avoid showing duplicates from regular rooms
-        const generalRoom = rooms.find(r => r.slug === '_general');
-        const sharedExpenseDescriptions = new Set();
+        // Process each room and track source (roomSlug + _id)
+        for (const room of rooms) {
+            room.items.forEach((item) => {
+                // Only show completed items or items from _general room
+                if (item.status === 'Completed' || room.slug === '_general') {
+                    // Calculate amount
+                    const itemAmount = item.totalAmount ||
+                                      (parseFloat(item.actual_price) || parseFloat(item.budget_price) || 0) *
+                                      (parseFloat(item.quantity) || 1);
 
-        if (generalRoom) {
-            generalRoom.items.forEach((item) => {
-                if (item.isSharedExpense) {
-                    sharedExpenseDescriptions.add(item.description);
+                    // Determine rooms array
+                    let roomsList = [];
+                    if (item.isSharedExpense && item.roomAllocations && item.roomAllocations.length > 0) {
+                        // Multi-room shared expense
+                        roomsList = item.roomAllocations.map(a => a.room);
+                    } else if (item.roomAllocations && item.roomAllocations.length > 0) {
+                        // Single room expense
+                        roomsList = [item.roomAllocations[0].room];
+                    } else if (room.slug !== '_general') {
+                        // Room item (not from _general)
+                        roomsList = [room.slug];
+                    }
+                    // else: general expense with no room allocations (rooms stays empty)
+
+                    expenses.push({
+                        // SOURCE TRACKING - CRITICAL FOR UPDATES
+                        _id: item._id.toString(), // MongoDB ID as string
+                        roomSlug: room.slug,       // Source room
+
+                        // Expense data
+                        description: item.description,
+                        amount: itemAmount,
+                        category: item.category,
+                        date: getItemDate(item),
+                        createdDate: item.createdDate ? new Date(item.createdDate).toISOString().split('T')[0] : null,
+                        completedDate: item.completedDate ? new Date(item.completedDate).toISOString().split('T')[0] : null,
+                        rooms: roomsList,
+                        roomCategory: item.category,
+                        status: item.status,
+                        isSharedExpense: item.isSharedExpense || false,
+                        roomAllocations: item.roomAllocations || [] // Include for frontend editing
+                    });
                 }
             });
         }
 
-        // Process each room
-        for (const room of rooms) {
-            if (room.slug === '_general') {
-                // Process all items from _general room (expense-managed items)
-                room.items.forEach((item) => {
-                    // Handle shared expenses (multi-room)
-                    if (item.isSharedExpense && item.roomAllocations && item.roomAllocations.length > 0) {
-                        expenses.push({
-                            description: item.description,
-                            amount: item.totalAmount,
-                            category: item.category,
-                            date: getItemDate(item),
-                            rooms: item.roomAllocations.map(a => a.room), // All rooms
-                            roomCategory: item.category,
-                            status: item.status,
-                            isSharedExpense: true,
-                            roomAllocations: item.roomAllocations // Include for frontend editing
-                        });
-                    } else {
-                        // Single-room or general expense from _general
-                        const itemAmount = item.totalAmount || (parseFloat(item.actual_price) || parseFloat(item.budget_price) || 0) * (parseFloat(item.quantity) || 1);
-
-                        // Determine rooms array
-                        let roomsList = [];
-                        if (item.roomAllocations && item.roomAllocations.length > 0) {
-                            // Single room expense (has one allocation)
-                            roomsList = [item.roomAllocations[0].room];
-                        }
-                        // else: general expense with no room allocations (rooms stays empty)
-
-                        expenses.push({
-                            description: item.description,
-                            amount: itemAmount,
-                            category: item.category,
-                            date: getItemDate(item),
-                            rooms: roomsList,
-                            roomCategory: item.category,
-                            status: item.status,
-                            isSharedExpense: false
-                        });
-                    }
-                });
-            } else {
-                // Regular rooms: Add completed items that are NOT shared
-                // AND not already represented in _general as shared expenses
-                room.items.forEach((item) => {
-                    if (item.status === 'Completed' &&
-                        !item.isSharedExpense &&
-                        !sharedExpenseDescriptions.has(item.description)) {
-                        const itemAmount = (parseFloat(item.actual_price) || parseFloat(item.budget_price) || 0) * (parseFloat(item.quantity) || 1);
-
-                        expenses.push({
-                            description: item.description,
-                            amount: itemAmount,
-                            category: item.category,
-                            date: getItemDate(item),
-                            rooms: [room.slug], // This item belongs to this specific room
-                            roomCategory: item.category,
-                            status: item.status,
-                            isSharedExpense: false
-                        });
-                    }
-                });
-            }
-        }
-
-        // Deduplicate expenses based on description, amount, category, date, and rooms
-        // This prevents the same expense from appearing multiple times
-        const uniqueExpenses = [];
-        const seen = new Set();
-
-        for (const expense of expenses) {
-            // Create a unique key for this expense
-            const roomsKey = (expense.rooms || []).sort().join(',');
-            const key = `${expense.description}|${expense.amount}|${expense.category}|${expense.date}|${roomsKey}`;
-
-            if (!seen.has(key)) {
-                seen.add(key);
-                uniqueExpenses.push(expense);
-            }
-        }
-
         // Sort by date (most recent first)
-        uniqueExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+        expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        res.json({ success: true, expenses: uniqueExpenses });
+        console.log(`📤 Loaded ${expenses.length} expenses from all rooms`);
+
+        res.json({ success: true, expenses });
     } catch (error) {
         console.error('Error loading expenses:', error);
         res.status(500).json({
             error: 'Failed to load expenses',
             details: error.message,
+        });
+    }
+});
+
+// Create new expense (requires admin)
+// Creates a new expense in the _general room and returns it with MongoDB ID
+app.post('/api/create-expense', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const { description, amount, category, date, status, rooms, roomAllocations } = req.body;
+
+        console.log('\n➕ Creating new expense in _general room...');
+
+        // Get or create _general room
+        let generalRoom = await Room.findOne({ slug: '_general' });
+        if (!generalRoom) {
+            generalRoom = new Room({
+                name: 'General / Shared Expenses',
+                slug: '_general',
+                budget: 0,
+                status: 'In Progress',
+                items: []
+            });
+        }
+
+        // Create new item in _general room
+        const newItem = {
+            description: description || '',
+            category: category || 'Other',
+            quantity: 1,
+            unit: 'unit',
+            budget_price: 0,
+            actual_price: parseFloat(amount) || 0,
+            status: status || 'Pending',
+            date: date ? new Date(date) : new Date(),
+            createdDate: new Date(),
+            completedDate: status === 'Completed' ? new Date() : null,
+            isSharedExpense: (rooms && rooms.length > 1) || false,
+            totalAmount: parseFloat(amount) || 0,
+            roomAllocations: roomAllocations || []
+        };
+
+        // Add to items array - Mongoose will auto-generate _id
+        generalRoom.items.push(newItem);
+        await generalRoom.save();
+
+        // Get the newly created item (it's the last one)
+        const createdItem = generalRoom.items[generalRoom.items.length - 1];
+
+        console.log(`   ✅ Created expense with ID: ${createdItem._id}`);
+
+        // Return the expense with ID and roomSlug for frontend
+        res.json({
+            success: true,
+            expense: {
+                _id: createdItem._id.toString(),
+                roomSlug: '_general',
+                description: createdItem.description,
+                amount: createdItem.totalAmount || createdItem.actual_price,
+                category: createdItem.category,
+                date: createdItem.date ? new Date(createdItem.date).toISOString().split('T')[0] : null,
+                createdDate: createdItem.createdDate ? new Date(createdItem.createdDate).toISOString().split('T')[0] : null,
+                completedDate: createdItem.completedDate ? new Date(createdItem.completedDate).toISOString().split('T')[0] : null,
+                rooms: rooms || [],
+                status: createdItem.status,
+                isSharedExpense: createdItem.isSharedExpense || false,
+                roomAllocations: createdItem.roomAllocations || []
+            }
+        });
+    } catch (error) {
+        console.error('Error creating expense:', error);
+        res.status(500).json({
+            error: 'Failed to create expense',
+            details: error.message
         });
     }
 });
@@ -627,124 +673,126 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
             return res.status(400).json({ error: 'Expenses must be an array' });
         }
 
-        console.log(`\n💾 Saving ${expenses.length} expenses...`);
+        console.log(`\n💾 Saving ${expenses.length} expenses using ID-based updates...`);
 
-        // Get _general room
-        const generalRoom = await Room.findOne({ slug: '_general' });
-        if (!generalRoom) {
-            return res.status(500).json({ error: '_general room not found' });
+        // Group expenses by source room for efficient updates
+        const roomUpdates = new Map(); // roomSlug -> { room, updates[] }
+
+        for (const expense of expenses) {
+            const { _id, roomSlug, description, amount, category, status, date, createdDate, completedDate, rooms, roomAllocations } = expense;
+
+            // Validate that we have source tracking
+            if (!_id || !roomSlug) {
+                console.warn(`⚠️  Skipping expense without ID/roomSlug: ${description}`);
+                continue;
+            }
+
+            // Get or create room update entry
+            if (!roomUpdates.has(roomSlug)) {
+                const room = await Room.findOne({ slug: roomSlug });
+                if (!room) {
+                    console.warn(`⚠️  Room not found: ${roomSlug}`);
+                    continue;
+                }
+                roomUpdates.set(roomSlug, { room, updates: [] });
+            }
+
+            // Add update to this room's list
+            roomUpdates.get(roomSlug).updates.push({
+                _id,
+                description,
+                amount,
+                category,
+                status,
+                date,
+                createdDate,
+                completedDate,
+                rooms: rooms || [],
+                roomAllocations: roomAllocations || []
+            });
         }
 
-        // Clear all existing items from _general room
-        // (All expense-managed items are stored here)
-        generalRoom.items = [];
+        // Apply updates to each room
+        let totalUpdated = 0;
+        for (const [roomSlug, { room, updates }] of roomUpdates) {
+            console.log(`\n📝 Updating ${updates.length} items in ${roomSlug}...`);
 
-        // Process each expense from the frontend
-        for (const expense of expenses) {
-            const rooms = expense.rooms || [];
-            const description = expense.description;
-            const amount = parseFloat(expense.amount) || 0;
-            const category = expense.category || 'Other';
-            const status = expense.status || 'Completed';
-            const inputDate = expense.date || new Date().toISOString().split('T')[0];
-            const dateObj = new Date(inputDate);
+            for (const update of updates) {
+                // Find item by MongoDB _id
+                const item = room.items.id(update._id);
 
-            // Determine date fields based on status
-            const createdDate = expense.createdDate ? new Date(expense.createdDate) : dateObj;
-            const completedDate = status === 'Completed'
-                ? (expense.completedDate ? new Date(expense.completedDate) : dateObj)
-                : null;
-
-            // Case 1: No rooms (general expense)
-            if (rooms.length === 0) {
-                generalRoom.items.push({
-                    description,
-                    category,
-                    quantity: 1,
-                    unit: 'unit',
-                    budget_price: 0,
-                    actual_price: amount,
-                    subtotal: amount,
-                    status,
-                    date: dateObj,
-                    createdDate,
-                    completedDate,
-                    isSharedExpense: false,
-                    roomAllocations: [],
-                    totalAmount: amount
-                });
-                console.log(`   ➕ General: "${description}" (S/ ${amount.toFixed(2)})`);
-            }
-            // Case 2: Single room
-            else if (rooms.length === 1) {
-                generalRoom.items.push({
-                    description,
-                    category,
-                    quantity: 1,
-                    unit: 'unit',
-                    budget_price: 0,
-                    actual_price: amount,
-                    subtotal: amount,
-                    status,
-                    date: dateObj,
-                    createdDate,
-                    completedDate,
-                    isSharedExpense: false,
-                    roomAllocations: [{ room: rooms[0], amount, percentage: 100 }],
-                    totalAmount: amount
-                });
-                console.log(`   ➕ Single room (${rooms[0]}): "${description}" (S/ ${amount.toFixed(2)})`);
-            }
-            // Case 3: Multiple rooms (shared expense)
-            else {
-                // Check if expense has custom roomAllocations from frontend
-                const hasCustomAllocations = expense.roomAllocations && expense.roomAllocations.length > 0;
-                
-                let roomAllocations;
-                if (hasCustomAllocations) {
-                    // Use custom allocations from frontend
-                    roomAllocations = expense.roomAllocations;
-                } else {
-                    // Default: split equally
-                    const amountPerRoom = amount / rooms.length;
-                    const percentagePerRoom = 100 / rooms.length;
-                    roomAllocations = rooms.map(roomSlug => ({
-                        room: roomSlug,
-                        amount: amountPerRoom,
-                        percentage: percentagePerRoom
-                    }));
+                if (!item) {
+                    console.warn(`   ⚠️  Item not found: ${update._id}`);
+                    continue;
                 }
 
-                generalRoom.items.push({
-                    description,
-                    category,
-                    quantity: 1,
-                    unit: 'unit',
-                    budget_price: 0,
-                    actual_price: 0, // Shared expenses use roomAllocations instead
-                    subtotal: 0,
-                    status,
-                    date: dateObj,
-                    createdDate,
-                    completedDate,
-                    isSharedExpense: true,
-                    roomAllocations,
-                    totalAmount: amount
-                });
-                console.log(`   ➕ Shared (${rooms.length} rooms): "${description}" (S/ ${amount.toFixed(2)})`);
+                // Update item fields
+                item.description = update.description;
+                item.category = update.category;
+                item.status = update.status;
+
+                // Update dates
+                if (update.date) {
+                    item.date = new Date(update.date);
+                }
+                if (update.createdDate) {
+                    item.createdDate = new Date(update.createdDate);
+                }
+                if (update.completedDate) {
+                    item.completedDate = new Date(update.completedDate);
+                }
+
+                // Update amount/allocations
+                const amount = parseFloat(update.amount) || 0;
+
+                if (update.rooms.length === 0) {
+                    // General expense (no rooms)
+                    item.actual_price = amount;
+                    item.totalAmount = amount;
+                    item.isSharedExpense = false;
+                    item.roomAllocations = [];
+                } else if (update.rooms.length === 1) {
+                    // Single room
+                    item.actual_price = amount;
+                    item.totalAmount = amount;
+                    item.isSharedExpense = false;
+                    item.roomAllocations = [{ room: update.rooms[0], amount, percentage: 100 }];
+                } else {
+                    // Multi-room shared expense
+                    item.totalAmount = amount;
+                    item.isSharedExpense = true;
+
+                    if (update.roomAllocations && update.roomAllocations.length > 0) {
+                        // Use custom allocations
+                        item.roomAllocations = update.roomAllocations;
+                    } else {
+                        // Default: split equally
+                        const amountPerRoom = amount / update.rooms.length;
+                        const percentagePerRoom = 100 / update.rooms.length;
+                        item.roomAllocations = update.rooms.map(r => ({
+                            room: r,
+                            amount: amountPerRoom,
+                            percentage: percentagePerRoom
+                        }));
+                    }
+                }
+
+                console.log(`   ✅ Updated: ${update.description.substring(0, 40)}...`);
+                totalUpdated++;
             }
+
+            // Save room
+            await room.save();
+            console.log(`   💾 Saved ${roomSlug}`);
         }
 
-        // Save _general room
-        await generalRoom.save();
-
-        console.log(`\n✅ Saved ${expenses.length} expenses to _general room`);
+        console.log(`\n✨ Successfully updated ${totalUpdated} expenses\n`);
 
         res.json({
             success: true,
             message: 'Expenses saved successfully',
             stats: {
-                total: expenses.length
+                total: totalUpdated
             }
         });
     } catch (error) {

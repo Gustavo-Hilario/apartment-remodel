@@ -14,7 +14,8 @@
         "restore": "node scripts/restore-from-backup.js",
         "copy:local-to-dev": "node scripts/copy-local-to-dev.js",
         "dbsync:cloud-to-local": "node scripts/dbsync-cloud-to-local.js",
-        "dbsync:local-to-cloud": "node scripts/dbsync-local-to-cloud.js"
+        "dbsync:local-to-cloud": "node scripts/dbsync-local-to-cloud.js",
+        "migrate:usernames": "node scripts/migrate-add-usernames.js"
     },
     "dependencies": {
         "bcryptjs": "^3.0.2",

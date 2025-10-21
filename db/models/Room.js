@@ -143,9 +143,9 @@ const itemSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
-    },
-    { _id: false }
-); // Don't create _id for subdocuments
+    }
+    // _id: true is default - Mongoose will auto-generate unique _id for each item
+); // Items now have unique MongoDB _id for proper tracking
 
 // Room Schema
 const roomSchema = new mongoose.Schema(

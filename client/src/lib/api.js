@@ -278,6 +278,13 @@ export const expensesAPI = {
     // Get expenses summary
     getSummary: () => fetchAPI('/expenses-summary'),
 
+    // Create a new expense with proper ID
+    create: (expenseData) =>
+        fetchAPI('/create-expense', {
+            method: 'POST',
+            body: JSON.stringify(expenseData),
+        }),
+
     // Save expenses
     save: (expenses) =>
         fetchAPI('/save-expenses', {

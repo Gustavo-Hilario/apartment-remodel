@@ -15,6 +15,19 @@ const userSchema = new mongoose.Schema(
             minlength: [2, 'Name must be at least 2 characters'],
             maxlength: [100, 'Name must be less than 100 characters'],
         },
+        username: {
+            type: String,
+            required: [true, 'Username is required'],
+            unique: true,
+            lowercase: true,
+            trim: true,
+            minlength: [3, 'Username must be at least 3 characters'],
+            maxlength: [30, 'Username must be less than 30 characters'],
+            match: [
+                /^[a-z0-9_-]+$/,
+                'Username can only contain lowercase letters, numbers, dashes, and underscores',
+            ],
+        },
         email: {
             type: String,
             required: [true, 'Email is required'],
@@ -58,8 +71,9 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-// Index for faster email lookups
+// Indexes for faster lookups
 userSchema.index({ email: 1 });
+userSchema.index({ username: 1 });
 
 // Virtual for full user info (for display)
 userSchema.virtual('displayName').get(function () {

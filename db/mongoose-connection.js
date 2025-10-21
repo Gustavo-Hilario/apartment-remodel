@@ -68,4 +68,19 @@ mongoose.connection.on('disconnected', () => {
     isConnected = false;
 });
 
-module.exports = { connectDB, mongoose };
+async function disconnectDB() {
+    if (!isConnected) {
+        return;
+    }
+
+    try {
+        await mongoose.disconnect();
+        isConnected = false;
+        console.log('✅ Disconnected from MongoDB');
+    } catch (error) {
+        console.error('❌ Error disconnecting from MongoDB:', error);
+        throw error;
+    }
+}
+
+module.exports = { connectDB, disconnectDB, mongoose };

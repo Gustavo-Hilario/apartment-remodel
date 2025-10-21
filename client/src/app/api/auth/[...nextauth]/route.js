@@ -12,12 +12,12 @@ import bcrypt from 'bcryptjs';
 // MongoDB connection via backend API
 const API_URL = process.env.NEXT_PUBLIC_API_URL.replace('/api', '');
 
-async function getUserByEmail(email) {
+async function getUserByIdentifier(identifier) {
     try {
         const response = await fetch(`${API_URL}/api/auth/user-by-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
+            body: JSON.stringify({ identifier }),
         });
 
         if (!response.ok) return null;
@@ -34,19 +34,19 @@ const authOptions = {
         CredentialsProvider({
             name: 'Credentials',
             credentials: {
-                email: { label: 'Email', type: 'email' },
+                identifier: { label: 'Email or Username', type: 'text' },
                 password: { label: 'Password', type: 'password' },
             },
             async authorize(credentials) {
-                if (!credentials?.email || !credentials?.password) {
-                    throw new Error('Please enter your email and password');
+                if (!credentials?.identifier || !credentials?.password) {
+                    throw new Error('Please enter your email/username and password');
                 }
 
-                // Get user from database
-                const user = await getUserByEmail(credentials.email);
+                // Get user from database (by email or username)
+                const user = await getUserByIdentifier(credentials.identifier);
 
                 if (!user) {
-                    throw new Error('No user found with this email');
+                    throw new Error('No user found with this email or username');
                 }
 
                 if (!user.isActive) {
@@ -79,6 +79,7 @@ const authOptions = {
                 return {
                     id: user._id,
                     email: user.email,
+                    username: user.username,
                     name: user.name,
                     role: user.role,
                 };
@@ -91,6 +92,7 @@ const authOptions = {
             if (user) {
                 token.id = user.id;
                 token.email = user.email;
+                token.username = user.username;
                 token.name = user.name;
                 token.role = user.role;
             }
@@ -101,6 +103,7 @@ const authOptions = {
             if (token) {
                 session.user.id = token.id;
                 session.user.email = token.email;
+                session.user.username = token.username;
                 session.user.name = token.name;
                 session.user.role = token.role;
             }

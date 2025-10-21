@@ -105,52 +105,68 @@ export default function ExpensesPage() {
     }
   };
 
-  const addExpense = () => {
-    const newExpense = {
-      description: '',
-      amount: 0,
-      category: 'Other',
-      date: new Date().toISOString().split('T')[0],
-      rooms: [], // Array of room slugs
-      roomCategory: '',
-      status: 'Pending',
-    };
-    setExpenses([newExpense, ...expenses]);
+  const addExpense = async () => {
+    try {
+      // Create new expense on backend to get proper ID
+      const result = await expensesAPI.create({
+        description: '',
+        amount: 0,
+        category: 'Other',
+        date: new Date().toISOString().split('T')[0],
+        status: 'Pending',
+        rooms: [],
+        roomAllocations: []
+      });
+
+      if (result.success && result.expense) {
+        // Add the new expense with proper _id and roomSlug to the list
+        setExpenses([result.expense, ...expenses]);
+      } else {
+        console.error('Failed to create expense');
+        alert('Failed to create expense');
+      }
+    } catch (err) {
+      console.error('Error creating expense:', err);
+      alert('Failed to create expense');
+    }
   };
 
-  const deleteExpense = (index) => {
-    setExpenses(expenses.filter((_, i) => i !== index));
+  const deleteExpense = (expenseId) => {
+    setExpenses(expenses.filter(exp => exp._id !== expenseId));
   };
 
-  const handleExpenseChange = (index, field, value) => {
-    const updated = [...expenses];
-    updated[index][field] = value;
+  const handleExpenseChange = (expenseId, field, value) => {
+    const updated = expenses.map(exp =>
+      exp._id === expenseId ? { ...exp, [field]: value } : exp
+    );
     setExpenses(updated);
   };
 
-  const toggleRoom = (expenseIndex, roomValue) => {
-    const updated = [...expenses];
-    const expense = updated[expenseIndex];
-    
-    // Ensure rooms is an array
-    if (!expense.rooms) {
-      expense.rooms = [];
-    }
-    
-    if (roomValue === 'all') {
-      // Toggle all rooms
-      const allRoomValues = rooms.filter(r => r.value !== 'all').map(r => r.value);
-      expense.rooms = expense.rooms.length === allRoomValues.length ? [] : allRoomValues;
-    } else {
-      // Toggle individual room
-      const index = expense.rooms.indexOf(roomValue);
-      if (index > -1) {
-        expense.rooms.splice(index, 1);
+  const toggleRoom = (expenseId, roomValue) => {
+    const updated = expenses.map(exp => {
+      if (exp._id !== expenseId) return exp;
+
+      const expRooms = exp.rooms || [];
+
+      if (roomValue === 'all') {
+        // Toggle all rooms
+        const allRoomValues = rooms.filter(r => r.value !== 'all').map(r => r.value);
+        return {
+          ...exp,
+          rooms: expRooms.length === allRoomValues.length ? [] : allRoomValues
+        };
       } else {
-        expense.rooms.push(roomValue);
+        // Toggle individual room
+        const hasRoom = expRooms.includes(roomValue);
+        return {
+          ...exp,
+          rooms: hasRoom
+            ? expRooms.filter(r => r !== roomValue)
+            : [...expRooms, roomValue]
+        };
       }
-    }
-    
+    });
+
     setExpenses(updated);
   };
 
@@ -174,8 +190,10 @@ export default function ExpensesPage() {
       : `${expenseRooms.length} rooms (Split Equally)`;
   };
 
-  const initializeRoomAllocations = (expenseIndex) => {
-    const expense = expenses[expenseIndex];
+  const initializeRoomAllocations = (expenseId) => {
+    const expense = expenses.find(exp => exp._id === expenseId);
+    if (!expense) return;
+
     const amount = parseFloat(expense.amount) || 0;
     const expenseRooms = expense.rooms || [];
 
@@ -183,7 +201,7 @@ export default function ExpensesPage() {
 
     // If already has custom allocations, keep them
     if (expense.roomAllocations && expense.roomAllocations.length > 0) {
-      setShowAllocationModal(expenseIndex);
+      setShowAllocationModal(expenseId);
       return;
     }
 
@@ -197,64 +215,74 @@ export default function ExpensesPage() {
       percentage: percentagePerRoom
     }));
 
-    const updated = [...expenses];
-    updated[expenseIndex].roomAllocations = allocations;
+    const updated = expenses.map(exp =>
+      exp._id === expenseId ? { ...exp, roomAllocations: allocations } : exp
+    );
     setExpenses(updated);
-    setShowAllocationModal(expenseIndex);
+    setShowAllocationModal(expenseId);
   };
 
-  const updateRoomAllocation = (expenseIndex, roomSlug, field, value) => {
-    const updated = [...expenses];
-    const expense = updated[expenseIndex];
-    const totalAmount = parseFloat(expense.amount) || 0;
+  const updateRoomAllocation = (expenseId, roomSlug, field, value) => {
+    const updated = expenses.map(exp => {
+      if (exp._id !== expenseId) return exp;
 
-    if (!expense.roomAllocations) {
-      initializeRoomAllocations(expenseIndex);
-      return;
-    }
+      const totalAmount = parseFloat(exp.amount) || 0;
 
-    const allocations = [...expense.roomAllocations];
-    const allocationIndex = allocations.findIndex(a => a.room === roomSlug);
+      if (!exp.roomAllocations) {
+        initializeRoomAllocations(expenseId);
+        return exp;
+      }
 
-    if (allocationIndex === -1) return;
+      const allocations = [...exp.roomAllocations];
+      const allocationIndex = allocations.findIndex(a => a.room === roomSlug);
 
-    if (field === 'percentage') {
-      const percentage = parseFloat(value) || 0;
-      allocations[allocationIndex].percentage = percentage;
-      allocations[allocationIndex].amount = (totalAmount * percentage) / 100;
-    } else if (field === 'amount') {
-      const amount = parseFloat(value) || 0;
-      allocations[allocationIndex].amount = amount;
-      allocations[allocationIndex].percentage = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
-    }
+      if (allocationIndex === -1) return exp;
 
-    expense.roomAllocations = allocations;
-    setExpenses(updated);
-  };
+      if (field === 'percentage') {
+        const percentage = parseFloat(value) || 0;
+        allocations[allocationIndex].percentage = percentage;
+        allocations[allocationIndex].amount = (totalAmount * percentage) / 100;
+      } else if (field === 'amount') {
+        const amount = parseFloat(value) || 0;
+        allocations[allocationIndex].amount = amount;
+        allocations[allocationIndex].percentage = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
+      }
 
-  const resetToEqualSplit = (expenseIndex) => {
-    const updated = [...expenses];
-    const expense = updated[expenseIndex];
-    const amount = parseFloat(expense.amount) || 0;
-    const expenseRooms = expense.rooms || [];
-
-    if (expenseRooms.length <= 1) return;
-
-    const amountPerRoom = amount / expenseRooms.length;
-    const percentagePerRoom = 100 / expenseRooms.length;
-
-    expense.roomAllocations = expenseRooms.map(roomSlug => ({
-      room: roomSlug,
-      amount: amountPerRoom,
-      percentage: percentagePerRoom
-    }));
+      return { ...exp, roomAllocations: allocations };
+    });
 
     setExpenses(updated);
   };
 
-  const clearCustomAllocations = (expenseIndex) => {
-    const updated = [...expenses];
-    updated[expenseIndex].roomAllocations = [];
+  const resetToEqualSplit = (expenseId) => {
+    const updated = expenses.map(exp => {
+      if (exp._id !== expenseId) return exp;
+
+      const amount = parseFloat(exp.amount) || 0;
+      const expenseRooms = exp.rooms || [];
+
+      if (expenseRooms.length <= 1) return exp;
+
+      const amountPerRoom = amount / expenseRooms.length;
+      const percentagePerRoom = 100 / expenseRooms.length;
+
+      return {
+        ...exp,
+        roomAllocations: expenseRooms.map(roomSlug => ({
+          room: roomSlug,
+          amount: amountPerRoom,
+          percentage: percentagePerRoom
+        }))
+      };
+    });
+
+    setExpenses(updated);
+  };
+
+  const clearCustomAllocations = (expenseId) => {
+    const updated = expenses.map(exp =>
+      exp._id === expenseId ? { ...exp, roomAllocations: [] } : exp
+    );
     setExpenses(updated);
     setShowAllocationModal(null);
   };
@@ -269,14 +297,8 @@ export default function ExpensesPage() {
   };
 
   const getFilteredAndSortedExpenses = () => {
-    // First, add original index to each expense before filtering
-    const expensesWithIndex = expenses.map((expense, index) => ({
-      ...expense,
-      originalIndex: index,
-    }));
-
-    // Then filter
-    let filtered = [...expensesWithIndex];
+    // Filter expenses (no need for originalIndex - we use _id + roomSlug)
+    let filtered = [...expenses];
 
     // Date range filter
     if (filterDateRange.start || filterDateRange.end) {
@@ -550,8 +572,8 @@ export default function ExpensesPage() {
                   </tr>
                 ) : (
                   sortedExpenses.map((expense) => (
-                    <tr 
-                      key={expense.originalIndex}
+                    <tr
+                      key={`${expense.roomSlug}-${expense._id}`}
                       className={expense.status === 'Completed' ? 'completed-row' : ''}
                     >
                       <td style={{ textAlign: 'center' }}>💵</td>
@@ -560,7 +582,7 @@ export default function ExpensesPage() {
                           selected={expense.date ? new Date(expense.date) : null}
                           onChange={(date) => {
                             const dateString = date ? date.toISOString().split('T')[0] : '';
-                            handleExpenseChange(expense.originalIndex, 'date', dateString);
+                            handleExpenseChange(expense._id, 'date', dateString);
                           }}
                           placeholderText="Select date"
                           isClearable
@@ -572,7 +594,7 @@ export default function ExpensesPage() {
                           type="text"
                           value={expense.description || ''}
                           onChange={(e) =>
-                            handleExpenseChange(expense.originalIndex, 'description', e.target.value)
+                            handleExpenseChange(expense._id, 'description', e.target.value)
                           }
                           placeholder="Expense description"
                         />
@@ -581,7 +603,7 @@ export default function ExpensesPage() {
                         <CategorySelector
                           category={expense.category || 'Other'}
                           onCategoryChange={(newCategory) =>
-                            handleExpenseChange(expense.originalIndex, 'category', newCategory)
+                            handleExpenseChange(expense._id, 'category', newCategory)
                           }
                           categories={categories}
                         />
@@ -591,7 +613,7 @@ export default function ExpensesPage() {
                           type="number"
                           value={Math.round(expense.amount || 0)}
                           onChange={(e) =>
-                            handleExpenseChange(expense.originalIndex, 'amount', parseInt(e.target.value) || 0)
+                            handleExpenseChange(expense._id, 'amount', parseInt(e.target.value) || 0)
                           }
                           step="1"
                           min="0"
@@ -603,14 +625,14 @@ export default function ExpensesPage() {
                             type="button"
                             className="room-dropdown-button"
                             onClick={() => setOpenRoomDropdown(
-                              openRoomDropdown === expense.originalIndex ? null : expense.originalIndex
+                              openRoomDropdown === expense._id ? null : expense._id
                             )}
                           >
                             {getRoomDisplay(expense.rooms || [], expense.roomAllocations)}
                             <span className="dropdown-arrow">▼</span>
                           </button>
 
-                          {openRoomDropdown === expense.originalIndex && (
+                          {openRoomDropdown === expense._id && (
                             <div className="room-dropdown-menu">
                               {rooms.map((room) => {
                                 const isAllRooms = room.value === 'all';
@@ -624,7 +646,7 @@ export default function ExpensesPage() {
                                     <input
                                       type="checkbox"
                                       checked={isChecked}
-                                      onChange={() => toggleRoom(expense.originalIndex, room.value)}
+                                      onChange={() => toggleRoom(expense._id, room.value)}
                                     />
                                     <span>{room.label}</span>
                                   </label>
@@ -639,7 +661,7 @@ export default function ExpensesPage() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setOpenRoomDropdown(null);
-                                      initializeRoomAllocations(expense.originalIndex);
+                                      initializeRoomAllocations(expense._id);
                                     }}
                                   >
                                     ⚙️ Customize Split
@@ -654,7 +676,7 @@ export default function ExpensesPage() {
                         <select
                           value={expense.status || 'Pending'}
                           onChange={(e) =>
-                            handleExpenseChange(expense.originalIndex, 'status', e.target.value)
+                            handleExpenseChange(expense._id, 'status', e.target.value)
                           }
                           className="status-select"
                         >
@@ -668,7 +690,7 @@ export default function ExpensesPage() {
                         <td style={{ textAlign: 'center' }}>
                           <button
                             className="delete-btn"
-                            onClick={() => deleteExpense(expense.originalIndex)}
+                            onClick={() => deleteExpense(expense._id)}
                             title="Delete expense"
                           >
                             🗑️
