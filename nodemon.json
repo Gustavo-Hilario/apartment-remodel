@@ -1,11 +1,20 @@
 {
-    "watch": ["scripts/server.js", "db/**/*.js", "charts/**/*.html", "*.html"],
-    "ignore": ["data/**/*", "node_modules/**/*", "reports/**/*"],
+    "watch": ["scripts/server.js", "db/**/*.js", "middleware/**/*.js", "charts/**/*.html", "*.html"],
+    "ignore": ["data/**/*", "node_modules/**/*", "reports/**/*", "client/**/*"],
     "ext": "js,html,json",
-    "delay": "1000",
+    "delay": "2500",
     "env": {
-        "NODE_ENV": "development"
+        "NODE_ENV": "development",
+        "NODE_OPTIONS": "--no-deprecation"
     },
-    "verbose": false,
-    "restartable": "rs"
+    "verbose": true,
+    "restartable": "rs",
+    "legacyWatch": false,
+    "execMap": {
+        "js": "node --trace-warnings"
+    },
+    "signal": "SIGTERM",
+    "events": {
+        "restart": "echo '\n🔄 Server restarting due to changes...\n'"
+    }
 }

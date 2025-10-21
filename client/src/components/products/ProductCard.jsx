@@ -13,7 +13,7 @@ import { formatCurrency } from '@/lib/currency';
 import AdminOnly from '../auth/AdminOnly';
 import './ProductCard.css';
 
-export default function ProductCard({ product, onEdit, onQuickSave, onDelete, onDuplicate }) {
+export default function ProductCard({ product, onEdit, onQuickSave, onDelete, onDuplicate, onViewDetails }) {
   // Determine which images to display based on selected product option
   const getDisplayImages = () => {
     // If a product option is selected, use its images instead
@@ -110,8 +110,21 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete, on
 
   const isCompleted = product.status === 'Completed';
 
+  const handleCardClick = (e) => {
+    // Don't trigger if clicking on buttons or interactive elements
+    if (e.target.closest('button') || e.target.closest('a')) {
+      return;
+    }
+    onViewDetails?.(product);
+  };
+
   return (
-    <Card className={`product-card ${isCompleted ? 'completed' : ''}`} hoverable>
+    <Card
+      className={`product-card ${isCompleted ? 'completed' : ''}`}
+      hoverable
+      onClick={handleCardClick}
+      style={{ cursor: 'pointer' }}
+    >
       {/* Image Section */}
       {(hasImages || legacyImage) && (
         <div className="product-image-section">
@@ -244,16 +257,16 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete, on
         {/* Actions */}
         <AdminOnly>
           <div className="product-actions">
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               size="small"
               icon="✏️"
               onClick={() => onEdit?.(product)}
             >
               Edit
             </Button>
-            <Button 
-              variant="danger" 
+            <Button
+              variant="danger"
               size="small"
               icon="🗑️"
               onClick={() => onDelete?.(product)}
@@ -262,6 +275,9 @@ export default function ProductCard({ product, onEdit, onQuickSave, onDelete, on
             </Button>
           </div>
         </AdminOnly>
+
+        {/* Click hint for non-admin users */}
+        <div className="click-hint">Click to view details</div>
       </div>
     </Card>
   );

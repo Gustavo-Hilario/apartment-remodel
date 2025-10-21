@@ -7,6 +7,7 @@ const { connectDB } = require('../db/mongoose-connection');
 const Room = require('../db/models/Room');
 const Timeline = require('../db/models/Timeline');
 const User = require('../db/models/User');
+const Expense = require('../db/models/Expense');
 const bcrypt = require('bcryptjs');
 const { requireAuth, requireAdmin, optionalAuth } = require('../middleware/auth');
 
@@ -508,7 +509,7 @@ app.get('/api/totals', async (req, res) => {
 // EXPENSE ROUTES
 // ============================================================================
 
-// Load all expenses
+// Load all expenses (from expenses collection + all room items)
 app.get('/api/load-expenses', async (req, res) => {
     try {
         // Helper function to get the best available date from an item
@@ -526,62 +527,77 @@ app.get('/api/load-expenses', async (req, res) => {
             return new Date().toISOString().split('T')[0];
         };
 
-        // Get all rooms
-        const rooms = await Room.find({});
-        const expenses = [];
+        const allExpenses = [];
 
-        // Process each room and track source (roomSlug + _id)
+        // 1. Get expenses from expenses collection
+        const expensesFromCollection = await Expense.find({});
+        for (const expense of expensesFromCollection) {
+            allExpenses.push({
+                // SOURCE TRACKING - identifies this is from expenses collection
+                _id: expense._id.toString(),
+                source: 'expenses', // NEW: marks this as from expenses collection
+
+                // Expense data
+                description: expense.description,
+                amount: expense.amount,
+                category: expense.category,
+                date: getItemDate(expense),
+                createdDate: expense.createdDate ? new Date(expense.createdDate).toISOString().split('T')[0] : null,
+                completedDate: expense.completedDate ? new Date(expense.completedDate).toISOString().split('T')[0] : null,
+                rooms: expense.rooms || [],
+                status: expense.status,
+                isSharedExpense: expense.isSharedExpense || false,
+                roomAllocations: expense.roomAllocations || [],
+                notes: expense.notes || ''
+            });
+        }
+
+        // 2. Get all items from all rooms
+        const rooms = await Room.find({});
         for (const room of rooms) {
             room.items.forEach((item) => {
-                // Only show completed items or items from _general room
-                if (item.status === 'Completed' || room.slug === '_general') {
-                    // Calculate amount
-                    const itemAmount = item.totalAmount ||
-                                      (parseFloat(item.actual_price) || parseFloat(item.budget_price) || 0) *
-                                      (parseFloat(item.quantity) || 1);
+                // Show ALL items from ALL rooms (not just completed)
+                const itemAmount = item.totalAmount ||
+                                  (parseFloat(item.actual_price) || parseFloat(item.budget_price) || 0) *
+                                  (parseFloat(item.quantity) || 1);
 
-                    // Determine rooms array
-                    let roomsList = [];
-                    if (item.isSharedExpense && item.roomAllocations && item.roomAllocations.length > 0) {
-                        // Multi-room shared expense
-                        roomsList = item.roomAllocations.map(a => a.room);
-                    } else if (item.roomAllocations && item.roomAllocations.length > 0) {
-                        // Single room expense
-                        roomsList = [item.roomAllocations[0].room];
-                    } else if (room.slug !== '_general') {
-                        // Room item (not from _general)
-                        roomsList = [room.slug];
-                    }
-                    // else: general expense with no room allocations (rooms stays empty)
-
-                    expenses.push({
-                        // SOURCE TRACKING - CRITICAL FOR UPDATES
-                        _id: item._id.toString(), // MongoDB ID as string
-                        roomSlug: room.slug,       // Source room
-
-                        // Expense data
-                        description: item.description,
-                        amount: itemAmount,
-                        category: item.category,
-                        date: getItemDate(item),
-                        createdDate: item.createdDate ? new Date(item.createdDate).toISOString().split('T')[0] : null,
-                        completedDate: item.completedDate ? new Date(item.completedDate).toISOString().split('T')[0] : null,
-                        rooms: roomsList,
-                        roomCategory: item.category,
-                        status: item.status,
-                        isSharedExpense: item.isSharedExpense || false,
-                        roomAllocations: item.roomAllocations || [] // Include for frontend editing
-                    });
+                // Determine rooms array
+                let roomsList = [];
+                if (item.isSharedExpense && item.roomAllocations && item.roomAllocations.length > 0) {
+                    roomsList = item.roomAllocations.map(a => a.room);
+                } else if (item.roomAllocations && item.roomAllocations.length > 0) {
+                    roomsList = [item.roomAllocations[0].room];
+                } else if (room.slug !== '_general') {
+                    roomsList = [room.slug];
                 }
+
+                allExpenses.push({
+                    // SOURCE TRACKING - identifies this is from room collection
+                    _id: item._id.toString(),
+                    source: 'rooms',      // NEW: marks this as from rooms collection
+                    roomSlug: room.slug,   // Which room it belongs to
+
+                    // Expense data
+                    description: item.description,
+                    amount: itemAmount,
+                    category: item.category,
+                    date: getItemDate(item),
+                    createdDate: item.createdDate ? new Date(item.createdDate).toISOString().split('T')[0] : null,
+                    completedDate: item.completedDate ? new Date(item.completedDate).toISOString().split('T')[0] : null,
+                    rooms: roomsList,
+                    status: item.status,
+                    isSharedExpense: item.isSharedExpense || false,
+                    roomAllocations: item.roomAllocations || []
+                });
             });
         }
 
         // Sort by date (most recent first)
-        expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+        allExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        console.log(`📤 Loaded ${expenses.length} expenses from all rooms`);
+        console.log(`📤 Loaded ${allExpenses.length} expenses (${expensesFromCollection.length} from expenses collection, ${allExpenses.length - expensesFromCollection.length} from rooms)`);
 
-        res.json({ success: true, expenses });
+        res.json({ success: true, expenses: allExpenses });
     } catch (error) {
         console.error('Error loading expenses:', error);
         res.status(500).json({
@@ -592,67 +608,49 @@ app.get('/api/load-expenses', async (req, res) => {
 });
 
 // Create new expense (requires admin)
-// Creates a new expense in the _general room and returns it with MongoDB ID
+// Creates a new expense in the expenses collection and returns it with MongoDB ID
 app.post('/api/create-expense', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { description, amount, category, date, status, rooms, roomAllocations } = req.body;
 
-        console.log('\n➕ Creating new expense in _general room...');
+        console.log('\n➕ Creating new expense in expenses collection...');
 
-        // Get or create _general room
-        let generalRoom = await Room.findOne({ slug: '_general' });
-        if (!generalRoom) {
-            generalRoom = new Room({
-                name: 'General / Shared Expenses',
-                slug: '_general',
-                budget: 0,
-                status: 'In Progress',
-                items: []
-            });
-        }
-
-        // Create new item in _general room
-        const newItem = {
-            description: description || '',
+        // Create new expense document with valid default description
+        const newExpense = new Expense({
+            description: description || 'New Expense',
             category: category || 'Other',
-            quantity: 1,
-            unit: 'unit',
-            budget_price: 0,
-            actual_price: parseFloat(amount) || 0,
+            amount: parseFloat(amount) || 0,
             status: status || 'Pending',
-            date: date ? new Date(date) : new Date(),
+            date: date ? new Date(date) : null,
             createdDate: new Date(),
             completedDate: status === 'Completed' ? new Date() : null,
+            rooms: rooms || [],
+            roomAllocations: roomAllocations || [],
             isSharedExpense: (rooms && rooms.length > 1) || false,
-            totalAmount: parseFloat(amount) || 0,
-            roomAllocations: roomAllocations || []
-        };
+            notes: ''
+        });
 
-        // Add to items array - Mongoose will auto-generate _id
-        generalRoom.items.push(newItem);
-        await generalRoom.save();
+        await newExpense.save();
 
-        // Get the newly created item (it's the last one)
-        const createdItem = generalRoom.items[generalRoom.items.length - 1];
+        console.log(`   ✅ Created expense with ID: ${newExpense._id}`);
 
-        console.log(`   ✅ Created expense with ID: ${createdItem._id}`);
-
-        // Return the expense with ID and roomSlug for frontend
+        // Return the expense formatted for frontend
         res.json({
             success: true,
             expense: {
-                _id: createdItem._id.toString(),
-                roomSlug: '_general',
-                description: createdItem.description,
-                amount: createdItem.totalAmount || createdItem.actual_price,
-                category: createdItem.category,
-                date: createdItem.date ? new Date(createdItem.date).toISOString().split('T')[0] : null,
-                createdDate: createdItem.createdDate ? new Date(createdItem.createdDate).toISOString().split('T')[0] : null,
-                completedDate: createdItem.completedDate ? new Date(createdItem.completedDate).toISOString().split('T')[0] : null,
-                rooms: rooms || [],
-                status: createdItem.status,
-                isSharedExpense: createdItem.isSharedExpense || false,
-                roomAllocations: createdItem.roomAllocations || []
+                _id: newExpense._id.toString(),
+                source: 'expenses', // Mark as from expenses collection
+                description: newExpense.description,
+                amount: newExpense.amount,
+                category: newExpense.category,
+                date: newExpense.date ? new Date(newExpense.date).toISOString().split('T')[0] : null,
+                createdDate: newExpense.createdDate ? new Date(newExpense.createdDate).toISOString().split('T')[0] : null,
+                completedDate: newExpense.completedDate ? new Date(newExpense.completedDate).toISOString().split('T')[0] : null,
+                rooms: newExpense.rooms,
+                status: newExpense.status,
+                isSharedExpense: newExpense.isSharedExpense,
+                roomAllocations: newExpense.roomAllocations,
+                notes: newExpense.notes
             }
         });
     } catch (error) {
@@ -665,6 +663,7 @@ app.post('/api/create-expense', requireAuth, requireAdmin, async (req, res) => {
 });
 
 // Save expenses (requires admin)
+// Routes to correct collection based on source field
 app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
     try {
         const { expenses } = req.body;
@@ -673,47 +672,113 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
             return res.status(400).json({ error: 'Expenses must be an array' });
         }
 
-        console.log(`\n💾 Saving ${expenses.length} expenses using ID-based updates...`);
+        console.log(`\n💾 Saving ${expenses.length} expenses...`);
 
-        // Group expenses by source room for efficient updates
+        // Separate expenses by source collection
+        const expenseCollectionUpdates = [];
         const roomUpdates = new Map(); // roomSlug -> { room, updates[] }
 
         for (const expense of expenses) {
-            const { _id, roomSlug, description, amount, category, status, date, createdDate, completedDate, rooms, roomAllocations } = expense;
+            const { _id, source, roomSlug, description, amount, category, status, date, createdDate, completedDate, rooms, roomAllocations, notes } = expense;
 
-            // Validate that we have source tracking
-            if (!_id || !roomSlug) {
-                console.warn(`⚠️  Skipping expense without ID/roomSlug: ${description}`);
+            // Validate ID
+            if (!_id) {
+                console.warn(`⚠️  Skipping expense without ID: ${description}`);
                 continue;
             }
 
-            // Get or create room update entry
-            if (!roomUpdates.has(roomSlug)) {
-                const room = await Room.findOne({ slug: roomSlug });
-                if (!room) {
-                    console.warn(`⚠️  Room not found: ${roomSlug}`);
+            if (source === 'expenses') {
+                // This expense belongs to expenses collection
+                expenseCollectionUpdates.push({
+                    _id,
+                    description,
+                    amount,
+                    category,
+                    status,
+                    date,
+                    createdDate,
+                    completedDate,
+                    rooms: rooms || [],
+                    roomAllocations: roomAllocations || [],
+                    notes: notes || ''
+                });
+            } else if (source === 'rooms') {
+                // This expense belongs to room collection
+                if (!roomSlug) {
+                    console.warn(`⚠️  Skipping room expense without roomSlug: ${description}`);
                     continue;
                 }
-                roomUpdates.set(roomSlug, { room, updates: [] });
-            }
 
-            // Add update to this room's list
-            roomUpdates.get(roomSlug).updates.push({
-                _id,
-                description,
-                amount,
-                category,
-                status,
-                date,
-                createdDate,
-                completedDate,
-                rooms: rooms || [],
-                roomAllocations: roomAllocations || []
-            });
+                // Get or create room update entry
+                if (!roomUpdates.has(roomSlug)) {
+                    const room = await Room.findOne({ slug: roomSlug });
+                    if (!room) {
+                        console.warn(`⚠️  Room not found: ${roomSlug}`);
+                        continue;
+                    }
+                    roomUpdates.set(roomSlug, { room, updates: [] });
+                }
+
+                // Add update to this room's list
+                roomUpdates.get(roomSlug).updates.push({
+                    _id,
+                    description,
+                    amount,
+                    category,
+                    status,
+                    date,
+                    createdDate,
+                    completedDate,
+                    rooms: rooms || [],
+                    roomAllocations: roomAllocations || []
+                });
+            }
         }
 
-        // Apply updates to each room
         let totalUpdated = 0;
+
+        // 1. Update expenses in expenses collection
+        if (expenseCollectionUpdates.length > 0) {
+            console.log(`\n📝 Updating ${expenseCollectionUpdates.length} expenses in expenses collection...`);
+
+            for (const update of expenseCollectionUpdates) {
+                const expense = await Expense.findById(update._id);
+
+                if (!expense) {
+                    console.warn(`   ⚠️  Expense not found: ${update._id}`);
+                    continue;
+                }
+
+                // Update fields
+                expense.description = update.description;
+                expense.category = update.category;
+                expense.status = update.status;
+                expense.amount = parseFloat(update.amount) || 0;
+                expense.rooms = update.rooms;
+                expense.roomAllocations = update.roomAllocations;
+                expense.isSharedExpense = update.rooms.length > 1;
+                expense.notes = update.notes || '';
+
+                // Update dates
+                if (update.date) {
+                    expense.date = new Date(update.date);
+                }
+                if (update.createdDate) {
+                    expense.createdDate = new Date(update.createdDate);
+                }
+                if (update.completedDate) {
+                    expense.completedDate = new Date(update.completedDate);
+                }
+
+                await expense.save();
+                console.log(`   ✅ Updated: ${update.description.substring(0, 40)}...`);
+                totalUpdated++;
+            }
+
+            console.log(`   💾 Saved expenses collection`);
+        }
+
+        // 2. Update expenses in room collections
         for (const [roomSlug, { room, updates }] of roomUpdates) {
             console.log(`\n📝 Updating ${updates.length} items in ${roomSlug}...`);
 
@@ -979,6 +1044,7 @@ async function startServer() {
             console.log(`   GET  /api/get-all-categories - Get all categories`);
             console.log(`   GET  /api/totals - Get project totals`);
             console.log(`   GET  /api/load-expenses - Load all expenses`);
+            console.log(`   POST /api/create-expense - Create new expense`);
             console.log(`   POST /api/save-expenses - Save expenses`);
             console.log(`   GET  /api/timeline - Get timeline data`);
             console.log(`   POST /api/timeline - Save timeline`);

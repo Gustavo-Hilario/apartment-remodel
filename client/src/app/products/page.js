@@ -11,6 +11,7 @@ import { MainLayout } from '@/components/layout';
 import { Card, Button, LoadingSpinner, ConfirmDialog } from '@/components/ui';
 import ProductCard from '@/components/products/ProductCard';
 import ProductEditModal from '@/components/ProductEditModal';
+import ProductDetailsModal from '@/components/products/ProductDetailsModal';
 import { productsAPI, roomsAPI } from '@/lib/api';
 import { useToast } from '@/contexts/ToastContext';
 import AdminOnly from '@/components/auth/AdminOnly';
@@ -23,6 +24,8 @@ export default function ProductsPage() {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [duplicateData, setDuplicateData] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [selectedProductForDetails, setSelectedProductForDetails] = useState(null);
     const [selectedRoom, setSelectedRoom] = useState('all');
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
     const [includeMaterials, setIncludeMaterials] = useState(false);
@@ -178,6 +181,16 @@ export default function ProductsPage() {
         setShowModal(false);
         setSelectedProduct(null);
         setDuplicateData(null);
+    };
+
+    const handleViewDetails = (product) => {
+        setSelectedProductForDetails(product);
+        setShowDetailsModal(true);
+    };
+
+    const handleCloseDetailsModal = () => {
+        setShowDetailsModal(false);
+        setSelectedProductForDetails(null);
     };
 
     // Filter and sort products
@@ -520,6 +533,7 @@ export default function ProductsPage() {
                                         onQuickSave={handleQuickSave}
                                         onDelete={handleDelete}
                                         onDuplicate={handleDuplicate}
+                                        onViewDetails={handleViewDetails}
                                     />
                                 ))
                             )}
@@ -534,6 +548,12 @@ export default function ProductsPage() {
                     initialData={duplicateData}
                     onSave={handleSave}
                     availableRooms={rooms}
+                />
+
+                <ProductDetailsModal
+                    isOpen={showDetailsModal}
+                    onClose={handleCloseDetailsModal}
+                    product={selectedProductForDetails}
                 />
 
                 <ConfirmDialog
