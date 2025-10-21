@@ -733,8 +733,9 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
             }
         }
 
-        // Step 3: Separate expenses by source collection for updates
+        // Step 3: Separate expenses by source collection for updates/inserts
         const expenseCollectionUpdates = [];
+        const expenseCollectionInserts = [];
         const roomUpdates = new Map(); // roomSlug -> { room, updates[] }
 
         for (const expense of expenses) {
@@ -746,9 +747,15 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
                 continue;
             }
 
+            // Validate description (required)
+            if (!description || description.trim() === '') {
+                console.warn(`⚠️  Skipping expense without description (ID: ${_id})`);
+                continue;
+            }
+
             if (source === 'expenses') {
                 // This expense belongs to expenses collection
-                expenseCollectionUpdates.push({
+                const expenseData = {
                     _id,
                     description,
                     amount,
@@ -760,7 +767,14 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
                     rooms: rooms || [],
                     roomAllocations: roomAllocations || [],
                     notes: notes || ''
-                });
+                };
+
+                // Check if this is a temp ID (needs to be created)
+                if (_id.startsWith('temp_')) {
+                    expenseCollectionInserts.push(expenseData);
+                } else {
+                    expenseCollectionUpdates.push(expenseData);
+                }
             } else if (source === 'rooms') {
                 // This expense belongs to room collection
                 if (!roomSlug) {
@@ -795,8 +809,36 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
         }
 
         let totalUpdated = 0;
+        let totalCreated = 0;
 
-        // 1. Update expenses in expenses collection
+        // 1. Create new expenses with temp IDs
+        if (expenseCollectionInserts.length > 0) {
+            console.log(`\n➕ Creating ${expenseCollectionInserts.length} new expenses in expenses collection...`);
+
+            for (const insert of expenseCollectionInserts) {
+                const newExpense = new Expense({
+                    description: insert.description,
+                    category: insert.category,
+                    amount: parseFloat(insert.amount) || 0,
+                    status: insert.status || 'Pending',
+                    date: insert.date ? new Date(insert.date) : null,
+                    createdDate: insert.createdDate ? new Date(insert.createdDate) : new Date(),
+                    completedDate: insert.completedDate ? new Date(insert.completedDate) : null,
+                    rooms: insert.rooms || [],
+                    roomAllocations: insert.roomAllocations || [],
+                    isSharedExpense: (insert.rooms && insert.rooms.length > 1) || false,
+                    notes: insert.notes || ''
+                });
+
+                await newExpense.save();
+                console.log(`   ✅ Created: ${insert.description.substring(0, 40)}... (ID: ${newExpense._id})`);
+                totalCreated++;
+            }
+
+            console.log(`   💾 Created ${totalCreated} new expenses`);
+        }
+
+        // 2. Update existing expenses in expenses collection
         if (expenseCollectionUpdates.length > 0) {
             console.log(`\n📝 Updating ${expenseCollectionUpdates.length} expenses in expenses collection...`);
 
@@ -837,7 +879,7 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
             console.log(`   💾 Saved expenses collection`);
         }
 
-        // 2. Update expenses in room collections
+        // 3. Update expenses in room collections
         for (const [roomSlug, { room, updates }] of roomUpdates) {
             console.log(`\n📝 Updating ${updates.length} items in ${roomSlug}...`);
 
@@ -910,12 +952,13 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
             console.log(`   💾 Saved ${roomSlug}`);
         }
 
-        console.log(`\n✨ Successfully updated ${totalUpdated} expenses and deleted ${totalDeleted} expenses\n`);
+        console.log(`\n✨ Successfully created ${totalCreated}, updated ${totalUpdated}, and deleted ${totalDeleted} expenses\n`);
 
         res.json({
             success: true,
             message: 'Expenses saved successfully',
             stats: {
+                created: totalCreated,
                 updated: totalUpdated,
                 deleted: totalDeleted
             }

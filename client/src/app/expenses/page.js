@@ -31,7 +31,7 @@ export default function ExpensesPage() {
   const [filterDateRange, setFilterDateRange] = useState({ start: null, end: null });
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterRoom, setFilterRoom] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('Completed'); // Default to Completed
 
   useEffect(() => {
     loadData();
@@ -105,30 +105,34 @@ export default function ExpensesPage() {
     }
   };
 
-  const addExpense = async () => {
-    try {
-      // Create new expense on backend to get proper ID
-      const result = await expensesAPI.create({
-        description: '',
-        amount: 0,
-        category: 'Other',
-        date: new Date().toISOString().split('T')[0],
-        status: 'Pending',
-        rooms: [],
-        roomAllocations: []
-      });
+  const addExpense = () => {
+    // Create a temporary ID for the new expense (will be assigned by backend on save)
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-      if (result.success && result.expense) {
-        // Add the new expense with proper _id and roomSlug to the list
-        setExpenses([result.expense, ...expenses]);
-      } else {
-        console.error('Failed to create expense');
-        alert('Failed to create expense');
-      }
-    } catch (err) {
-      console.error('Error creating expense:', err);
-      alert('Failed to create expense');
-    }
+    const newExpense = {
+      _id: tempId,
+      source: 'expenses',
+      description: '',
+      amount: 0,
+      category: 'Other',
+      date: new Date().toISOString().split('T')[0],
+      status: 'Pending',
+      rooms: [],
+      roomAllocations: [],
+      notes: '',
+      createdDate: new Date().toISOString().split('T')[0],
+      completedDate: null,
+      isSharedExpense: false
+    };
+
+    // Clear filters so new expense is visible
+    setFilterDateRange({ start: null, end: null });
+    setFilterCategory('all');
+    setFilterRoom('all');
+    setFilterStatus('all');
+
+    // Add to local state only - will be saved when user clicks Save
+    setExpenses([newExpense, ...expenses]);
   };
 
   const deleteExpense = (expenseId) => {
@@ -357,7 +361,7 @@ export default function ExpensesPage() {
     setFilterDateRange({ start: null, end: null });
     setFilterCategory('all');
     setFilterRoom('all');
-    setFilterStatus('all');
+    setFilterStatus('Completed'); // Reset to default Completed filter
   };
 
   // Total Spent: Only completed items
@@ -503,8 +507,8 @@ export default function ExpensesPage() {
               </div>
             </div>
             
-            {(filterDateRange.start || filterDateRange.end || filterCategory !== 'all' || 
-              filterRoom !== 'all' || filterStatus !== 'all') && (
+            {(filterDateRange.start || filterDateRange.end || filterCategory !== 'all' ||
+              filterRoom !== 'all' || filterStatus !== 'Completed') && (
               <div className="filter-actions">
                 <Button variant="secondary" onClick={clearFilters} icon="✕">
                   Clear Filters
@@ -596,7 +600,11 @@ export default function ExpensesPage() {
                           onChange={(e) =>
                             handleExpenseChange(expense._id, 'description', e.target.value)
                           }
-                          placeholder="Expense description"
+                          placeholder="Expense description (required)"
+                          required
+                          style={{
+                            borderColor: !expense.description ? '#ff6b6b' : '#ddd'
+                          }}
                         />
                       </td>
                       <td>
