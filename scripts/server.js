@@ -306,24 +306,53 @@ app.post('/api/save-room/:roomName', requireAuth, requireAdmin, async (req, res)
         room.name = roomData.name;
         room.budget = parseFloat(roomData.budget) || 0;
         room.images = roomData.images || []; // Save room images array
-        room.items = roomData.items.map((item) => ({
-            description: item.description,
-            category: item.category,
-            quantity: parseFloat(item.quantity) || 1,
-            unit: item.unit || 'unit',
-            budget_price: parseFloat(item.budget_price) || 0,
-            actual_price: parseFloat(item.actual_price) || 0,
-            status: item.status || 'Pending',
-            favorite: item.favorite || false,
-            images: item.images || [], // Save images array
-            imageUrl: item.imageUrl || '', // Keep legacy field for backward compatibility
-            showImage: item.showImage || false,
-            links: item.links || [],
-            notes: item.notes || '',
-            productOptions: item.productOptions || [],
-            selectedOptionId: item.selectedOptionId || '',
-            selectedProductName: item.selectedProductName || '',
-        }));
+
+        // Map through items and handle date tracking
+        const today = new Date();
+        room.items = roomData.items.map((item, index) => {
+            const oldItem = room.items[index]; // Get old item to compare status changes
+            const newStatus = item.status || 'Pending';
+
+            // Determine dates
+            let createdDate = item.createdDate || item.date || null;
+            let completedDate = item.completedDate || null;
+
+            // Set createdDate if this is a new item or doesn't have one
+            if (!createdDate) {
+                createdDate = today;
+            }
+
+            // Set completedDate if status changed to Completed
+            if (newStatus === 'Completed' && !completedDate) {
+                // Check if this is a new completion (status changed from non-Completed to Completed)
+                if (!oldItem || oldItem.status !== 'Completed') {
+                    completedDate = today;
+                }
+            }
+
+            return {
+                description: item.description,
+                category: item.category,
+                quantity: parseFloat(item.quantity) || 1,
+                unit: item.unit || 'unit',
+                budget_price: parseFloat(item.budget_price) || 0,
+                actual_price: parseFloat(item.actual_price) || 0,
+                status: newStatus,
+                favorite: item.favorite || false,
+                images: item.images || [], // Save images array
+                imageUrl: item.imageUrl || '', // Keep legacy field for backward compatibility
+                showImage: item.showImage || false,
+                links: item.links || [],
+                notes: item.notes || '',
+                productOptions: item.productOptions || [],
+                selectedOptionId: item.selectedOptionId || '',
+                selectedProductName: item.selectedProductName || '',
+                // Date fields
+                createdDate,
+                completedDate,
+                date: completedDate || createdDate, // Legacy field for backwards compatibility
+            };
+        });
 
         // Update status based on completed items
         const completedItems = room.items.filter(
@@ -462,6 +491,21 @@ app.get('/api/totals', async (req, res) => {
 // Load all expenses
 app.get('/api/load-expenses', async (req, res) => {
     try {
+        // Helper function to get the best available date from an item
+        const getItemDate = (item) => {
+            // Priority: completedDate (when it was marked complete) > date (legacy) > createdDate > today
+            if (item.completedDate) {
+                return new Date(item.completedDate).toISOString().split('T')[0];
+            }
+            if (item.date) {
+                return new Date(item.date).toISOString().split('T')[0];
+            }
+            if (item.createdDate) {
+                return new Date(item.createdDate).toISOString().split('T')[0];
+            }
+            return new Date().toISOString().split('T')[0];
+        };
+
         // Get all rooms
         const rooms = await Room.find({});
         const expenses = [];
@@ -490,7 +534,7 @@ app.get('/api/load-expenses', async (req, res) => {
                             description: item.description,
                             amount: item.totalAmount,
                             category: item.category,
-                            date: item.date || new Date().toISOString().split('T')[0],
+                            date: getItemDate(item),
                             rooms: item.roomAllocations.map(a => a.room), // All rooms
                             roomCategory: item.category,
                             status: item.status,
@@ -513,7 +557,7 @@ app.get('/api/load-expenses', async (req, res) => {
                             description: item.description,
                             amount: itemAmount,
                             category: item.category,
-                            date: item.date || new Date().toISOString().split('T')[0],
+                            date: getItemDate(item),
                             rooms: roomsList,
                             roomCategory: item.category,
                             status: item.status,
@@ -534,7 +578,7 @@ app.get('/api/load-expenses', async (req, res) => {
                             description: item.description,
                             amount: itemAmount,
                             category: item.category,
-                            date: item.date || new Date().toISOString().split('T')[0],
+                            date: getItemDate(item),
                             rooms: [room.slug], // This item belongs to this specific room
                             roomCategory: item.category,
                             status: item.status,
@@ -602,7 +646,14 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
             const amount = parseFloat(expense.amount) || 0;
             const category = expense.category || 'Other';
             const status = expense.status || 'Completed';
-            const date = expense.date || new Date().toISOString().split('T')[0];
+            const inputDate = expense.date || new Date().toISOString().split('T')[0];
+            const dateObj = new Date(inputDate);
+
+            // Determine date fields based on status
+            const createdDate = expense.createdDate ? new Date(expense.createdDate) : dateObj;
+            const completedDate = status === 'Completed'
+                ? (expense.completedDate ? new Date(expense.completedDate) : dateObj)
+                : null;
 
             // Case 1: No rooms (general expense)
             if (rooms.length === 0) {
@@ -615,7 +666,9 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
                     actual_price: amount,
                     subtotal: amount,
                     status,
-                    date,
+                    date: dateObj,
+                    createdDate,
+                    completedDate,
                     isSharedExpense: false,
                     roomAllocations: [],
                     totalAmount: amount
@@ -633,7 +686,9 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
                     actual_price: amount,
                     subtotal: amount,
                     status,
-                    date,
+                    date: dateObj,
+                    createdDate,
+                    completedDate,
                     isSharedExpense: false,
                     roomAllocations: [{ room: rooms[0], amount, percentage: 100 }],
                     totalAmount: amount
@@ -669,7 +724,9 @@ app.post('/api/save-expenses', requireAuth, requireAdmin, async (req, res) => {
                     actual_price: 0, // Shared expenses use roomAllocations instead
                     subtotal: 0,
                     status,
-                    date,
+                    date: dateObj,
+                    createdDate,
+                    completedDate,
                     isSharedExpense: true,
                     roomAllocations,
                     totalAmount: amount

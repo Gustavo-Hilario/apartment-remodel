@@ -129,6 +129,20 @@ const itemSchema = new mongoose.Schema(
             type: String,
             default: '',
         },
+        // Date tracking fields
+        createdDate: {
+            type: Date,
+            default: null,
+        },
+        completedDate: {
+            type: Date,
+            default: null,
+        },
+        // Legacy date field (for backwards compatibility with expenses)
+        date: {
+            type: Date,
+            default: null,
+        },
     },
     { _id: false }
 ); // Don't create _id for subdocuments
